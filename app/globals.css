@@ -1,0 +1,327 @@
+/* Tailwind CSS v4 導入 */
+@import "tailwindcss";
+
+/* 字體定義 */
+@font-face {
+  font-family: 'Noto Sans TC';
+  src: url('/font/NotoSansTC-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'jf open 粉圓';
+  src: url('/font/jf-openhuninn-2.1.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Tailwind v4 主題配置 */
+@theme {
+  /* 字體家族設定 */
+  --font-family-display: 'jf open 粉圓', 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-family-heading: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-family-main: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-family-en: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', system-ui, sans-serif;
+  --font-family-sans: 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+
+  /* 金色漸變變數 */
+  --gold-light: #ffe9a3;
+  --gold-base: #ffc857;
+  --gold-deep: #d4a437;
+  --gold-shadow: rgba(212,164,55,0.45);
+  --gold-highlight: #ffd700;
+
+  /* 黑色系變數 */
+  --black-light: #444;
+  --black-base: #222;
+  --black-deep: #000;
+  --black-shadow: rgba(0,0,0,0.5);
+
+  /* 主色調 - 黑金配色 */
+  --color-primary-0: #000;
+  --color-primary-50: #ffb869;
+  --color-primary-100: #ff9840;
+  --color-primary-200: #ff8100;
+  --color-primary-300: #cf6d00;
+  --color-primary-400: #8c4500;
+  --color-primary-500: #42210b;
+  --color-primary-600: #de3024;
+  --color-primary-700: #19100a;
+  --color-primary-800: #140d07;
+  --color-primary-900: #0b0703;
+
+  /* 銅色系 */
+  --color-amber-50: #fffdf6;
+  --color-amber-100: #fff8e6;
+  --color-amber-200: #ffefcc;
+  --color-amber-300: #ffe5b3;
+  --color-amber-400: #ffd999;
+  --color-amber-500: #ffca6b;
+  --color-amber-600: #ffb74d;
+  --color-amber-700: #ff9d3c;
+  --color-amber-800: #ff8800;
+  --color-amber-900: #e57200;
+
+  /* 輔助色系 */
+  --color-secondary-50: #23272e;
+  --color-secondary-100: #27272a;
+  --color-secondary-200: #2b2e35;
+  --color-secondary-300: #44484f;
+  --color-secondary-400: #71717a;
+  --color-secondary-500: #a1a1aa;
+  --color-secondary-600: #e5e7eb;
+  --color-secondary-700: #f4f4f5;
+  --color-secondary-800: #fafafa;
+  --color-secondary-900: #ffffff;
+
+  /* 暗紅/酒紅強調色系 */
+  --color-accent-50: #fdf2f2;
+  --color-accent-100: #fbe5e5;
+  --color-accent-200: #f5cccc;
+  --color-accent-300: #eca6a6;
+  --color-accent-400: #de7a7a;
+  --color-accent-500: #C1272D;
+  --color-accent-600: #8b1a1a;
+  --color-accent-700: #731717;
+  --color-accent-800: #5f1414;
+  --color-accent-900: #441010;
+
+  /* 陰影配置 */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(203, 161, 53, 0.1);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(203, 161, 53, 0.3);
+}
+
+/* 自定義組件樣式 */
+@layer components {
+  p, div, span {
+    font-family: var(--font-family-main);
+    font-size: 1.25rem;
+  }
+
+  .brand-title {
+    font-family: var(--font-family-display);
+    color: var(--color-primary-600);
+  }
+
+  .hero-title {
+    font-family: var(--font-family-display);
+  }
+
+  .page-title {
+    font-family: var(--font-family-heading);
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .section-title {
+    font-family: var(--font-family-heading);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  /* 金色漸變按鈕 */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-base) 45%, var(--gold-deep) 100%);
+    color: #14100a;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: .5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease, filter .3s ease;
+    box-shadow: 0 4px 15px var(--gold-shadow);
+  }
+
+  @media (min-width: 640px) {
+    .btn-primary {
+      padding: 1rem 2rem;
+      font-size: 1.125rem;
+    }
+  }
+
+  .btn-primary::before {
+    content:'';
+    position:absolute;
+    top:-120%;
+    left:-60%;
+    width:60%;
+    height:320%;
+    background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.6) 50%,transparent 100%);
+    transform:rotate(25deg) translateX(-150%);
+    opacity:0;
+    transition:transform .6s ease,opacity .2s ease;
+  }
+
+  .btn-primary:hover {
+    transform:translateY(-2px) scale(1.05);
+    box-shadow:0 6px 25px var(--gold-shadow);
+    filter:brightness(1.3);
+  }
+
+  .btn-primary:hover::before {
+    transform:rotate(25deg) translateX(250%);
+    opacity:1;
+  }
+
+  /* 黑色按鈕 */
+  .btn-primary-login {
+    width: 100%;
+    background: linear-gradient(135deg, var(--black-light) 0%, var(--black-base) 45%, var(--black-deep) 100%);
+    color: var(--gold-highlight);
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border: none;
+    border-radius: .5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease, filter .3s ease;
+    box-shadow: 0 4px 15px var(--black-shadow);
+  }
+
+  .btn-primary-login::before {
+    content:'';
+    position:absolute;
+    top:-120%;
+    left:30%;
+    width:60%;
+    height:400%;
+    background:linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.667) 70%, transparent 100%);
+    transform:rotate(25deg) translateX(-150%);
+    opacity:0;
+    transition: transform 2s cubic-bezier(0.25,0.8,0.2,1), opacity 0.5s ease;
+  }
+
+  .btn-primary-login:hover {
+    transform:translateY(-2px) scale(1.05);
+    box-shadow:0 6px 25px var(--black-shadow);
+    filter:brightness(1.15);
+  }
+
+  .btn-primary-login:hover::before {
+    transform:rotate(25deg) translateX(250%);
+    opacity:1;
+  }
+
+  /* 次要按鈕 */
+  .btn-secondary {
+    border: 2px solid #A52A2A;
+    color: #ffffff;
+    background-color: #A52A2A;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-secondary:hover {
+    background: #C1272D;
+    color: #ffffff;
+    transform: translateY(-2px);
+    filter:brightness(1.3);
+  }
+
+  /* 黑金背景 */
+  .black-color {
+    background-color: #000;
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+      url('https://res.cloudinary.com/didnp12zw/image/upload/brushed-alum_jh12ro');
+    background-size: cover;
+    background-repeat: repeat;
+  }
+
+  .black-color-products {
+    background-color: #0b0703;
+    background-image:
+      url('https://res.cloudinary.com/didnp12zw/image/upload/dark-wood_choitk');
+    background-size: cover;
+    background-repeat: repeat;
+  }
+}
+
+/* 全局樣式 */
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.section {
+  padding: 5rem 0;
+}
+
+/* 動畫效果 */
+.fade-up {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity:0;
+  transform:translateY(12px);
+  animation:reveal .7s ease forwards;
+  animation-timeline:view();
+  animation-range:entry 10% cover 30%;
+}
+
+@keyframes reveal {
+  to {
+    opacity:1;
+    transform:none;
+  }
+}
+
+/* 產品卡片效果 */
+.product-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #CBA135;
+}
+
+/* 可訪問性 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

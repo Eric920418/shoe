@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/eric/Desktop/yizx/**)",
+      "Bash(mkdir -p /Users/eric/Desktop/shoe/backend/prisma)",
+      "Bash(mkdir -p /Users/eric/Desktop/shoe/backend/src/resolvers)",
+      "Bash(mkdir -p /Users/eric/Desktop/shoe/frontend)",
+      "Bash(curl -X POST http://localhost:3000/api/graphql -H \"Content-Type: application/json\" -d '{\"\"query\"\":\"\"{ brands { id name slug logo productCount } }\"\"}')",
+      "Bash(rm:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm db:generate:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm prisma migrate:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
