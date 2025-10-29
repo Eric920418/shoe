@@ -3,6 +3,7 @@ import './globals.css'
 import { ApolloProvider } from '@/components/providers/ApolloProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast'
+import MainNav from '@/components/navigation/MainNav'
 
 export const metadata: Metadata = {
   title: '鞋店電商系統',
@@ -19,7 +20,10 @@ export default function RootLayout({
       <body className="antialiased">
         <ApolloProvider>
           <AuthProvider>
-            {children}
+            <MainNav />
+            <main className="pt-16">
+              {children}
+            </main>
             <Toaster
               position="top-right"
               toastOptions={{

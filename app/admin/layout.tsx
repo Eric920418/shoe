@@ -7,6 +7,7 @@
  */
 
 import { ReactNode } from 'react'
+import Link from 'next/link'
 import AdminNav from '@/components/admin/AdminNav'
 import AdminAuthGuard from '@/components/admin/AdminAuthGuard'
 
@@ -18,18 +19,19 @@ export const metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <AdminAuthGuard>
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 text-lg">
       {/* 頂部導航欄 */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-end h-16">
+        
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-900">鞋店電商後台</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <button className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900">
+              <Link
+                href="/"
+                className="px-4 py-2 text-base text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+              >
                 返回前台
-              </button>
+              </Link>
               <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
                 A
               </div>

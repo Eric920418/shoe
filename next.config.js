@@ -2,7 +2,7 @@
 const nextConfig = {
   // 图片优化配置
   images: {
-    domains: ['localhost', 'via.placeholder.com'],
+    domains: ['localhost', 'via.placeholder.com', 'images.unsplash.com'],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
@@ -26,39 +26,7 @@ const nextConfig = {
     optimizePackageImports: ['@heroicons/react', 'lucide-react'],
   },
 
-  // Webpack 配置优化
-  webpack: (config, { isServer }) => {
-    // 优化包大小（僅客户端，避免 SSR 錯誤）
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // 将 node_modules 打包成 vendor chunk
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            // 将公共代码打包成 common chunk
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-          },
-        },
-      }
-    }
-    return config
-  },
+  // 移除自定義 splitChunks 配置，使用 Next.js 預設的路由拆分優化
 
   // 环境变量配置
   env: {

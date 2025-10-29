@@ -1,5 +1,3 @@
-'use client'
-
 export default function BrandsSection() {
   const brands = [
     { name: 'Nike', logo: '✓', description: '全球運動領導品牌' },

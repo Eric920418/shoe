@@ -6,8 +6,9 @@ import { prisma } from '@/lib/prisma'
 
 interface Context {
   user?: {
-    id: string
+    userId: string
     email: string
+    role: string
   }
 }
 
@@ -20,7 +21,7 @@ export const cartResolvers = {
       }
 
       const cart = await prisma.cart.findUnique({
-        where: { userId: context.user.id },
+        where: { userId: context.user.userId },
         include: {
           items: {
             include: {
@@ -41,7 +42,7 @@ export const cartResolvers = {
         // 如果購物車不存在，創建一個新的
         return await prisma.cart.create({
           data: {
-            userId: context.user.id,
+            userId: context.user.userId,
             items: {
               create: [],
             },
@@ -100,12 +101,12 @@ export const cartResolvers = {
 
       // 獲取或創建購物車
       let cart = await prisma.cart.findUnique({
-        where: { userId: context.user.id },
+        where: { userId: context.user.userId },
       })
 
       if (!cart) {
         cart = await prisma.cart.create({
-          data: { userId: context.user.id },
+          data: { userId: context.user.userId },
         })
       }
 
@@ -186,7 +187,7 @@ export const cartResolvers = {
         throw new Error('購物車項目不存在')
       }
 
-      if (cartItem.cart.userId !== context.user.id) {
+      if (cartItem.cart.userId !== context.user.userId) {
         throw new Error('無權操作此購物車項目')
       }
 
@@ -239,7 +240,7 @@ export const cartResolvers = {
         throw new Error('購物車項目不存在')
       }
 
-      if (cartItem.cart.userId !== context.user.id) {
+      if (cartItem.cart.userId !== context.user.userId) {
         throw new Error('無權操作此購物車項目')
       }
 
@@ -275,7 +276,7 @@ export const cartResolvers = {
       }
 
       const cart = await prisma.cart.findUnique({
-        where: { userId: context.user.id },
+        where: { userId: context.user.userId },
       })
 
       if (!cart) {

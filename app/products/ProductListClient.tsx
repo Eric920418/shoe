@@ -4,7 +4,7 @@
  * 產品列表客戶端組件 - 顯示所有產品並支援篩選
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { GET_PRODUCTS, GET_CATEGORIES, GET_BRANDS } from '@/graphql/queries'
 import Link from 'next/link'
@@ -49,7 +49,7 @@ export default function ProductListClient() {
   const [gender, setGender] = useState<string>('')
   const [search, setSearch] = useState<string>('')
 
-  const { data: productsData, loading: productsLoading, error: productsError, refetch } = useQuery(GET_PRODUCTS, {
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
     variables: {
       skip: 0,
       take: 50,
@@ -66,9 +66,7 @@ export default function ProductListClient() {
   const { data: categoriesData } = useQuery(GET_CATEGORIES)
   const { data: brandsData } = useQuery(GET_BRANDS)
 
-  useEffect(() => {
-    refetch()
-  }, [categoryId, brandId, minPrice, maxPrice, gender, search, refetch])
+  // useQuery 會在 variables 變化時自動重新抓取資料，無需手動 refetch
 
   const products: Product[] = productsData?.products || []
   const categories: Category[] = categoriesData?.categories || []

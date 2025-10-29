@@ -230,23 +230,7 @@
     filter:brightness(1.3);
   }
 
-  /* 黑金背景 */
-  .black-color {
-    background-color: #000;
-    background-image:
-      linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-      url('https://res.cloudinary.com/didnp12zw/image/upload/brushed-alum_jh12ro');
-    background-size: cover;
-    background-repeat: repeat;
-  }
 
-  .black-color-products {
-    background-color: #0b0703;
-    background-image:
-      url('https://res.cloudinary.com/didnp12zw/image/upload/dark-wood_choitk');
-    background-size: cover;
-    background-repeat: repeat;
-  }
 }
 
 /* 全局樣式 */

@@ -131,6 +131,7 @@ export default function AnnouncementsPage() {
   const [updateAnnouncement, { loading: updating }] = useMutation(UPDATE_ANNOUNCEMENT, {
     onCompleted: () => {
       alert('公告更新成功！')
+      setShowCreateModal(false)
       setEditingAnnouncement(null)
       resetForm()
       refetch()

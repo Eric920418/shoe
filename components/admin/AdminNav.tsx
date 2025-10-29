@@ -39,7 +39,6 @@ const navItems = [
     items: [
       { name: "優惠券", href: "/admin/coupons", icon: "🎫" },
       { name: "購物金", href: "/admin/credits", icon: "💰" },
-      { name: "活動管理", href: "/admin/campaigns", icon: "🎯" },
     ],
   },
   {
@@ -64,7 +63,7 @@ export default function AdminNav() {
       <nav className="p-4 space-y-6">
         {navItems.map((section) => (
           <div key={section.title}>
-            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            <h3 className="px-3 text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
               {section.title}
             </h3>
             <div className="space-y-1">
@@ -75,7 +74,7 @@ export default function AdminNav() {
                     key={item.href}
                     href={item.href}
                     className={`
-                      flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium transition-colors
                       ${
                         isActive
                           ? 'bg-primary-50 text-primary-700'
@@ -83,7 +82,7 @@ export default function AdminNav() {
                       }
                     `}
                   >
-                    <span className="text-lg">{item.icon}</span>
+                    <span className="text-xl">{item.icon}</span>
                     <span>{item.name}</span>
                   </Link>
                 )

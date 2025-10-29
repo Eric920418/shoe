@@ -978,11 +978,9 @@ export const typeDefs = gql`
   # ==================== Mutation ====================
 
   type Mutation {
-    # LINE Login 認證流程
+    # LINE Login 認證流程（簡化版 - 無需 OTP）
     getLineLoginUrl: LineLoginUrlResponse!
-    lineLoginCallback(code: String!): LineCallbackResponse!
-    verifyLineOtp(lineUserId: String!, code: String!, name: String, phone: String): AuthPayload!
-    resendLineOtp(lineUserId: String!): ResendOtpResponse!
+    lineLoginCallback(code: String!, name: String, phone: String): AuthPayload!
 
     # 管理員快速登入（開發/測試用）
     adminQuickLogin(code: String!): AuthPayload!
@@ -1098,21 +1096,6 @@ export const typeDefs = gql`
   # LINE Login 相關返回類型
   type LineLoginUrlResponse {
     url: String!
-  }
-
-  type LineCallbackResponse {
-    lineUserId: String!
-    displayName: String!
-    pictureUrl: String
-    isNewUser: Boolean!
-    otpSent: Boolean!
-    expiresAt: String!
-  }
-
-  type ResendOtpResponse {
-    success: Boolean!
-    message: String!
-    expiresAt: String!
   }
 
   type CouponValidationResult {

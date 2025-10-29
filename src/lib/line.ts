@@ -17,7 +17,7 @@ import axios from 'axios'
 // LINE Login（OAuth）
 const LINE_CHANNEL_ID = process.env.LINE_CHANNEL_ID || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
-const LINE_CALLBACK_URL = process.env.LINE_CALLBACK_URL || 'http://localhost:3000/api/auth/line/callback'
+const LINE_CALLBACK_URL = process.env.LINE_CALLBACK_URL || 'http://localhost:3000/auth/line-verify'
 
 // LINE Messaging API（發送訊息）
 const LINE_MESSAGING_ACCESS_TOKEN = process.env.LINE_MESSAGING_ACCESS_TOKEN || ''
@@ -30,6 +30,11 @@ const LINE_OFFICIAL_ACCOUNT_ID = process.env.LINE_OFFICIAL_ACCOUNT_ID || '' // �
 /**
  * 生成 LINE Login 授權 URL
  * 用戶點擊後會跳轉到 LINE 授權頁面
+ *
+ * 重要參數說明:
+ * - bot_prompt=aggressive: 強制顯示「加入好友」提示
+ * - prompt=consent: 每次都顯示授權同意畫面(即使已授權過)
+ * - nonce: 防止重放攻擊,每次都生成新的
  */
 export function generateLineLoginUrl(state?: string): string {
   const params = new URLSearchParams({
@@ -38,6 +43,9 @@ export function generateLineLoginUrl(state?: string): string {
     redirect_uri: LINE_CALLBACK_URL,
     state: state || generateRandomState(),
     scope: 'profile openid', // 取得用戶資料
+    nonce: generateRandomNonce(), // 每次生成新的 nonce
+    bot_prompt: 'aggressive', // 積極提示加入好友(normal = 普通提示, aggressive = 強制提示)
+    prompt: 'consent', // 每次都顯示授權同意畫面
   })
 
   return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`
@@ -61,13 +69,26 @@ export async function getLineAccessToken(code: string): Promise<{
     client_secret: LINE_CHANNEL_SECRET,
   })
 
-  const response = await axios.post('https://api.line.me/oauth2/v2.1/token', params, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  })
+  try {
+    const response = await axios.post('https://api.line.me/oauth2/v2.1/token', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
 
-  return response.data
+    return response.data
+  } catch (error: any) {
+    console.error('LINE getLineAccessToken 錯誤:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code,
+      redirect_uri: LINE_CALLBACK_URL,
+      client_id: LINE_CHANNEL_ID,
+    })
+    throw new Error(`LINE API 錯誤: ${error.response?.data?.error_description || error.message}`)
+  }
 }
 
 /**
@@ -113,35 +134,6 @@ export async function verifyIdToken(idToken: string): Promise<{
 // ============================================
 // LINE Messaging API（發送訊息）
 // ============================================
-
-/**
- * 發送 OTP 驗證碼到 LINE
- * 使用 Push Message API
- */
-export async function sendLineOtp(lineUserId: string, otpCode: string): Promise<void> {
-  if (!LINE_MESSAGING_ACCESS_TOKEN) {
-    throw new Error('LINE_MESSAGING_ACCESS_TOKEN 未設定')
-  }
-
-  const message = {
-    type: 'text',
-    text: `🔐 您的驗證碼是：${otpCode}\n\n此驗證碼將在 10 分鐘後失效。\n請勿將驗證碼告訴任何人。\n\n- 潮流鞋店`,
-  }
-
-  await axios.post(
-    'https://api.line.me/v2/bot/message/push',
-    {
-      to: lineUserId,
-      messages: [message],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${LINE_MESSAGING_ACCESS_TOKEN}`,
-      },
-    }
-  )
-}
 
 /**
  * 發送歡迎訊息 + 邀請加入官方帳號
@@ -251,11 +243,12 @@ function generateRandomState(): string {
 }
 
 /**
- * 生成 6 位數 OTP
+ * 生成隨機 nonce（防重放攻擊）
  */
-export function generateOtpCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+function generateRandomNonce(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
+
 
 /**
  * 檢查是否已設定 LINE Messaging API
