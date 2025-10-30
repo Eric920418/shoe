@@ -14,9 +14,10 @@ import { creditResolvers } from './creditResolvers'
 import { announcementResolvers } from './announcementResolvers'
 import { referralResolvers } from './referralResolvers'
 import { chatResolvers } from './chatResolvers'
-import { socialLinkResolvers } from './socialLinkResolvers'
 import { returnResolvers } from './returnResolvers'
 import { membershipTierResolvers } from './membershipTierResolvers'
+import { faqResolvers } from './faqResolvers'
+import { heroSlideResolvers } from './heroSlideResolvers'
 
 // 合并所有resolvers
 export const resolvers = {
@@ -32,9 +33,10 @@ export const resolvers = {
     ...announcementResolvers.Query,
     ...referralResolvers.Query,
     ...chatResolvers.Query,
-    ...socialLinkResolvers.Query,
     ...returnResolvers.Query,
     ...membershipTierResolvers.Query,
+    ...faqResolvers.Query,
+    ...heroSlideResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -49,9 +51,10 @@ export const resolvers = {
     ...announcementResolvers.Mutation,
     ...referralResolvers.Mutation,
     ...chatResolvers.Mutation,
-    ...socialLinkResolvers.Mutation,
     ...returnResolvers.Mutation,
     ...membershipTierResolvers.Mutation,
+    ...faqResolvers.Mutation,
+    ...heroSlideResolvers.Mutation,
   },
   User: authResolvers.User,
   Category: productResolvers.Category,

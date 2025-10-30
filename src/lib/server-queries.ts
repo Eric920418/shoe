@@ -7,6 +7,33 @@
 
 import { cache } from 'react'
 import { prisma } from './prisma'
+import { Decimal } from '@prisma/client/runtime/library'
+
+/**
+ * 將 Prisma Decimal 轉換為 number（用於序列化到 Client Components）
+ */
+function serializeProduct(product: any) {
+  if (!product) return null
+
+  return {
+    ...product,
+    price: product.price instanceof Decimal ? product.price.toNumber() : product.price,
+    originalPrice: product.originalPrice instanceof Decimal ? product.originalPrice.toNumber() : product.originalPrice,
+    cost: product.cost instanceof Decimal ? product.cost.toNumber() : product.cost,
+    weight: product.weight instanceof Decimal ? product.weight.toNumber() : product.weight,
+    heelHeight: product.heelHeight instanceof Decimal ? product.heelHeight.toNumber() : product.heelHeight,
+    averageRating: product.averageRating instanceof Decimal ? product.averageRating.toNumber() : product.averageRating,
+    variants: product.variants?.map((v: any) => ({
+      ...v,
+      priceAdjustment: v.priceAdjustment instanceof Decimal ? v.priceAdjustment.toNumber() : v.priceAdjustment,
+      weight: v.weight instanceof Decimal ? v.weight.toNumber() : v.weight,
+    })),
+    sizeCharts: product.sizeCharts?.map((s: any) => ({
+      ...s,
+      footLength: s.footLength instanceof Decimal ? s.footLength.toNumber() : s.footLength,
+    })),
+  }
+}
 
 /**
  * 根據 slug 獲取產品詳情（包含關聯資料）
@@ -69,7 +96,7 @@ export const getProductBySlug = cache(async (slug: string) => {
       },
     })
 
-    return product
+    return serializeProduct(product)
   } catch (error) {
     console.error('Failed to fetch product by slug:', slug, error)
     return null
@@ -336,6 +363,7 @@ export const getNewArrivals = cache(async (limit: number = 10) => {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
+        isNewArrival: true,
       },
       take: limit,
       include: {

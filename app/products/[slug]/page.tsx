@@ -8,7 +8,8 @@
 
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import ProductDetailClient from './ProductDetailClient'
+import ModernProductDetail from './ModernProductDetail'
+import ModernFooter from '@/components/common/ModernFooter'
 import { getProductBySlug } from '@/lib/server-queries'
 
 // getProductBySlug 已經使用 React cache，會自動去重
@@ -22,13 +23,13 @@ export async function generateMetadata({
 
   if (!product) {
     return {
-      title: '產品未找到 - 鞋店電商',
+      title: '產品未找到 - SHOE STORE',
       description: '該產品不存在或已下架',
     }
   }
 
   return {
-    title: `${product.name} - 鞋店電商`,
+    title: `${product.name} - SHOE STORE`,
     description: product.description || `購買 ${product.name}，來自 ${product.brand?.name || '知名品牌'}`,
   }
 }
@@ -44,5 +45,10 @@ export default async function ProductDetailPage({
     notFound()
   }
 
-  return <ProductDetailClient product={product} />
+  return (
+    <>
+      <ModernProductDetail product={product} />
+      <ModernFooter />
+    </>
+  )
 }

@@ -94,12 +94,6 @@ export default function MainNav() {
                 >
                   登入
                 </Link>
-                <Link
-                  href="/auth/register"
-                  className="px-4 py-2 bg-gradient-to-r from-[var(--gold-light)] to-[var(--gold-deep)] text-white rounded-lg hover:shadow-lg transition-all duration-200"
-                >
-                  註冊
-                </Link>
               </div>
             )}
 
@@ -221,13 +215,6 @@ export default function MainNav() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   登入
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="block py-2 px-4 bg-gradient-to-r from-[var(--gold-light)] to-[var(--gold-deep)] text-white rounded-lg hover:shadow-lg transition-all duration-200 text-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  註冊
                 </Link>
               </div>
             )}

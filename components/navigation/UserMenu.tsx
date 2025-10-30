@@ -42,20 +42,9 @@ export default function UserMenu() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 text-amber-100 hover:text-amber-300 transition-colors"
       >
-        {user?.avatar ? (
-          <img
-            src={user.avatar}
-            alt={user.name}
-            className="w-8 h-8 rounded-full border-2 border-amber-300"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--gold-light)] to-[var(--gold-deep)] flex items-center justify-center text-white font-semibold text-sm">
-            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
-        )}
-        <span className="hidden md:inline font-medium">{user?.name}</span>
+        <span className="hidden md:inline font-medium text-black">{user?.name}</span>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform text-black ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

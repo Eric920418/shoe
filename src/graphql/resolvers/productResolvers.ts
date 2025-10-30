@@ -52,7 +52,7 @@ export const productResolvers = {
       return product
     },
 
-    // 獲取產品列表
+    // 獲取產品列表（帶快取）
     products: async (
       _: any,
       {
@@ -116,16 +116,21 @@ export const productResolvers = {
         ]
       }
 
-      return await prisma.product.findMany({
-        skip,
-        take,
-        where: filters,
-        orderBy,
-        include: {
-          category: true,
-          brand: true,
-          variants: { where: { isActive: true }, take: 1 },
-        },
+      // ✅ 生成快取鍵（包含所有查詢參數）
+      const cacheParams = `${skip}:${take}:${categoryId || 'all'}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+
+      return await ProductCache.getList(cacheParams, async () => {
+        return await prisma.product.findMany({
+          skip,
+          take,
+          where: filters,
+          orderBy,
+          include: {
+            category: true,
+            brand: true,
+            variants: { where: { isActive: true }, take: 1 },
+          },
+        })
       })
     },
 
@@ -143,12 +148,17 @@ export const productResolvers = {
       })
     },
 
-    // 獲取所有分類（帶快取）
+    // 獲取所有分類（帶快取，包含產品數量）
     categories: async (_: any, { where }: { where?: any }) => {
       return await CategoryCache.getList(async () => {
         return await prisma.category.findMany({
           where: { ...where, isActive: true },
           orderBy: { sortOrder: 'asc' },
+          include: {
+            _count: {
+              select: { products: { where: { isActive: true } } }
+            }
+          }
         })
       })
     },
@@ -166,12 +176,17 @@ export const productResolvers = {
       })
     },
 
-    // 獲取所有品牌（帶快取）
+    // 獲取所有品牌（帶快取，包含產品數量）
     brands: async (_: any, { where }: { where?: any }) => {
       return await BrandCache.getList(async () => {
         return await prisma.brand.findMany({
           where: { ...where, isActive: true },
           orderBy: { sortOrder: 'asc' },
+          include: {
+            _count: {
+              select: { products: { where: { isActive: true } } }
+            }
+          }
         })
       })
     },
@@ -436,10 +451,11 @@ export const productResolvers = {
 
   Category: {
     productCount: async (category: any) => {
-      // 使用快取優化（如果已有 _count，直接返回）
+      // ✅ 優先使用預先載入的 _count（避免 N+1 查詢）
       if (category._count?.products !== undefined) {
         return category._count.products
       }
+      // Fallback：單獨查詢（效能較差，但確保相容性）
       return await prisma.product.count({
         where: { categoryId: category.id, isActive: true },
       })
@@ -448,10 +464,11 @@ export const productResolvers = {
 
   Brand: {
     productCount: async (brand: any) => {
-      // 使用快取優化（如果已有 _count，直接返回）
+      // ✅ 優先使用預先載入的 _count（避免 N+1 查詢）
       if (brand._count?.products !== undefined) {
         return brand._count.products
       }
+      // Fallback：單獨查詢（效能較差，但確保相容性）
       return await prisma.product.count({
         where: { brandId: brand.id, isActive: true },
       })

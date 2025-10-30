@@ -69,16 +69,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // ==========================================
-  // 3. 保護結帳頁面 - 需要登入
+  // 3. 結帳頁面 - ✅ 允許訪客訪問（移除強制登入檢查）
   // ==========================================
-  if (pathname.startsWith('/checkout')) {
-    if (!user) {
-      const loginUrl = new URL('/auth/login', request.url)
-      loginUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-    return NextResponse.next()
-  }
+  // 已移除結帳頁面的登入強制要求，改為頁面內部處理訪客模式
 
   // 其他路由，允許訪問
   return NextResponse.next()
@@ -91,6 +84,6 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/account/:path*',
-    '/checkout/:path*',
+    // ✅ 移除 /checkout/:path* - 允許訪客訪問
   ],
 }

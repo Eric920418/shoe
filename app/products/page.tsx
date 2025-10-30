@@ -3,13 +3,19 @@
  */
 
 import { Metadata } from 'next'
-import ProductListClient from './ProductListClient'
+import ModernProductListClient from './ModernProductListClient'
+import ModernFooter from '@/components/common/ModernFooter'
 
 export const metadata: Metadata = {
-  title: '所有商品 - 鞋店電商',
-  description: '瀏覽我們的鞋類商品系列，包含運動鞋、皮鞋、靴子等各式鞋款',
+  title: '全部商品 - SHOE STORE',
+  description: '探索最新潮流鞋款 - 運動鞋、休閒鞋、籃球鞋等各式鞋款任你選擇',
 }
 
 export default function ProductsPage() {
-  return <ProductListClient />
+  return (
+    <>
+      <ModernProductListClient />
+      <ModernFooter />
+    </>
+  )
 }

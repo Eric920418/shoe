@@ -166,14 +166,23 @@ export const typeDefs = gql`
   # 用戶類型
   type User {
     id: ID!
-    email: String!
+    email: String
     phone: String
     name: String!
     firstName: String
     lastName: String
     role: Role!
     avatar: String
+    # LINE 相關欄位
+    lineId: String
+    lineDisplayName: String
+    lineProfileImage: String
+    isLineConnected: Boolean!
+    isLineOfficialFriend: Boolean!
+    lineConnectedAt: DateTime
+    # 會員等級
     membershipTierConfig: MembershipTierConfig
+    membershipTier: String
     membershipPoints: Int!
     membershipExpiredAt: DateTime
     isFirstTimeBuyer: Boolean!
@@ -281,6 +290,7 @@ export const typeDefs = gql`
     images: JSON!
     isActive: Boolean!
     isFeatured: Boolean!
+    isNewArrival: Boolean!
     sortOrder: Int!
     viewCount: Int!
     soldCount: Int!
@@ -548,19 +558,6 @@ export const typeDefs = gql`
     hasMore: Boolean!
   }
 
-  # 社群連結系統
-  type SocialLink {
-    id: ID!
-    platform: String!
-    url: String!
-    label: String
-    icon: String
-    isActive: Boolean!
-    sortOrder: Int!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
-
   # 創建公告輸入
   input CreateAnnouncementInput {
     title: String!
@@ -588,13 +585,28 @@ export const typeDefs = gql`
   }
 
   # 邀請碼系統
+  type ReferralSettings {
+    id: ID!
+    isEnabled: Boolean!
+    rewardAmount: Decimal!
+    minOrderAmount: Decimal!
+    maxRewardsPerReferee: Int!
+    rewardType: String!
+    rewardPercentage: Decimal!
+    maxRewardPerOrder: Decimal
+    creditValidityDays: Int!
+    description: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
   type ReferralCode {
     id: ID!
     userId: String!
     code: String!
     usedCount: Int!
-    rewardAmount: Decimal!
-    referrerReward: Decimal!
+    totalRewards: Decimal!
+    referrerReward: Decimal
     isActive: Boolean!
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -607,6 +619,9 @@ export const typeDefs = gql`
     referralCodeId: String!
     referrerId: String!
     refereeId: String!
+    orderId: String
+    orderAmount: Decimal
+    rewardAmount: Decimal!
     rewardGranted: Boolean!
     creditId: String
     createdAt: DateTime!
@@ -639,14 +654,81 @@ export const typeDefs = gql`
     pendingRewards: Float!
   }
 
+  type ReferralGlobalStats {
+    totalUsers: Int!
+    totalReferralCodes: Int!
+    totalReferrals: Int!
+    successfulOrders: Int!
+    totalRewardAmount: Float!
+    pendingRewardAmount: Float!
+    averageRewardPerOrder: Float!
+    topReferrers: [TopReferrer!]!
+  }
+
+  type TopReferrer {
+    userId: String!
+    userName: String!
+    referralCount: Int!
+    totalRewards: Float!
+  }
+
   type DeleteResponse {
     success: Boolean!
     message: String
   }
 
-  input UpdateReferralCodeInput {
+  input UpdateReferralSettingsInput {
+    isEnabled: Boolean
     rewardAmount: Float
-    referrerReward: Float
+    minOrderAmount: Float
+    maxRewardsPerReferee: Int
+    rewardType: String
+    rewardPercentage: Float
+    maxRewardPerOrder: Float
+    creditValidityDays: Int
+    description: String
+  }
+
+  input UpdateReferralCodeInput {
+    isActive: Boolean
+  }
+
+  # ==================== 首頁內容管理 ====================
+
+  # 首頁輪播圖
+  type HeroSlide {
+    id: ID!
+    title: String!
+    subtitle: String
+    description: String
+    image: String!
+    cta: String!
+    link: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input CreateHeroSlideInput {
+    title: String!
+    subtitle: String
+    description: String
+    image: String!
+    cta: String!
+    link: String!
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  input UpdateHeroSlideInput {
+    title: String
+    subtitle: String
+    description: String
+    image: String
+    cta: String
+    link: String
+    sortOrder: Int
     isActive: Boolean
   }
 
@@ -810,7 +892,7 @@ export const typeDefs = gql`
     viewCount: Int!
     helpfulCount: Int!
     isPublished: Boolean!
-    priority: Int!
+    sortOrder: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -891,6 +973,8 @@ export const typeDefs = gql`
     order(id: ID, orderNumber: String): Order
     myOrders(skip: Int, take: Int): [Order!]!
     orders(skip: Int, take: Int, where: JSON): [Order!]!
+    # 訪客訂單追蹤（不需要登入）
+    trackOrder(orderNumber: String!, phone: String!): Order
 
     # 優惠券
     coupon(id: ID, code: String): Coupon
@@ -926,11 +1010,19 @@ export const typeDefs = gql`
     announcements(skip: Int, take: Int, where: JSON): AnnouncementsResponse!
     announcement(id: ID!): Announcement
 
+    # 首頁輪播圖
+    heroSlides: [HeroSlide!]!
+    activeHeroSlides: [HeroSlide!]!
+    # Admin: 輪播圖管理
+    heroSlide(id: ID!): HeroSlide
+
     # 邀請碼
     myReferralCode: ReferralCode!
     validateReferralCode(code: String!): ReferralCodeValidation!
     referralStats: ReferralStats!
     # Admin: 邀請碼管理
+    referralSettings: ReferralSettings!
+    referralGlobalStats: ReferralGlobalStats!
     referralCodes(skip: Int, take: Int): ReferralCodesResponse!
 
     # 聊天室
@@ -948,14 +1040,13 @@ export const typeDefs = gql`
 
     # FAQ
     faqs(category: String): [Faq!]!
+    faq(id: ID, slug: String): Faq
+    faqCategories: [String!]!
+    # Admin: FAQ 管理
+    allFaqs(skip: Int, take: Int, category: String): FaqsResponse!
 
     # 尺码表
     productSizeChart(productId: ID!, variantId: ID): [SizeChart!]!
-
-    # 社群連結
-    socialLinks: [SocialLink!]!
-    # Admin: 社群連結管理
-    allSocialLinks: [SocialLink!]!
 
     # 退貨管理
     myReturns: [Return!]!
@@ -980,7 +1071,7 @@ export const typeDefs = gql`
   type Mutation {
     # LINE Login 認證流程（簡化版 - 無需 OTP）
     getLineLoginUrl: LineLoginUrlResponse!
-    lineLoginCallback(code: String!, name: String, phone: String): AuthPayload!
+    lineLoginCallback(code: String!, name: String, phone: String, referralCode: String): AuthPayload!
 
     # 管理員快速登入（開發/測試用）
     adminQuickLogin(code: String!): AuthPayload!
@@ -1001,10 +1092,10 @@ export const typeDefs = gql`
     setDefaultAddress(id: ID!): Address!
     
     # 購物車
-    addToCart(productId: ID!, variantId: ID, sizeEu: String!, quantity: Int!): CartItem!
-    updateCartItem(id: ID!, quantity: Int!): CartItem!
-    removeFromCart(id: ID!): Boolean!
-    clearCart: Boolean!
+    addToCart(productId: ID!, variantId: ID, sizeChartId: ID!, quantity: Int!): Cart!
+    updateCartItem(cartItemId: ID!, quantity: Int!): Cart!
+    removeFromCart(cartItemId: ID!): Cart!
+    clearCart: Cart!
     
     # 訂單
     createOrder(input: CreateOrderInput!): Order!
@@ -1054,6 +1145,7 @@ export const typeDefs = gql`
     recordReferralVisit(code: String!): JSON!
     useReferralCode(code: String!, userId: String!): UseReferralCodeResponse!
     # Admin: 邀請碼管理
+    updateReferralSettings(input: UpdateReferralSettingsInput!): ReferralSettings!
     updateReferralCode(id: ID!, input: UpdateReferralCodeInput!): ReferralCode!
 
     # 聊天室
@@ -1069,21 +1161,28 @@ export const typeDefs = gql`
     addToWishlist(productId: ID!): WishlistItem!
     removeFromWishlist(id: ID!): Boolean!
 
-    # 社群連結管理（Admin）
-    createSocialLink(input: CreateSocialLinkInput!): SocialLink!
-    updateSocialLink(id: ID!, input: UpdateSocialLinkInput!): SocialLink!
-    deleteSocialLink(id: ID!): DeleteResponse!
-
     # 退货
     createReturn(input: CreateReturnInput!): Return!
     updateReturnStatus(id: ID!, input: UpdateReturnStatusInput!): Return!
     uploadReturnTrackingNumber(returnId: ID!, trackingNumber: String!): Return!
+
+    # 首頁輪播圖管理（Admin）
+    createHeroSlide(input: CreateHeroSlideInput!): HeroSlide!
+    updateHeroSlide(id: ID!, input: UpdateHeroSlideInput!): HeroSlide!
+    deleteHeroSlide(id: ID!): Boolean!
+    reorderHeroSlides(ids: [ID!]!): [HeroSlide!]!
 
     # 會員等級管理（Admin）
     createMembershipTier(input: CreateMembershipTierInput!): MembershipTierConfig!
     updateMembershipTier(id: ID!, input: UpdateMembershipTierInput!): MembershipTierConfig!
     deleteMembershipTier(id: ID!): Boolean!
     recalculateAllMembershipTiers: RecalculateResult!
+
+    # FAQ 管理（Admin）
+    createFaq(input: CreateFaqInput!): Faq!
+    updateFaq(id: ID!, input: UpdateFaqInput!): Faq!
+    deleteFaq(id: ID!): DeleteResponse!
+    markFaqHelpful(id: ID!): Faq!
   }
 
   # ==================== Response 類型 ====================
@@ -1163,7 +1262,11 @@ export const typeDefs = gql`
     pointsToUse: Int
     creditsToUse: Float
     notes: String
+    # 訪客結帳欄位
+    guestName: String
+    guestPhone: String
     guestEmail: String
+    isGuest: Boolean
   }
 
   input OrderItemInput {
@@ -1205,6 +1308,8 @@ export const typeDefs = gql`
     images: JSON
     isActive: Boolean
     isFeatured: Boolean
+    isNewArrival: Boolean
+    sortOrder: Int
     shoeType: String
     gender: ProductGender
     season: String
@@ -1371,24 +1476,6 @@ export const typeDefs = gql`
     refundAmount: Decimal
   }
 
-  input CreateSocialLinkInput {
-    platform: String!
-    url: String!
-    label: String
-    icon: String
-    isActive: Boolean
-    sortOrder: Int
-  }
-
-  input UpdateSocialLinkInput {
-    platform: String
-    url: String
-    label: String
-    icon: String
-    isActive: Boolean
-    sortOrder: Int
-  }
-
   # 會員等級管理 Input
   input CreateMembershipTierInput {
     name: String!
@@ -1426,5 +1513,31 @@ export const typeDefs = gql`
     success: Boolean!
     message: String!
     updatedCount: Int!
+  }
+
+  # FAQ Response 類型
+  type FaqsResponse {
+    items: [Faq!]!
+    total: Int!
+    hasMore: Boolean!
+  }
+
+  # FAQ Input 類型
+  input CreateFaqInput {
+    question: String!
+    answer: String!
+    category: String
+    slug: String
+    sortOrder: Int
+    isPublished: Boolean
+  }
+
+  input UpdateFaqInput {
+    question: String
+    answer: String
+    category: String
+    slug: String
+    sortOrder: Int
+    isPublished: Boolean
   }
 `;

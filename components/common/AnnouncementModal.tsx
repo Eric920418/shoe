@@ -17,6 +17,7 @@
 import { useQuery, gql } from '@apollo/client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 const GET_ACTIVE_ANNOUNCEMENTS = gql`
   query GetActiveAnnouncements {
@@ -33,67 +34,76 @@ const GET_ACTIVE_ANNOUNCEMENTS = gql`
   }
 `
 
+// Nike/Adidas 風格配色 - 大膽、簡潔、運動感
 const TYPE_STYLES = {
   INFO: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-900',
-    icon: 'ℹ️',
-    accentColor: 'bg-blue-500'
+    gradient: 'from-blue-600 to-blue-800',
+    badge: 'bg-blue-500',
+    text: 'text-gray-900',
+    icon: '💡',
+    label: '資訊'
   },
   SUCCESS: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    text: 'text-green-900',
-    icon: '✅',
-    accentColor: 'bg-green-500'
+    gradient: 'from-green-600 to-green-800',
+    badge: 'bg-green-500',
+    text: 'text-gray-900',
+    icon: '✓',
+    label: '成功'
   },
   WARNING: {
-    bg: 'bg-yellow-50',
-    border: 'border-yellow-200',
-    text: 'text-yellow-900',
-    icon: '⚠️',
-    accentColor: 'bg-yellow-500'
+    gradient: 'from-amber-500 to-orange-600',
+    badge: 'bg-amber-500',
+    text: 'text-gray-900',
+    icon: '⚡',
+    label: '注意'
   },
   ERROR: {
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    text: 'text-red-900',
-    icon: '❌',
-    accentColor: 'bg-red-500'
+    gradient: 'from-red-600 to-red-800',
+    badge: 'bg-red-500',
+    text: 'text-gray-900',
+    icon: '✕',
+    label: '錯誤'
   },
   PROMOTION: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    text: 'text-purple-900',
-    icon: '🎉',
-    accentColor: 'bg-purple-500'
+    gradient: 'from-purple-600 via-pink-600 to-red-600',
+    badge: 'bg-gradient-to-r from-purple-500 to-pink-500',
+    text: 'text-gray-900',
+    icon: '🔥',
+    label: '優惠'
   },
   MAINTENANCE: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
+    gradient: 'from-gray-700 to-gray-900',
+    badge: 'bg-gray-600',
     text: 'text-gray-900',
     icon: '🔧',
-    accentColor: 'bg-gray-500'
+    label: '維護'
   },
 }
 
-const STORAGE_KEY = 'dismissed_announcements_v2'
-
 // 🔧 調試工具開關：設為 false 可完全關閉調試功能
 const ENABLE_DEBUG_TOOLS = false
+
+// 獲取儲存 key（根據用戶 ID）
+const getStorageKey = (userId?: string) => {
+  if (userId) {
+    return `dismissed_announcements_v3_user_${userId}`
+  }
+  return 'dismissed_announcements_v3_guest'
+}
 
 interface DismissedRecord {
   id: string
   dismissedAt: string // ISO 時間字串
 }
 
-// 從 localStorage 讀取已關閉的公告記錄（包含關閉時間）
-const getDismissedRecords = (): Map<string, string> => {
+// 從儲存中讀取已關閉的公告記錄（包含關閉時間）
+const getDismissedRecords = (userId?: string, useSession: boolean = false): Map<string, string> => {
   if (typeof window === 'undefined') return new Map()
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const storageKey = getStorageKey(userId)
+    const storage = useSession ? sessionStorage : localStorage
+    const stored = storage.getItem(storageKey)
     if (!stored) return new Map()
 
     const records: DismissedRecord[] = JSON.parse(stored)
@@ -103,16 +113,18 @@ const getDismissedRecords = (): Map<string, string> => {
   }
 }
 
-// 儲存已關閉的公告記錄到 localStorage
-const saveDismissedRecords = (records: Map<string, string>) => {
+// 儲存已關閉的公告記錄
+const saveDismissedRecords = (records: Map<string, string>, userId?: string, useSession: boolean = false) => {
   if (typeof window === 'undefined') return
 
   try {
+    const storageKey = getStorageKey(userId)
+    const storage = useSession ? sessionStorage : localStorage
     const array: DismissedRecord[] = Array.from(records.entries()).map(([id, dismissedAt]) => ({
       id,
       dismissedAt
     }))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(array))
+    storage.setItem(storageKey, JSON.stringify(array))
   } catch (error) {
     console.error('無法儲存已關閉的公告:', error)
   }
@@ -144,6 +156,7 @@ const shouldShowAnnouncement = (
 }
 
 export default function AnnouncementModal() {
+  const { user, isLoading: authLoading } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedRecords, setDismissedRecords] = useState<Map<string, string>>(new Map())
 
@@ -152,10 +165,15 @@ export default function AnnouncementModal() {
     nextFetchPolicy: 'cache-first', // 後續查詢使用快取
   })
 
-  // 初始化：從 localStorage 讀取已關閉的公告記錄
+  // 決定是否使用 sessionStorage（未登入用戶使用 session，確保每次打開瀏覽器都能看到公告）
+  const useSessionStorage = !user
+
+  // 初始化：從儲存中讀取已關閉的公告記錄（等待認證完成）
   useEffect(() => {
-    setDismissedRecords(getDismissedRecords())
-  }, [])
+    if (!authLoading) {
+      setDismissedRecords(getDismissedRecords(user?.id, useSessionStorage))
+    }
+  }, [user?.id, authLoading, useSessionStorage])
 
   // 過濾掉已關閉的公告（考慮更新時間）
   const visibleAnnouncements = data?.activeAnnouncements?.filter(
@@ -197,33 +215,37 @@ export default function AnnouncementModal() {
     if (allAnnouncements.length > 0 && dismissedRecords.size > 0) {
       // 有公告但都被關閉了（且沒有更新）
       return (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm">
-          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg shadow-lg p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
+        <div className="fixed bottom-6 right-6 z-50 max-w-xs">
+          <div className="bg-black text-white shadow-2xl p-5 border-l-4 border-yellow-500">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">⚡</span>
               <div className="flex-1">
-                <h4 className="font-bold text-yellow-900 mb-2">調試訊息</h4>
-                <p className="text-sm text-yellow-800 mb-3">
-                  後端有 {allAnnouncements.length} 個公告，但都已被關閉且未更新。
+                <h4 className="font-black text-sm uppercase tracking-wider mb-2">開發模式</h4>
+                <p className="text-sm text-gray-300 mb-4 leading-relaxed">
+                  後端有 {allAnnouncements.length} 個公告已被關閉
                 </p>
                 <button
                   onClick={() => {
-                    localStorage.removeItem(STORAGE_KEY)
+                    // 清除所有版本的記錄
+                    const storageKey = getStorageKey(user?.id)
+                    localStorage.removeItem(storageKey)
+                    sessionStorage.removeItem(storageKey)
                     localStorage.removeItem('dismissed_announcements') // 清除舊版本
+                    localStorage.removeItem('dismissed_announcements_v2') // 清除舊版本
                     setDismissedRecords(new Map())
                     refetch()
                   }}
-                  className="px-3 py-1.5 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
+                  className="w-full bg-white text-black px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors"
                 >
-                  清除記錄並顯示公告
+                  重新顯示
                 </button>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-yellow-600 hover:text-yellow-800"
+                className="text-gray-400 hover:text-white transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -242,16 +264,16 @@ export default function AnnouncementModal() {
     setIsOpen(false)
   }
 
-  // 關閉單個公告（保存到 localStorage，記錄關閉時間）
+  // 關閉單個公告（保存到儲存，記錄關閉時間）
   const handleDismissSingle = (id: string) => {
     const now = new Date().toISOString()
     const newRecords = new Map(dismissedRecords)
     newRecords.set(id, now)
     setDismissedRecords(newRecords)
-    saveDismissedRecords(newRecords)
+    saveDismissedRecords(newRecords, user?.id, useSessionStorage)
   }
 
-  // 關閉所有公告（保存到 localStorage，記錄關閉時間）
+  // 關閉所有公告（保存到儲存，記錄關閉時間）
   const handleDismissAll = () => {
     const now = new Date().toISOString()
     const newRecords = new Map(dismissedRecords)
@@ -259,138 +281,152 @@ export default function AnnouncementModal() {
       newRecords.set(a.id, now)
     })
     setDismissedRecords(newRecords)
-    saveDismissedRecords(newRecords)
+    saveDismissedRecords(newRecords, user?.id, useSessionStorage)
     setIsOpen(false)
   }
 
   return (
     <>
-      {/* 遮罩層 */}
+      {/* 遮罩層 - Nike 風格深色遮罩 */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity"
+        className="fixed inset-0 bg-black/70 z-50 transition-opacity backdrop-blur-[2px]"
         onClick={handleClose}
       />
 
-      {/* 彈窗內容 */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      {/* 彈窗內容 - 極簡運動風格 */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
         <div
-          className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden pointer-events-auto transform transition-all flex flex-col"
+          className="bg-white max-w-3xl w-full max-h-[85vh] overflow-hidden pointer-events-auto transform transition-all flex flex-col shadow-2xl"
+          style={{ borderRadius: '4px' }} // Nike/Adidas 使用較小的圓角
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 頂部標題欄 */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📢</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">系統公告</h3>
-                <p className="text-sm text-gray-500">共 {visibleAnnouncements.length} 則公告</p>
-              </div>
-            </div>
+          {/* 頂部關閉按鈕 - 極簡設計 */}
+          <div className="absolute top-4 right-4 z-10">
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white rounded-full shadow-lg transition-all hover:scale-110"
               aria-label="關閉"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* 公告列表（可滾動） */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {visibleAnnouncements.map((announcement: any) => {
+          {/* 公告列表（可滾動） - 無上邊距，直接顯示內容 */}
+          <div className="flex-1 overflow-y-auto">
+            {visibleAnnouncements.map((announcement: any, index: number) => {
               const style = TYPE_STYLES[announcement.type as keyof typeof TYPE_STYLES] || TYPE_STYLES.INFO
 
               return (
-                <div
-                  key={announcement.id}
-                  className={`${style.bg} ${style.border} border rounded-xl p-4 relative`}
-                >
-                  {/* 類型圖示與標題 */}
-                  <div className="flex items-start gap-3 mb-3">
-                    <span className="text-2xl flex-shrink-0">{style.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`font-bold text-base ${style.text} mb-2`}>
-                        {announcement.title}
-                      </h4>
-                      <p className={`${style.text} whitespace-pre-wrap text-sm leading-relaxed`}>
-                        {announcement.content}
-                      </p>
+                <div key={announcement.id}>
+                  {/* 彩色漸變頂部條 - Nike/Adidas 風格標誌性設計 */}
+                  <div className={`h-1 bg-gradient-to-r ${style.gradient}`} />
 
-                      {/* 行動按鈕 */}
+                  <div className="p-6 sm:p-8 lg:p-10">
+                    {/* 類型標籤 */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className={`${style.badge} text-white text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm`}>
+                        {style.label}
+                      </span>
+                      <span className="text-3xl">{style.icon}</span>
+                    </div>
+
+                    {/* 大標題 - Nike 風格粗體 */}
+                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-4 leading-tight uppercase tracking-tight">
+                      {announcement.title}
+                    </h3>
+
+                    {/* 內容 - 簡潔易讀 */}
+                    <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6 whitespace-pre-wrap">
+                      {announcement.content}
+                    </p>
+
+                    {/* CTA 按鈕組 */}
+                    <div className="flex flex-col sm:flex-row gap-3">
                       {announcement.actionUrl && announcement.actionLabel && (
                         <Link
                           href={announcement.actionUrl}
-                          className={`inline-block mt-3 px-4 py-2 ${style.accentColor} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
+                          className="group relative bg-black text-white px-6 py-3.5 font-bold text-sm uppercase tracking-wider hover:bg-gray-900 transition-all overflow-hidden"
                           onClick={handleClose}
                         >
-                          {announcement.actionLabel}
+                          {/* 按鈕滑動效果 */}
+                          <span className="relative z-10">{announcement.actionLabel}</span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                         </Link>
                       )}
-                    </div>
 
-                    {/* 單個公告的關閉按鈕 */}
-                    <button
-                      onClick={() => handleDismissSingle(announcement.id)}
-                      className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
-                      aria-label="不再顯示此公告"
-                      title="不再顯示此公告"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      <button
+                        onClick={() => handleDismissSingle(announcement.id)}
+                        className="px-6 py-3.5 border-2 border-gray-300 text-gray-700 font-bold text-sm uppercase tracking-wider hover:border-black hover:bg-black hover:text-white transition-all"
+                      >
+                        不再顯示
+                      </button>
+                    </div>
                   </div>
+
+                  {/* 分隔線（如果有多則公告）*/}
+                  {index < visibleAnnouncements.length - 1 && (
+                    <div className="border-t-4 border-gray-100" />
+                  )}
                 </div>
               )
             })}
           </div>
 
-          {/* 底部按鈕區 */}
-          <div className="p-6 border-t border-gray-200 bg-gray-50">
+          {/* 底部固定按鈕區 - Nike 風格 */}
+          <div className="p-4 sm:p-6 border-t-2 border-gray-100 bg-gray-50">
             {/* 開發環境：調試工具 */}
             {ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-bold text-yellow-800">🔧 開發工具</span>
+              <div className="mb-4 p-4 bg-black text-white border-l-4 border-yellow-500">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">⚡</span>
+                  <span className="font-black text-xs uppercase tracking-widest">開發工具</span>
                 </div>
-                <div className="space-y-1 text-yellow-700">
-                  <div>後端活躍公告: {data?.activeAnnouncements?.length || 0} 則</div>
-                  <div>已關閉公告: {dismissedRecords.size} 則</div>
-                  <div>可顯示公告: {visibleAnnouncements.length} 則</div>
-                  <div className="text-xs text-yellow-600 mt-1">
-                    💡 提示：更新公告會自動重新顯示
+                <div className="space-y-2 text-xs text-gray-300 mb-4">
+                  <div className="flex justify-between">
+                    <span>後端活躍公告:</span>
+                    <span className="font-bold text-white">{data?.activeAnnouncements?.length || 0} 則</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>已關閉公告:</span>
+                    <span className="font-bold text-white">{dismissedRecords.size} 則</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>可顯示公告:</span>
+                    <span className="font-bold text-white">{visibleAnnouncements.length} 則</span>
                   </div>
                 </div>
                 <button
                   onClick={() => {
-                    localStorage.removeItem(STORAGE_KEY)
+                    // 清除所有版本的記錄
+                    const storageKey = getStorageKey(user?.id)
+                    localStorage.removeItem(storageKey)
+                    sessionStorage.removeItem(storageKey)
                     localStorage.removeItem('dismissed_announcements') // 清除舊版本
+                    localStorage.removeItem('dismissed_announcements_v2') // 清除舊版本
                     setDismissedRecords(new Map())
                     refetch()
                     console.log('✅ 已清除所有已關閉的公告記錄')
                   }}
-                  className="mt-2 px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700"
+                  className="w-full bg-white text-black px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors"
                 >
-                  清除所有記錄並重新載入
+                  清除記錄並重新載入
                 </button>
               </div>
             )}
 
-            {/* 主要操作按鈕 */}
-            <div className="flex items-center justify-between">
+            {/* 主要操作按鈕 - Nike 風格扁平按鈕 */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                className="px-5 py-3 text-gray-700 hover:text-black font-bold text-sm uppercase tracking-wider transition-colors order-2 sm:order-1"
               >
                 稍後再看
               </button>
               <button
                 onClick={handleDismissAll}
-                className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+                className="px-8 py-3 bg-black text-white font-bold text-sm uppercase tracking-wider hover:bg-gray-800 transition-all hover:scale-[1.02] order-1 sm:order-2"
               >
                 全部不再顯示
               </button>

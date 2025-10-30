@@ -96,9 +96,9 @@
 
 /* 自定義組件樣式 */
 @layer components {
-  p, div, span {
+  /* 移除了全局固定字體大小，改用 Tailwind 的 utility classes */
+  body {
     font-family: var(--font-family-main);
-    font-size: 1.25rem;
   }
 
   .brand-title {

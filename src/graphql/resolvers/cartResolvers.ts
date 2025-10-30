@@ -12,6 +12,30 @@ interface Context {
   }
 }
 
+// ✅ 抽離重複的 include 配置（減少程式碼重複）
+const CART_INCLUDE = {
+  items: {
+    include: {
+      product: {
+        include: {
+          category: true,
+          brand: true,
+        },
+      },
+      variant: true,
+      sizeChart: true,
+    },
+  },
+} as const
+
+// ✅ 共用函數：獲取完整購物車資料
+async function getCartWithItems(cartId: string) {
+  return await prisma.cart.findUnique({
+    where: { id: cartId },
+    include: CART_INCLUDE,
+  })
+}
+
 export const cartResolvers = {
   Query: {
     // 獲取當前用戶的購物車
@@ -20,48 +44,20 @@ export const cartResolvers = {
         throw new Error('請先登入')
       }
 
-      const cart = await prisma.cart.findUnique({
+      // ✅ 使用共用函數
+      let cart = await prisma.cart.findUnique({
         where: { userId: context.user.userId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-              variant: true,
-              sizeChart: true,
-            },
-          },
-        },
+        include: CART_INCLUDE,
       })
 
       if (!cart) {
         // 如果購物車不存在，創建一個新的
-        return await prisma.cart.create({
+        const newCart = await prisma.cart.create({
           data: {
             userId: context.user.userId,
-            items: {
-              create: [],
-            },
-          },
-          include: {
-            items: {
-              include: {
-                product: {
-                  include: {
-                    category: true,
-                    brand: true,
-                  },
-                },
-                variant: true,
-                sizeChart: true,
-              },
-            },
           },
         })
+        cart = await getCartWithItems(newCart.id)
       }
 
       return cart
@@ -71,99 +67,103 @@ export const cartResolvers = {
   Mutation: {
     // 加入購物車
     addToCart: async (_: any, args: any, context: Context) => {
-      const { productId, variantId, sizeChartId, quantity } = args
+      try {
+        const { productId, variantId, sizeChartId, quantity } = args
 
-      if (!context.user) {
-        throw new Error('請先登入')
-      }
+        console.log('🛒 加入購物車請求:', { productId, variantId, sizeChartId, quantity })
 
-      // 驗證產品是否存在
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-      })
+        if (!context.user) {
+          throw new Error('請先登入')
+        }
 
-      if (!product) {
-        throw new Error('產品不存在')
-      }
-
-      // 驗證尺碼是否存在且有庫存
-      const sizeChart = await prisma.sizeChart.findUnique({
-        where: { id: sizeChartId },
-      })
-
-      if (!sizeChart) {
-        throw new Error('尺碼不存在')
-      }
-
-      if (sizeChart.stock < quantity) {
-        throw new Error(`庫存不足，目前僅剩 ${sizeChart.stock} 件`)
-      }
-
-      // 獲取或創建購物車
-      let cart = await prisma.cart.findUnique({
-        where: { userId: context.user.userId },
-      })
-
-      if (!cart) {
-        cart = await prisma.cart.create({
-          data: { userId: context.user.userId },
+        // 驗證產品是否存在
+        const product = await prisma.product.findUnique({
+          where: { id: productId },
         })
-      }
 
-      // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼）
-      const existingItem = await prisma.cartItem.findFirst({
-        where: {
-          cartId: cart.id,
-          productId,
-          variantId: variantId || null,
-          sizeChartId,
-        },
-      })
+        if (!product) {
+          throw new Error(`產品不存在 (ID: ${productId})`)
+        }
 
-      if (existingItem) {
-        // 如果已存在，更新數量
-        const newQuantity = existingItem.quantity + quantity
+        console.log('✅ 找到產品:', product.name)
 
-        if (sizeChart.stock < newQuantity) {
+        // 驗證尺碼是否存在且有庫存
+        const sizeChart = await prisma.sizeChart.findUnique({
+          where: { id: sizeChartId },
+        })
+
+        if (!sizeChart) {
+          throw new Error(`尺碼不存在 (ID: ${sizeChartId})`)
+        }
+
+        console.log('✅ 找到尺碼:', sizeChart.eu, '庫存:', sizeChart.stock)
+
+        if (sizeChart.stock < quantity) {
           throw new Error(`庫存不足，目前僅剩 ${sizeChart.stock} 件`)
         }
 
-        await prisma.cartItem.update({
-          where: { id: existingItem.id },
-          data: { quantity: newQuantity },
+        // 獲取或創建購物車
+        let cart = await prisma.cart.findUnique({
+          where: { userId: context.user.userId },
         })
-      } else {
-        // 如果不存在，新增購物車項目
-        await prisma.cartItem.create({
-          data: {
+
+        if (!cart) {
+          console.log('📦 創建新購物車')
+          cart = await prisma.cart.create({
+            data: { userId: context.user.userId },
+          })
+        }
+
+        console.log('✅ 購物車 ID:', cart.id)
+
+        // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼）
+        const existingItem = await prisma.cartItem.findFirst({
+          where: {
             cartId: cart.id,
             productId,
             variantId: variantId || null,
             sizeChartId,
-            quantity,
-            price: product.price,
           },
         })
-      }
 
-      // 返回更新後的購物車
-      return await prisma.cart.findUnique({
-        where: { id: cart.id },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-              variant: true,
-              sizeChart: true,
+        if (existingItem) {
+          // 如果已存在，更新數量
+          const newQuantity = existingItem.quantity + quantity
+
+          if (sizeChart.stock < newQuantity) {
+            throw new Error(`庫存不足，目前僅剩 ${sizeChart.stock} 件`)
+          }
+
+          console.log('🔄 更新購物車項目數量:', existingItem.quantity, '->', newQuantity)
+          await prisma.cartItem.update({
+            where: { id: existingItem.id },
+            data: { quantity: newQuantity },
+          })
+        } else {
+          // 如果不存在，新增購物車項目
+          console.log('➕ 新增購物車項目')
+          await prisma.cartItem.create({
+            data: {
+              cartId: cart.id,
+              userId: context.user.userId,
+              productId,
+              variantId: variantId || null,
+              sizeChartId,
+              quantity,
+              price: product.price,
             },
-          },
-        },
-      })
+          })
+        }
+
+        // ✅ 返回更新後的購物車（使用共用函數）
+        const updatedCart = await getCartWithItems(cart.id)
+        console.log('✅ 購物車更新成功，項目數:', updatedCart?.items?.length || 0)
+        return updatedCart
+      } catch (error: any) {
+        console.error('❌ 加入購物車失敗:', error.message)
+        console.error('完整錯誤:', error)
+        throw new Error(`加入購物車失敗: ${error.message}`)
+      }
     },
 
     // 更新購物車商品數量
@@ -202,24 +202,8 @@ export const cartResolvers = {
         data: { quantity },
       })
 
-      // 返回更新後的購物車
-      return await prisma.cart.findUnique({
-        where: { id: cartItem.cartId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-              variant: true,
-              sizeChart: true,
-            },
-          },
-        },
-      })
+      // ✅ 返回更新後的購物車（使用共用函數）
+      return await getCartWithItems(cartItem.cartId)
     },
 
     // 移除購物車商品
@@ -249,24 +233,8 @@ export const cartResolvers = {
         where: { id: cartItemId },
       })
 
-      // 返回更新後的購物車
-      return await prisma.cart.findUnique({
-        where: { id: cartItem.cartId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-              variant: true,
-              sizeChart: true,
-            },
-          },
-        },
-      })
+      // ✅ 返回更新後的購物車（使用共用函數）
+      return await getCartWithItems(cartItem.cartId)
     },
 
     // 清空購物車
@@ -288,24 +256,8 @@ export const cartResolvers = {
         where: { cartId: cart.id },
       })
 
-      // 返回清空後的購物車
-      return await prisma.cart.findUnique({
-        where: { id: cart.id },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-              variant: true,
-              sizeChart: true,
-            },
-          },
-        },
-      })
+      // ✅ 返回清空後的購物車（使用共用函數）
+      return await getCartWithItems(cart.id)
     },
   },
 

@@ -35,7 +35,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* 標題 */}
         <div className="text-center">
@@ -84,18 +84,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* 管理員入口 */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-center text-xs text-gray-500">
-            管理員？{' '}
-            <Link
-              href="/admin-login"
-              className="font-medium text-primary-600 hover:text-primary-700"
-            >
-              前往管理員登入
-            </Link>
-          </p>
-        </div>
+
       </div>
     </div>
   )

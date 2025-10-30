@@ -216,9 +216,9 @@ export const GET_CART = gql`
 
 export const ADD_TO_CART = gql`
   mutation AddToCart(
-    $productId: String!
-    $variantId: String
-    $sizeChartId: String!
+    $productId: ID!
+    $variantId: ID
+    $sizeChartId: ID!
     $quantity: Int!
   ) {
     addToCart(
@@ -240,7 +240,7 @@ export const ADD_TO_CART = gql`
 `
 
 export const UPDATE_CART_ITEM = gql`
-  mutation UpdateCartItem($cartItemId: String!, $quantity: Int!) {
+  mutation UpdateCartItem($cartItemId: ID!, $quantity: Int!) {
     updateCartItem(cartItemId: $cartItemId, quantity: $quantity) {
       id
       items {
@@ -255,7 +255,7 @@ export const UPDATE_CART_ITEM = gql`
 `
 
 export const REMOVE_FROM_CART = gql`
-  mutation RemoveFromCart($cartItemId: String!) {
+  mutation RemoveFromCart($cartItemId: ID!) {
     removeFromCart(cartItemId: $cartItemId) {
       id
       items {
@@ -424,6 +424,47 @@ export const CANCEL_ORDER = gql`
       status
       cancelReason
       cancelledAt
+    }
+  }
+`
+
+// 訪客訂單追蹤（不需要登入）
+export const TRACK_ORDER = gql`
+  query TrackOrder($orderNumber: String!, $phone: String!) {
+    trackOrder(orderNumber: $orderNumber, phone: $phone) {
+      id
+      orderNumber
+      status
+      paymentStatus
+      shippingStatus
+      paymentMethod
+      subtotal
+      shippingFee
+      discount
+      total
+      shippingName
+      shippingPhone
+      shippingCity
+      shippingDistrict
+      shippingStreet
+      shippingZipCode
+      trackingNumber
+      notes
+      createdAt
+      paidAt
+      shippedAt
+      deliveredAt
+      items {
+        id
+        productName
+        productImage
+        variantName
+        sizeEu
+        color
+        quantity
+        price
+        subtotal
+      }
     }
   }
 `

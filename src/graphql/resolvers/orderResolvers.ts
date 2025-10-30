@@ -123,7 +123,57 @@ async function processCompletedOrder(
 
 export const orderResolvers = {
   Query: {
-    // 獲取我的訂單列表
+    // 訪客訂單追蹤（不需要登入）
+    trackOrder: async (
+      _: any,
+      { orderNumber, phone }: { orderNumber: string; phone: string }
+    ) => {
+      // 驗證手機號碼格式
+      if (!/^09\d{8}$/.test(phone)) {
+        throw new GraphQLError('請輸入有效的台灣手機號碼（格式：0912345678）', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        })
+      }
+
+      const order = await prisma.order.findFirst({
+        where: {
+          orderNumber,
+          OR: [
+            { guestPhone: phone }, // 訪客訂單
+            { shippingPhone: phone }, // 會員訂單也可以用收件手機查詢
+          ],
+        },
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  brand: true,
+                },
+              },
+              variant: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+
+      if (!order) {
+        throw new GraphQLError('找不到符合的訂單，請確認訂單編號和手機號碼是否正確', {
+          extensions: { code: 'NOT_FOUND' },
+        })
+      }
+
+      return order
+    },
+
+    // 獲取我的訂單列表（✅ 優化：減少不必要的關聯載入）
     myOrders: async (_: any, __: any, { user }: GraphQLContext) => {
       if (!user) {
         throw new GraphQLError('請先登入', {
@@ -131,22 +181,25 @@ export const orderResolvers = {
         })
       }
 
+      // ✅ 訂單列表頁面只需要基本資料，不需要載入完整的產品詳情
       return await prisma.order.findMany({
         where: { userId: user.userId },
         orderBy: { createdAt: 'desc' },
         include: {
           items: {
-            include: {
-              product: {
-                include: {
-                  brand: true,
-                  category: true,
-                },
-              },
-              variant: true,
+            // ✅ 只選擇必要欄位，不載入整個 product 關聯
+            select: {
+              id: true,
+              quantity: true,
+              price: true,
+              subtotal: true,
+              productName: true,
+              productImage: true,
+              sizeEu: true,
+              color: true,
             },
           },
-          address: true,
+          // ✅ 不載入 address，訂單列表不需要
         },
       })
     },
@@ -237,30 +290,105 @@ export const orderResolvers = {
       { input }: { input: any },
       { user }: GraphQLContext
     ) => {
-      if (!user) {
-        throw new GraphQLError('請先登入', {
-          extensions: { code: 'UNAUTHENTICATED' },
-        })
+      // 判斷是否為訪客模式
+      const isGuest = !user || input.isGuest
+
+      // 訪客模式驗證
+      if (isGuest) {
+        if (!input.guestName || !input.guestPhone) {
+          throw new GraphQLError('訪客結帳必須提供姓名和手機號碼', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
+        // 驗證手機號碼格式
+        if (!/^09\d{8}$/.test(input.guestPhone)) {
+          throw new GraphQLError('請輸入有效的台灣手機號碼（格式：0912345678）', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
+        // 訪客不能使用購物金和積分
+        if (input.creditsToUse || input.pointsToUse) {
+          throw new GraphQLError('訪客結帳無法使用購物金和積分，請先註冊會員', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
       }
 
       try {
-        // 獲取購物車項目
-        const cartItems = await prisma.cartItem.findMany({
-          where: { userId: user.userId },
-          include: {
-            product: {
+        let cartItems: any[] = []
+
+        // 會員模式：從購物車獲取商品
+        if (!isGuest && user) {
+          cartItems = await prisma.cartItem.findMany({
+            where: { userId: user.userId },
+            include: {
+              product: {
+                include: {
+                  brand: true,
+                },
+              },
+              variant: true,
+            },
+          })
+
+          if (!cartItems || cartItems.length === 0) {
+            throw new GraphQLError('購物車是空的', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+        }
+        // 訪客模式：從 input.items 獲取商品
+        else {
+          if (!input.items || input.items.length === 0) {
+            throw new GraphQLError('訂單商品不能為空', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          // 將 input.items 轉換為與 cartItems 相同的格式
+          for (const item of input.items) {
+            const product = await prisma.product.findUnique({
+              where: { id: item.productId },
               include: {
                 brand: true,
               },
-            },
-            variant: true,
-          },
-        })
+            })
 
-        if (!cartItems || cartItems.length === 0) {
-          throw new GraphQLError('購物車是空的', {
-            extensions: { code: 'BAD_USER_INPUT' },
-          })
+            if (!product) {
+              throw new GraphQLError(`產品不存在（ID: ${item.productId}）`, {
+                extensions: { code: 'NOT_FOUND' },
+              })
+            }
+
+            let variant = null
+            if (item.variantId) {
+              variant = await prisma.productVariant.findUnique({
+                where: { id: item.variantId },
+              })
+            }
+
+            // 檢查庫存
+            if (product.stock < item.quantity) {
+              throw new GraphQLError(
+                `${product.name} 庫存不足（可用: ${product.stock}, 需求: ${item.quantity}）`,
+                {
+                  extensions: { code: 'BAD_USER_INPUT' },
+                }
+              )
+            }
+
+            cartItems.push({
+              productId: product.id,
+              product,
+              variantId: item.variantId,
+              variant,
+              quantity: item.quantity,
+              sizeEu: item.sizeEu,
+              addedPrice: variant ? product.price.toNumber() + variant.priceAdjustment.toNumber() : product.price,
+            })
+          }
         }
 
         // 計算總金額
@@ -354,7 +482,11 @@ export const orderResolvers = {
         // 創建訂單
         const order = await prisma.order.create({
           data: {
-            userId: user.userId,
+            userId: isGuest ? null : user?.userId,
+            // 訪客資訊
+            guestName: isGuest ? input.guestName : null,
+            guestPhone: isGuest ? input.guestPhone : null,
+            guestEmail: isGuest ? input.guestEmail : null,
             orderNumber,
             status: 'PENDING',
             paymentStatus: 'PENDING',
@@ -401,10 +533,12 @@ export const orderResolvers = {
           },
         })
 
-        // 清空購物車
-        await prisma.cartItem.deleteMany({
-          where: { userId: user.userId },
-        })
+        // 清空購物車（僅會員模式）
+        if (!isGuest && user) {
+          await prisma.cartItem.deleteMany({
+            where: { userId: user.userId },
+          })
+        }
 
         return order
       } catch (error) {
@@ -523,6 +657,19 @@ export const orderResolvers = {
         // 如果訂單狀態變更為「已完成」，則執行會員升級和積分累積邏輯
         if (status === 'COMPLETED' && order.userId) {
           await processCompletedOrder(order.userId, order.id, order.total)
+
+          // 處理邀請碼獎勵（每筆訂單都發放）
+          try {
+            const { processReferralReward } = await import('./referralResolvers')
+            await processReferralReward({
+              userId: order.userId,
+              orderId: order.id,
+              orderAmount: order.total.toNumber(),
+            })
+          } catch (error) {
+            // 邀請碼處理失敗不影響訂單完成流程
+            console.error('處理邀請碼獎勵失敗:', error)
+          }
         }
 
         return updatedOrder

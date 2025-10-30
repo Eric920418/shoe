@@ -14,6 +14,41 @@ interface GraphQLContext {
 }
 
 export const userResolvers = {
+  User: {
+    // 計算會員等級字串（用於相容舊的 membershipTier 查詢）
+    membershipTier: async (parent: any) => {
+      // 如果有 membershipTierConfig，返回其 slug
+      if (parent.membershipTierConfig) {
+        return parent.membershipTierConfig.slug?.toUpperCase()
+      }
+
+      // 否則查詢資料庫
+      if (parent.membershipTierId) {
+        const tier = await prisma.membershipTierConfig.findUnique({
+          where: { id: parent.membershipTierId },
+        })
+        return tier?.slug?.toUpperCase() || null
+      }
+
+      return null
+    },
+
+    // 確保 membershipTierConfig 正確載入
+    membershipTierConfig: async (parent: any) => {
+      if (parent.membershipTierConfig) {
+        return parent.membershipTierConfig
+      }
+
+      if (parent.membershipTierId) {
+        return await prisma.membershipTierConfig.findUnique({
+          where: { id: parent.membershipTierId },
+        })
+      }
+
+      return null
+    },
+  },
+
   Query: {
     // Get current user info
     me: async (_: any, __: any, { user }: GraphQLContext) => {
@@ -29,6 +64,7 @@ export const userResolvers = {
           addresses: {
             orderBy: { createdAt: 'desc' },
           },
+          membershipTierConfig: true, // 載入會員等級配置
         },
       })
     },

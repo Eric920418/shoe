@@ -18,8 +18,8 @@ import { useAuth } from '@/contexts/AuthContext'
 
 // GraphQL Mutations
 const LINE_LOGIN_CALLBACK = gql`
-  mutation LineLoginCallback($code: String!, $name: String, $phone: String) {
-    lineLoginCallback(code: $code, name: $name, phone: $phone) {
+  mutation LineLoginCallback($code: String!, $name: String, $phone: String, $referralCode: String) {
+    lineLoginCallback(code: $code, name: $name, phone: $phone, referralCode: $referralCode) {
       token
       user {
         id
@@ -59,8 +59,32 @@ function LineVerifyContent() {
       return
     }
 
-    // 直接完成登入，無需 OTP
-    lineLoginCallback({ variables: { code } })
+    // 從 localStorage 讀取邀請碼（如果有）
+    let referralCode: string | undefined = undefined
+    try {
+      const stored = localStorage.getItem('referralCode')
+      if (stored) {
+        const data = JSON.parse(stored)
+        // 檢查是否過期（30 天）
+        if (data.expiresAt && Date.now() < data.expiresAt) {
+          referralCode = data.code
+          console.log('使用邀請碼註冊:', referralCode)
+        } else {
+          // 清除過期的邀請碼
+          localStorage.removeItem('referralCode')
+        }
+      }
+    } catch (error) {
+      console.error('讀取邀請碼失敗:', error)
+    }
+
+    // 直接完成登入，傳遞邀請碼（如果有）
+    lineLoginCallback({
+      variables: {
+        code,
+        referralCode
+      }
+    })
   }, [searchParams, lineLoginCallback])
 
   if (callbackLoading) {

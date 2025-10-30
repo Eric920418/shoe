@@ -39,6 +39,7 @@ const navItems = [
     items: [
       { name: "優惠券", href: "/admin/coupons", icon: "🎫" },
       { name: "購物金", href: "/admin/credits", icon: "💰" },
+      { name: "邀請碼設定", href: "/admin/referral-settings", icon: "🎁" },
     ],
   },
   {
@@ -48,8 +49,8 @@ const navItems = [
   {
     title: "設定",
     items: [
+      { name: "首頁管理", href: "/admin/homepage", icon: "🏠" },
       { name: "公告管理", href: "/admin/announcements", icon: "📢" },
-      { name: "社群連結", href: "/admin/social-links", icon: "🔗" },
       { name: "FAQ管理", href: "/admin/faqs", icon: "❓" },
     ],
   },

@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 export default function ReferralTracker() {
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     const ref = searchParams?.get('ref')
@@ -18,8 +19,14 @@ export default function ReferralTracker() {
       }))
 
       console.log('邀請碼已記錄:', ref)
+
+      // 清除 URL 參數，讓被邀請人看不到邀請碼
+      // 使用 window.history.replaceState 來避免觸發頁面重新載入
+      const url = new URL(window.location.href)
+      url.searchParams.delete('ref')
+      window.history.replaceState({}, '', url.pathname + url.search)
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   return null
 }

@@ -181,19 +181,18 @@ export const couponResolvers = {
           ],
         },
         include: {
-          coupon: {
-            where: {
-              isActive: true,
-              validFrom: { lte: now },
-              validUntil: { gte: now },
-            },
-          },
+          coupon: true,
         },
         orderBy: { createdAt: 'desc' },
       })
 
       // 過濾掉優惠券本身已失效的
-      return userCoupons.filter((uc) => uc.coupon)
+      return userCoupons.filter((uc) =>
+        uc.coupon &&
+        uc.coupon.isActive &&
+        uc.coupon.validFrom <= now &&
+        uc.coupon.validUntil >= now
+      )
     },
 
     // 驗證優惠券碼

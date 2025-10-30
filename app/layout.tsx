@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ApolloProvider } from '@/components/providers/ApolloProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { GuestCartProvider } from '@/contexts/GuestCartContext'
 import { Toaster } from 'react-hot-toast'
-import MainNav from '@/components/navigation/MainNav'
+import ModernHeader from '@/components/navigation/ModernHeader'
+import ReferralTracker from '@/components/common/ReferralTracker'
 
 export const metadata: Metadata = {
-  title: '鞋店電商系統',
-  description: '專業的線上鞋店電商平臺',
+  title: 'SHOE STORE - 現代化鞋履電商',
+  description: '打造你的完美風格 - 提供最新潮流鞋款、專業尺碼建議與頂級購物體驗',
 }
 
 export default function RootLayout({
@@ -16,36 +18,39 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-TW">
-      <body className="antialiased">
+    <html lang="zh-TW" className="overflow-x-hidden">
+      <body className="antialiased bg-white overflow-x-hidden">
         <ApolloProvider>
           <AuthProvider>
-            <MainNav />
-            <main className="pt-16">
-              {children}
-            </main>
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#fff',
+            <GuestCartProvider>
+              <ReferralTracker />
+              <ModernHeader />
+              <main className="pt-16">
+                {children}
+              </main>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
                   },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
+                  success: {
+                    iconTheme: {
+                      primary: '#10b981',
+                      secondary: '#fff',
+                    },
                   },
-                },
-              }}
-            />
+                  error: {
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
+            </GuestCartProvider>
           </AuthProvider>
         </ApolloProvider>
       </body>

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 購物車頁面 - 使用真實 GraphQL API
+ * 購物車頁面 - 支援會員和訪客模式
  */
 
 import { useEffect } from 'react'
@@ -11,23 +11,43 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { GET_CART, UPDATE_CART_ITEM, REMOVE_FROM_CART, CLEAR_CART } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGuestCart } from '@/contexts/GuestCartContext'
+import MembershipBenefitsBanner from '@/components/common/MembershipBenefitsBanner'
+
+// ✅ 解析圖片陣列（提取為獨立函數）
+const parseImages = (images: string[] | string): string[] => {
+  try {
+    if (typeof images === 'string') {
+      const parsed = JSON.parse(images)
+      return Array.isArray(parsed) ? parsed : []
+    }
+    return Array.isArray(images) ? images : []
+  } catch {
+    return []
+  }
+}
 
 export default function CartPage() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const guestCart = useGuestCart()
 
-  // 如果未登入，跳轉到登入頁面
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      alert('請先登入以查看購物車')
-      router.push('/auth/login')
-    }
-  }, [isAuthenticated, authLoading, router])
+  // ✅ 不再強制跳轉登入，允許訪客查看購物車
+  // useEffect(() => {
+  //   if (!authLoading && !isAuthenticated) {
+  //     alert('請先登入以查看購物車')
+  //     router.push('/auth/login')
+  //   }
+  // }, [isAuthenticated, authLoading, router])
 
+  // 會員模式：從 GraphQL 獲取購物車
   const { data, loading, error, refetch } = useQuery(GET_CART, {
     skip: !isAuthenticated,
     fetchPolicy: 'network-only',
   })
+
+  // 判斷是否為訪客模式
+  const isGuest = !isAuthenticated
 
   const [updateCartItem, { loading: updating }] = useMutation(UPDATE_CART_ITEM, {
     onCompleted: () => {
@@ -61,9 +81,16 @@ export default function CartPage() {
     },
   })
 
-  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number, productId?: string, variantId?: string, sizeEu?: string) => {
     if (newQuantity < 1) return
 
+    // 訪客模式：使用 localStorage
+    if (isGuest && productId) {
+      guestCart.updateQuantity(productId, newQuantity, variantId, sizeEu)
+      return
+    }
+
+    // 會員模式：使用 GraphQL
     try {
       await updateCartItem({
         variables: {
@@ -76,9 +103,16 @@ export default function CartPage() {
     }
   }
 
-  const handleRemoveItem = async (itemId: string, productName: string) => {
+  const handleRemoveItem = async (itemId: string, productName: string, productId?: string, variantId?: string, sizeEu?: string) => {
     if (!confirm(`確定要移除「${productName}」嗎？`)) return
 
+    // 訪客模式：使用 localStorage
+    if (isGuest && productId) {
+      guestCart.removeItem(productId, variantId, sizeEu)
+      return
+    }
+
+    // 會員模式：使用 GraphQL
     try {
       await removeFromCart({
         variables: {
@@ -93,6 +127,13 @@ export default function CartPage() {
   const handleClearCart = async () => {
     if (!confirm('確定要清空購物車嗎？')) return
 
+    // 訪客模式：使用 localStorage
+    if (isGuest) {
+      guestCart.clearCart()
+      return
+    }
+
+    // 會員模式：使用 GraphQL
     try {
       await clearCart()
     } catch (error) {
@@ -100,8 +141,13 @@ export default function CartPage() {
     }
   }
 
-  // 載入中狀態
-  if (authLoading || loading) {
+  // 獲取購物車數據（會員或訪客）
+  const cartItems = isGuest ? guestCart.items : (data?.cart?.items || [])
+  const cartTotal = isGuest ? guestCart.total : (data?.cart?.total || 0)
+  const cartIsEmpty = cartItems.length === 0
+
+  // 載入中狀態（訪客模式不需要等待）
+  if (!isGuest && (authLoading || loading)) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center">
@@ -130,11 +176,10 @@ export default function CartPage() {
     )
   }
 
-  const cart = data?.cart
   const isProcessing = updating || removing || clearing
 
   // 空購物車狀態
-  if (!cart || cart.items.length === 0) {
+  if (cartIsEmpty) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center">
@@ -153,205 +198,305 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 頁面標題 */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">購物車</h1>
-        <p className="text-gray-600 mt-2">共 {cart.totalItems} 件商品</p>
+    <div className="min-h-screen bg-white">
+      {/* 訪客模式：會員好處提示 */}
+      {isGuest && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <MembershipBenefitsBanner variant="compact" />
+        </div>
+      )}
+
+      {/* 頂部標題區 - Nike/Adidas 風格 */}
+      <div className="border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
+                購物袋
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {cartItems.length} 件商品
+              </p>
+            </div>
+            {cartItems.length > 0 && (
+              <button
+                onClick={handleClearCart}
+                disabled={isProcessing}
+                className="text-sm text-gray-600 hover:text-black underline disabled:opacity-50 transition-colors"
+              >
+                清空購物袋
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 購物車商品列表 */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* 清空購物車按鈕 */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleClearCart}
-              disabled={isProcessing}
-              className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-            >
-              清空購物車
-            </button>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* 左側：商品列表 */}
+          <div className="lg:col-span-2 space-y-6">
+            {cartItems.map((item: any, index: number) => {
+              // 訪客購物車與會員購物車數據結構不同
+              const productName = isGuest ? item.productName : item.product.name
+              const productImage = isGuest ? item.productImage : parseImages(item.product.images)[0]
+              const productSlug = isGuest ? '#' : `/products/${item.product.slug}`
+              const brandName = isGuest ? null : item.product?.brand?.name
+              const variantName = isGuest ? item.variantName : item.variant?.color
+              const sizeEu = isGuest ? item.sizeEu : item.sizeEu
+              const quantity = item.quantity
+              const price = isGuest ? item.price : item.addedPrice
+              const subtotal = isGuest ? (item.price * item.quantity) : item.subtotal
+              const itemId = isGuest ? `guest-${index}` : item.id
 
-          {/* 商品列表 */}
-          {cart.items.map((item: any) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex gap-4">
-                {/* 商品圖片 */}
-                <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                  {item.product.images && item.product.images.length > 0 ? (
-                    <Image
-                      src={item.product.images[0]}
-                      alt={item.product.name}
-                      width={128}
-                      height={128}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      無圖片
-                    </div>
-                  )}
-                </div>
-
-                {/* 商品資訊 */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <Link
-                        href={`/products/${item.product.slug}`}
-                        className="text-lg font-semibold text-gray-900 hover:text-primary-600"
-                      >
-                        {item.product.name}
-                      </Link>
-                      {item.product.brand && (
-                        <p className="text-sm text-gray-600">{item.product.brand.name}</p>
+              return (
+                <div
+                  key={itemId}
+                  className="border-b border-gray-200 pb-6 last:border-0"
+                >
+                  <div className="flex gap-6">
+                    {/* 商品圖片 - 更大尺寸 */}
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gray-100 flex-shrink-0 overflow-hidden">
+                      {productImage ? (
+                        <Image
+                          src={productImage}
+                          alt={productName}
+                          width={192}
+                          height={192}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <div className="text-center">
+                            <div className="text-5xl mb-2">👟</div>
+                            <div className="text-xs">無圖片</div>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRemoveItem(item.id, item.product.name)}
-                      disabled={isProcessing}
-                      className="text-gray-400 hover:text-red-600 disabled:opacity-50"
-                      title="移除商品"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
 
-                  {/* 規格資訊 */}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    {item.variant && (
-                      <div className="flex items-center gap-2">
-                        <span>顏色:</span>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className="w-4 h-4 rounded-full border border-gray-300"
-                            style={{ backgroundColor: item.variant.colorHex }}
-                          />
-                          <span>{item.variant.color}</span>
+                    {/* 商品資訊 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 pr-4">
+                          <Link
+                            href={productSlug}
+                            className="text-base font-medium text-black hover:opacity-60 transition-opacity"
+                          >
+                            {productName}
+                          </Link>
+                          {brandName && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              {brandName}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveItem(
+                            itemId,
+                            productName,
+                            isGuest ? item.productId : undefined,
+                            isGuest ? item.variantId : undefined,
+                            isGuest ? item.sizeEu : undefined
+                          )}
+                          disabled={isProcessing}
+                          className="text-gray-400 hover:text-black disabled:opacity-50 transition-colors flex-shrink-0"
+                          title="移除"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* 規格資訊 - 極簡風格 */}
+                      <div className="space-y-1 text-sm text-gray-600 mb-4">
+                        {variantName && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-gray-500">
+                              顏色
+                            </span>
+                            <span>{variantName}</span>
+                          </div>
+                        )}
+                        {sizeEu && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-gray-500">
+                              尺碼
+                            </span>
+                            <span>EU {sizeEu}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 底部：數量和價格 */}
+                      <div className="flex items-center justify-between">
+                        {/* 數量調整 - Nike 風格 */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center border border-gray-300 rounded-full">
+                            <button
+                              onClick={() => handleUpdateQuantity(
+                                itemId,
+                                quantity - 1,
+                                isGuest ? item.productId : undefined,
+                                isGuest ? item.variantId : undefined,
+                                isGuest ? item.sizeEu : undefined
+                              )}
+                              disabled={isProcessing || quantity <= 1}
+                              className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-l-full"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M20 12H4"
+                                />
+                              </svg>
+                            </button>
+                            <div className="w-12 text-center font-medium text-sm">
+                              {quantity}
+                            </div>
+                            <button
+                              onClick={() => handleUpdateQuantity(
+                                itemId,
+                                quantity + 1,
+                                isGuest ? item.productId : undefined,
+                                isGuest ? item.variantId : undefined,
+                                isGuest ? item.sizeEu : undefined
+                              )}
+                              disabled={isProcessing}
+                              className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-colors rounded-r-full"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 4v16m8-8H4"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 價格 */}
+                        <div className="text-right">
+                          <p className="text-base font-medium text-black">
+                            NT$ {subtotal.toLocaleString()}
+                          </p>
                         </div>
                       </div>
-                    )}
-                    {item.sizeChart && (
-                      <div>
-                        尺碼: EU {item.sizeChart.eu} / US {item.sizeChart.us} / UK {item.sizeChart.uk}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 價格和數量 */}
-                  <div className="flex items-center justify-between">
-                    {/* 數量調整 */}
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600">數量:</span>
-                      <div className="flex items-center gap-2 border border-gray-300 rounded-lg">
-                        <button
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                          disabled={isProcessing || item.quantity <= 1}
-                          className="px-3 py-1 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          -
-                        </button>
-                        <span className="px-3 py-1 font-medium">{item.quantity}</span>
-                        <button
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                          disabled={isProcessing}
-                          className="px-3 py-1 hover:bg-gray-100 disabled:opacity-50"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 價格 */}
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900">
-                        NT$ {item.subtotal.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        單價 NT$ {item.price.toLocaleString()}
-                      </p>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
 
-        {/* 訂單摘要 */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">訂單摘要</h2>
+          {/* 右側：訂單摘要 */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-4">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">
+                  摘要
+                </h2>
 
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between text-gray-700">
-                <span>商品小計</span>
-                <span>NT$ {cart.total.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>運費</span>
-                <span className="text-green-600">免運費</span>
-              </div>
-              <div className="border-t border-gray-200 pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-gray-900">總計</span>
-                  <span className="text-2xl font-bold text-primary-600">
-                    NT$ {cart.total.toLocaleString()}
-                  </span>
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">小計</span>
+                    <span className="text-black font-medium">
+                      NT$ {cartTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">運費</span>
+                    <span className="text-green-600 font-medium">免運費</span>
+                  </div>
+                  <div className="border-t border-gray-300 pt-4">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-base font-bold text-black uppercase">
+                        總計
+                      </span>
+                      <span className="text-2xl font-black text-black">
+                        NT$ {cartTotal.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA 按鈕 */}
+                <div className="space-y-3">
+                  <Link
+                    href="/checkout"
+                    className="block w-full py-4 bg-black text-white text-center rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide"
+                  >
+                    結帳
+                  </Link>
+
+                  <Link
+                    href="/products"
+                    className="block w-full py-4 border-2 border-black text-black text-center rounded-full hover:bg-gray-50 transition-colors font-medium text-sm uppercase tracking-wide"
+                  >
+                    繼續購物
+                  </Link>
+                </div>
+
+                {/* 付款方式 */}
+                <div className="mt-6 pt-6 border-t border-gray-300">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">
+                    接受的付款方式
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700">
+                      銀行轉帳
+                    </div>
+                    <div className="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700">
+                      LINE Pay
+                    </div>
+                    <div className="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700">
+                      貨到付款
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <Link
-              href="/checkout"
-              className="block w-full py-3 bg-primary-600 text-white text-center rounded-lg hover:bg-primary-700 transition-colors font-medium mb-3"
-            >
-              前往結帳
-            </Link>
-
-            <Link
-              href="/"
-              className="block w-full py-3 border border-gray-300 text-gray-700 text-center rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              繼續購物
-            </Link>
-
-            {/* 付款方式提示 */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">支援付款方式:</p>
-              <div className="flex gap-2">
-                <div className="px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-700">
-                  銀行轉帳
-                </div>
-                <div className="px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-700">
-                  LINE Pay
-                </div>
-                <div className="px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-700">
-                  貨到付款
-                </div>
+              {/* 安全提示 */}
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                <span>安全結帳保護</span>
               </div>
-            </div>
-
-            {/* 安全提示 */}
-            <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <span>安全結帳保護</span>
             </div>
           </div>
         </div>

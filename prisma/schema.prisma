@@ -70,6 +70,10 @@ model User {
   totalSpent             Decimal                 @default(0) @db.Decimal(12, 2)
   isFirstTimeBuyer       Boolean                 @default(true)
   firstPurchaseAt        DateTime?
+  // 郵件行銷訂閱
+  marketingEmailOptIn    Boolean                 @default(false) // 是否同意接收行銷郵件
+  marketingEmailOptInAt  DateTime?               // 同意時間（法律要求記錄）
+  unsubscribeToken       String?                 @unique // 退訂 token
   addresses              Address[]
   campaignOrders         CampaignOrder[]
   campaignParticipations CampaignParticipation[]
@@ -87,12 +91,14 @@ model User {
   referralsAsReferrer    ReferralUsage[]         @relation("ReferralReferrer")
   referralsAsReferee     ReferralUsage[]         @relation("ReferralReferee")
   conversations          Conversation[]
+  emailLogs              EmailLog[]              // 郵件發送記錄
   membershipTierConfig   MembershipTierConfig?   @relation(fields: [membershipTierId], references: [id])
 
   @@index([email])
   @@index([phone])
   @@index([lineId])
   @@index([membershipTierId])
+  @@index([marketingEmailOptIn])
   @@map("users")
 }
 
@@ -182,6 +188,7 @@ model Product {
   images             Json             @default("[]")
   isActive           Boolean          @default(true)
   isFeatured         Boolean          @default(false)
+  isNewArrival       Boolean          @default(false)
   sortOrder          Int              @default(0)
   viewCount          Int              @default(0)
   soldCount          Int              @default(0)
@@ -207,13 +214,18 @@ model Product {
   reviews            Review[]
   wishlistItems      WishlistItem[]
 
-  @@index([categoryId])
-  @@index([brandId])
-  @@index([isActive])
-  @@index([isFeatured])
-  @@index([createdAt])
+  // ✅ 單一欄位索引
   @@index([slug])
-  @@index([price])
+
+  // ✅ 複合索引（針對常見查詢組合優化）
+  @@index([isActive, categoryId])     // 分類篩選查詢
+  @@index([isActive, brandId])        // 品牌篩選查詢
+  @@index([isActive, gender])         // 性別篩選查詢
+  @@index([isActive, price])          // 價格排序查詢
+  @@index([isActive, createdAt])      // 最新產品查詢
+  @@index([isActive, isFeatured])     // 精選產品查詢
+  @@index([isActive, isNewArrival])   // 新品展示查詢
+  @@index([categoryId, brandId, isActive])  // 複合篩選查詢
   @@map("products")
 }
 
@@ -309,9 +321,16 @@ model CartItem {
   sizeChart    SizeChart?      @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
 
   @@unique([cartId, productId, variantId, sizeChartId])
+
+  // ✅ 單一欄位索引
   @@index([cartId])
   @@index([userId])
   @@index([productId])
+
+  // ✅ 複合索引（優化查詢）
+  @@index([cartId, productId, variantId, sizeChartId])  // 查找重複項目
+  @@index([userId, productId])  // 用戶購物車查詢
+
   @@map("cart_items")
 }
 
@@ -363,12 +382,20 @@ model Order {
   user                   User?           @relation(fields: [userId], references: [id])
   returns                Return[]
 
+  // ✅ 單一欄位索引
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
   @@index([shippingStatus])
   @@index([createdAt])
   @@index([orderNumber])
+
+  // ✅ 複合索引（優化查詢）
+  @@index([userId, status])  // 用戶訂單篩選
+  @@index([userId, createdAt])  // 用戶訂單排序
+  @@index([status, createdAt])  // 管理員訂單篩選
+  @@index([status, paymentStatus])  // 訂單狀態組合查詢
+
   @@map("orders")
 }
 
@@ -391,6 +418,11 @@ model OrderItem {
   product      Product         @relation(fields: [productId], references: [id])
   variant      ProductVariant? @relation(fields: [variantId], references: [id])
   returnItems  ReturnItem[]
+
+  // ✅ 新增索引（優化查詢）
+  @@index([orderId])  // 訂單項目查詢
+  @@index([productId])  // 產品銷量統計
+  @@index([productId, orderId])  // 複合查詢
 
   @@map("order_items")
 }
@@ -559,14 +591,31 @@ model UserCredit {
   @@map("user_credits")
 }
 
+// 邀請碼全局設定（後台可配置）
+model ReferralSettings {
+  id                    String   @id @default(cuid())
+  isEnabled             Boolean  @default(true) // 是否啟用邀請碼系統
+  rewardAmount          Decimal  @default(100) @db.Decimal(10, 2) // 每筆訂單獎勵金額
+  minOrderAmount        Decimal  @default(0) @db.Decimal(10, 2) // 訂單金額門檻（0 = 無門檻）
+  maxRewardsPerReferee  Int      @default(0) // 每個被邀請人最多獎勵次數（0 = 無限制）
+  rewardType            String   @default("FIXED") // FIXED（固定金額）或 PERCENTAGE（百分比）
+  rewardPercentage      Decimal  @default(0) @db.Decimal(5, 2) // 獎勵百分比（當 rewardType = PERCENTAGE 時使用）
+  maxRewardPerOrder     Decimal? @db.Decimal(10, 2) // 單筆訂單最大獎勵金額（僅用於百分比模式）
+  creditValidityDays    Int      @default(365) // 購物金有效期（天）
+  description           String?  // 說明文字
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("referral_settings")
+}
+
 // 邀請碼系統
 model ReferralCode {
   id              String   @id @default(cuid())
   userId          String   // 邀請人
   code            String   @unique // 邀請碼
   usedCount       Int      @default(0) // 使用次數（無上限）
-  rewardAmount    Decimal  @default(100) @db.Decimal(10, 2) // 獎勵金額
-  referrerReward  Decimal  @default(100) @db.Decimal(10, 2) // 邀請人獎勵
+  totalRewards    Decimal  @default(0) @db.Decimal(10, 2) // 累計獲得的獎勵總額
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -578,12 +627,15 @@ model ReferralCode {
   @@map("referral_codes")
 }
 
-// 邀請碼使用記錄
+// 邀請碼使用記錄（每筆訂單都記錄）
 model ReferralUsage {
   id             String        @id @default(cuid())
   referralCodeId String
   referrerId     String        // 邀請人
   refereeId      String        // 被邀請人
+  orderId        String?       // 關聯的訂單 ID（每筆訂單都記錄）
+  orderAmount    Decimal?      @db.Decimal(10, 2) // 訂單金額
+  rewardAmount   Decimal       @default(0) @db.Decimal(10, 2) // 本次獎勵金額
   rewardGranted  Boolean       @default(false) // 是否已發放獎勵
   creditId       String?       // 發放的購物金 ID
   createdAt      DateTime      @default(now())
@@ -594,6 +646,7 @@ model ReferralUsage {
   @@index([referralCodeId])
   @@index([referrerId])
   @@index([refereeId])
+  @@index([orderId])
   @@map("referral_usages")
 }
 
@@ -638,23 +691,6 @@ enum ConversationStatus {
 enum SenderType {
   USER
   ADMIN
-}
-
-// 社群平台連結管理
-model SocialLink {
-  id        String   @id @default(cuid())
-  platform  String   // 平台名稱（Facebook, Instagram, LINE等）
-  url       String   // 連結 URL
-  label     String?  // 顯示名稱
-  icon      String?  // 圖示
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([sortOrder])
-  @@map("social_links")
 }
 
 // ============================================
@@ -710,16 +746,18 @@ model ReturnItem {
 model Faq {
   id           String   @id @default(cuid())
   question     String
-  answer       String
-  category     String?  // 分类（产品、订购、配送、退换货等）
+  answer       String   @db.Text // 使用 Text 類型支援長文字
+  category     String?  // 分類（產品、訂購、配送、退換貨等）
   slug         String   @unique
   viewCount    Int      @default(0)
   helpfulCount Int      @default(0)
   isPublished  Boolean  @default(true)
-  priority     Int      @default(0)
+  sortOrder    Int      @default(0) // 排序（數字越小越前面）
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([isPublished, sortOrder])
+  @@index([category])
   @@map("faqs")
 }
 
@@ -1017,4 +1055,98 @@ enum AnnouncementType {
   ERROR       // 錯誤
   PROMOTION   // 促銷活動
   MAINTENANCE // 系統維護
+}
+
+enum EmailCampaignStatus {
+  DRAFT       // 草稿
+  SCHEDULED   // 已排程
+  SENDING     // 發送中
+  SENT        // 已發送
+  FAILED      // 發送失敗
+  CANCELLED   // 已取消
+}
+
+enum EmailLogStatus {
+  PENDING     // 等待發送
+  SENDING     // 發送中
+  SENT        // 已發送
+  OPENED      // 已打開
+  CLICKED     // 已點擊
+  BOUNCED     // 退回
+  FAILED      // 失敗
+}
+
+// ============================================
+// 首頁內容管理
+// ============================================
+
+// 首頁輪播圖
+model HeroSlide {
+  id          String   @id @default(cuid())
+  title       String   // 主標題
+  subtitle    String?  // 副標題
+  description String?  // 描述文字
+  image       String   // 圖片 URL
+  cta         String   // 按鈕文字（Call to Action）
+  link        String   // 按鈕連結
+  sortOrder   Int      @default(0) // 排序（數字越小越前面）
+  isActive    Boolean  @default(true) // 是否啟用
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("hero_slides")
+}
+
+// ============================================
+// 郵件行銷系統
+// ============================================
+
+// 郵件發送活動
+model EmailCampaign {
+  id               String              @id @default(cuid())
+  name             String              // 活動名稱
+  subject          String              // 郵件主旨
+  htmlContent      String              @db.Text // HTML 郵件內容
+  textContent      String?             @db.Text // 純文字內容（備用）
+  status           EmailCampaignStatus @default(DRAFT)
+  targetAudience   Json                @default("{}") // 目標受眾篩選條件
+  scheduledAt      DateTime?           // 預定發送時間
+  sentAt           DateTime?           // 實際發送時間
+  totalRecipients  Int                 @default(0) // 收件人總數
+  successCount     Int                 @default(0) // 成功發送數
+  failedCount      Int                 @default(0) // 失敗數
+  openedCount      Int                 @default(0) // 打開數（預留）
+  clickedCount     Int                 @default(0) // 點擊數（預留）
+  createdBy        String              // 建立者（管理員 ID）
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  emailLogs        EmailLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_campaigns")
+}
+
+// 郵件發送記錄
+model EmailLog {
+  id               String           @id @default(cuid())
+  campaignId       String           // 關聯的活動
+  userId           String           // 收件人
+  email            String           // 收件人郵件地址
+  status           EmailLogStatus   @default(PENDING)
+  sentAt           DateTime?        // 發送時間
+  openedAt         DateTime?        // 打開時間（預留）
+  clickedAt        DateTime?        // 點擊時間（預留）
+  bouncedAt        DateTime?        // 退回時間
+  errorMessage     String?          // 錯誤訊息
+  createdAt        DateTime         @default(now())
+  campaign         EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+  @@index([email])
+  @@map("email_logs")
 }

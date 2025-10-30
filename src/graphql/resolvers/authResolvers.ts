@@ -105,7 +105,7 @@ export const authResolvers = {
      * 步驟 2：使用 LINE 授權碼直接完成登入/註冊
      * 前端從 LINE 回調後調用此 API，無需 OTP
      */
-    lineLoginCallback: async (_: any, { code, name, phone }: { code: string; name?: string; phone?: string }) => {
+    lineLoginCallback: async (_: any, { code, name, phone, referralCode }: { code: string; name?: string; phone?: string; referralCode?: string }) => {
       try {
         // 使用授權碼換取 Access Token
         const tokenData = await getLineAccessToken(code)
@@ -118,6 +118,9 @@ export const authResolvers = {
           where: { lineId: lineProfile.userId },
         })
 
+        // 記錄是否為新用戶（用於後續判斷是否綁定邀請碼）
+        const isNewUser = !user
+
         // 如果是新用戶，創建帳號
         if (!user) {
           // 使用 LINE 顯示名稱，如果用戶有提供姓名則覆蓋
@@ -125,6 +128,12 @@ export const authResolvers = {
 
           // 生成臨時 email（如果沒有提供）
           const tempEmail = `line_${lineProfile.userId}@temp.local`
+
+          // 取得最低等級會員（銅卡）
+          const lowestTier = await prisma.membershipTierConfig.findFirst({
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          })
 
           user = await prisma.user.create({
             data: {
@@ -137,8 +146,23 @@ export const authResolvers = {
               lineDisplayName: lineProfile.displayName,
               lineProfileImage: lineProfile.pictureUrl,
               role: 'USER',
+              membershipTierId: lowestTier?.id || null, // 設定預設會員等級
             },
           })
+
+          // 如果提供了邀請碼，綁定邀請關係
+          if (referralCode) {
+            try {
+              const { bindUserToReferralCode } = await import('./referralResolvers')
+              await bindUserToReferralCode({
+                userId: user.id,
+                referralCode: referralCode.trim(),
+              })
+              console.log(`新用戶 ${user.id} 已綁定邀請碼: ${referralCode}`)
+            } catch (error) {
+              console.error('綁定邀請碼失敗（不影響註冊）:', error)
+            }
+          }
         } else {
           // 更新現有用戶的資料
           user = await prisma.user.update({
@@ -265,6 +289,12 @@ export const authResolvers = {
           // 生成一個唯一的 email（使用手機號碼）
           const email = `${phoneNumber}@phone.local`
 
+          // 取得最低等級會員（銅卡）
+          const lowestTier = await prisma.membershipTierConfig.findFirst({
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          })
+
           user = await prisma.user.create({
             data: {
               phone: phoneNumber,
@@ -272,6 +302,7 @@ export const authResolvers = {
               name: userName,
               password: '', // 不使用密碼
               role: 'USER',
+              membershipTierId: lowestTier?.id || null, // 設定預設會員等級
             },
           })
         } else {
