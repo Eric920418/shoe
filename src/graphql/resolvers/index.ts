@@ -18,6 +18,7 @@ import { returnResolvers } from './returnResolvers'
 import { membershipTierResolvers } from './membershipTierResolvers'
 import { faqResolvers } from './faqResolvers'
 import { heroSlideResolvers } from './heroSlideResolvers'
+import { emailCampaignResolvers } from './emailCampaignResolvers'
 
 // 合并所有resolvers
 export const resolvers = {
@@ -37,6 +38,7 @@ export const resolvers = {
     ...membershipTierResolvers.Query,
     ...faqResolvers.Query,
     ...heroSlideResolvers.Query,
+    ...emailCampaignResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -55,6 +57,7 @@ export const resolvers = {
     ...membershipTierResolvers.Mutation,
     ...faqResolvers.Mutation,
     ...heroSlideResolvers.Mutation,
+    ...emailCampaignResolvers.Mutation,
   },
   User: authResolvers.User,
   Category: productResolvers.Category,
@@ -69,4 +72,6 @@ export const resolvers = {
   Conversation: chatResolvers.Conversation,
   Return: returnResolvers.Return,
   ReturnItem: returnResolvers.ReturnItem,
+  EmailCampaign: emailCampaignResolvers.EmailCampaign,
+  EmailLog: emailCampaignResolvers.EmailLog,
 }

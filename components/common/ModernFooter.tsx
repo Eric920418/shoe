@@ -1,6 +1,58 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 export default function ModernFooter() {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('請輸入有效的 Email 地址')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            mutation UpdateEmailSubscription($subscribed: Boolean!) {
+              updateEmailSubscription(subscribed: $subscribed) {
+                id
+                marketingEmailOptIn
+              }
+            }
+          `,
+          variables: { subscribed: true },
+        }),
+      })
+
+      const json = await res.json()
+      if (json.errors) {
+        throw new Error(json.errors[0]?.message || '訂閱失敗')
+      }
+
+      toast.success('訂閱成功！您將收到最新產品資訊與獨家優惠')
+      setEmail('')
+    } catch (error: any) {
+      if (error.message.includes('登入') || error.message.includes('UNAUTHENTICATED')) {
+        toast.error('請先登入才能訂閱電子報')
+      } else {
+        toast.error(error.message || '訂閱失敗，請稍後再試')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <footer className="bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -203,19 +255,27 @@ export default function ModernFooter() {
             <p className="text-sm text-gray-400 mb-4">
               訂閱以獲得最新產品資訊與獨家優惠
             </p>
-            <form className="space-y-3">
+            <form onSubmit={handleSubscribe} className="space-y-3">
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="輸入您的 Email"
                 className="w-full px-4 py-2 bg-white text-black text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                required
+                disabled={loading}
               />
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-gray-200 transition-colors"
+                disabled={loading}
+                className="w-full px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                訂閱
+                {loading ? '訂閱中...' : '訂閱'}
               </button>
             </form>
+            <p className="text-xs text-gray-500 mt-2">
+              需要先登入才能訂閱電子報
+            </p>
 
             {/* 社群連結 */}
             <div className="mt-6">

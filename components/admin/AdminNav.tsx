@@ -40,6 +40,7 @@ const navItems = [
       { name: "優惠券", href: "/admin/coupons", icon: "🎫" },
       { name: "購物金", href: "/admin/credits", icon: "💰" },
       { name: "邀請碼設定", href: "/admin/referral-settings", icon: "🎁" },
+      { name: "郵件行銷", href: "/admin/email-campaigns", icon: "📧" },
     ],
   },
   {

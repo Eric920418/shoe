@@ -926,6 +926,79 @@ export const typeDefs = gql`
     expiresAt: DateTime
   }
 
+  # 郵件活動狀態
+  enum EmailCampaignStatus {
+    DRAFT
+    SCHEDULED
+    SENDING
+    SENT
+    FAILED
+    CANCELLED
+  }
+
+  # 郵件發送記錄狀態
+  enum EmailLogStatus {
+    PENDING
+    SENDING
+    SENT
+    OPENED
+    CLICKED
+    BOUNCED
+    FAILED
+  }
+
+  # 郵件活動
+  type EmailCampaign {
+    id: ID!
+    name: String!
+    subject: String!
+    htmlContent: String!
+    textContent: String
+    status: EmailCampaignStatus!
+    targetAudience: JSON!
+    scheduledAt: DateTime
+    sentAt: DateTime
+    totalRecipients: Int!
+    successCount: Int!
+    failedCount: Int!
+    openedCount: Int!
+    clickedCount: Int!
+    createdBy: String!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    emailLogs: [EmailLog!]
+  }
+
+  # 郵件發送記錄
+  type EmailLog {
+    id: ID!
+    campaignId: String!
+    userId: String!
+    email: String!
+    status: EmailLogStatus!
+    sentAt: DateTime
+    openedAt: DateTime
+    clickedAt: DateTime
+    bouncedAt: DateTime
+    errorMessage: String
+    createdAt: DateTime!
+    campaign: EmailCampaign!
+    user: User!
+  }
+
+  # 郵件活動列表響應
+  type EmailCampaignsResponse {
+    items: [EmailCampaign!]!
+    total: Int!
+    hasMore: Boolean!
+  }
+
+  # 郵件預覽統計
+  type EmailPreviewStats {
+    totalRecipients: Int!
+    subscribedUsers: Int!
+  }
+
   # ==================== Query ====================
 
   type Query {
@@ -1057,6 +1130,15 @@ export const typeDefs = gql`
     # 會員等級管理（Admin）
     membershipTiers: [MembershipTierConfig!]!
     membershipTier(id: ID!): MembershipTierConfig
+
+    # 郵件行銷管理（Admin）
+    emailCampaigns(
+      status: EmailCampaignStatus
+      page: Int
+      limit: Int
+    ): EmailCampaignsResponse!
+    emailCampaign(id: ID!): EmailCampaign
+    emailPreviewStats(targetAudience: JSON!): EmailPreviewStats!
   }
 
   # 退貨列表響應
@@ -1183,6 +1265,16 @@ export const typeDefs = gql`
     updateFaq(id: ID!, input: UpdateFaqInput!): Faq!
     deleteFaq(id: ID!): DeleteResponse!
     markFaqHelpful(id: ID!): Faq!
+
+    # 郵件行銷管理（Admin）
+    createEmailCampaign(input: CreateEmailCampaignInput!): EmailCampaign!
+    updateEmailCampaign(id: ID!, input: UpdateEmailCampaignInput!): EmailCampaign!
+    sendEmailCampaign(id: ID!): EmailCampaign!
+    deleteEmailCampaign(id: ID!): Boolean!
+
+    # 用戶郵件訂閱管理
+    updateEmailSubscription(subscribed: Boolean!): User!
+    unsubscribeEmail(token: String!): Boolean!
   }
 
   # ==================== Response 類型 ====================
@@ -1539,5 +1631,25 @@ export const typeDefs = gql`
     slug: String
     sortOrder: Int
     isPublished: Boolean
+  }
+
+  # 郵件活動 Input 類型
+  input CreateEmailCampaignInput {
+    name: String!
+    subject: String!
+    htmlContent: String!
+    textContent: String
+    targetAudience: JSON
+    scheduledAt: DateTime
+  }
+
+  input UpdateEmailCampaignInput {
+    name: String
+    subject: String
+    htmlContent: String
+    textContent: String
+    targetAudience: JSON
+    scheduledAt: DateTime
+    status: EmailCampaignStatus
   }
 `;

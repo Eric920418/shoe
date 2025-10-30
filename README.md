@@ -26,6 +26,7 @@
 - **首頁內容管理**（動態輪播圖 + 精選產品）
 - **智能公告推播**（彈窗 + 更新檢測）
 - **FAQ 常見問題管理**（後台編輯 + 前台顯示）
+- **郵件行銷系統**（SMTP 群發 + 用戶訂閱管理 + 退訂機制）
 - 邀請碼獎勵系統（永久有效）
 - 社群分享功能
 - 客服聊天系統
@@ -84,6 +85,15 @@ LINE_CALLBACK_URL="http://localhost:3000/auth/line-verify"
 # LINE Messaging API (用於發送 OTP)
 LINE_MESSAGING_ACCESS_TOKEN="你的_Channel_Access_Token"
 LINE_OFFICIAL_ACCOUNT_ID="你的_Basic_ID"
+
+# SMTP 郵件發送（選用，用於郵件行銷）
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"
+SMTP_FROM_EMAIL="noreply@shoestore.com"
+SMTP_FROM_NAME="鞋店電商"
 ```
 
 **LINE Login 設定步驟**：
@@ -358,6 +368,21 @@ shoe/
 - **智能更新檢測** - 後台修改後自動重新顯示
 - 用戶可單獨關閉或一鍵「全部不再顯示」
 - localStorage 持久化記錄
+
+### 📧 郵件行銷系統
+- **合法合規** - 用戶明確同意機制 + 一鍵退訂連結
+- **SMTP 群發** - 使用 Nodemailer 發送郵件
+- **用戶訂閱管理** - 前台 Footer 訂閱 + 帳戶設定管理
+- **後台管理介面** - 創建活動、編輯郵件、查看發送記錄
+- **發送記錄追蹤** - 成功/失敗統計、錯誤訊息記錄
+- **自動退訂機制** - 每封郵件自動附帶退訂連結
+- **延遲發送** - 避免觸發 SMTP 限制（每封間隔 1 秒）
+
+**使用流程**：
+1. 用戶在 Footer 輸入郵件訂閱（需登入）
+2. 管理員在後台創建郵件活動
+3. 系統自動發送給所有訂閱用戶
+4. 用戶可隨時透過退訂連結取消訂閱
 
 ### 🔄 完整退貨流程
 1. 客戶提交申請 → 選擇訂單和商品、填寫原因
