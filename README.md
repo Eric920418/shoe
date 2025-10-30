@@ -1,8 +1,8 @@
-# 🛍️ 鞋店電商系統
+# 🛍️ 財神賣鞋電商系統
 
 > 專業的在線鞋店電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 1.2.0 | **狀態**: ✅ 生產就緒 | **更新**: 2025-10-30
+**版本**: 1.2.0 | **狀態**: ✅ 生產就緒 | **更新**: 2025-10-31
 
 ---
 
@@ -817,9 +817,65 @@ query MyReferralStats {
 
 ## 🚀 部署
 
+### 資料庫備份與還原
+
+#### 備份資料庫
+
+在轉移到生產環境前，務必做好完整備份：
+
+```bash
+# 1. 建立備份目錄（如果還沒有）
+mkdir -p backups
+
+# 2. 使用 pg_dump 備份資料庫（自訂格式，包含壓縮）
+pg_dump -h localhost -p 5432 -U 你的用戶名 -F c -b -v \
+  -f backups/shoe_store_backup_$(date +%Y%m%d_%H%M%S).dump \
+  shoe_store
+
+# 3. 備份配置檔案
+cp prisma/schema.prisma backups/schema.prisma.backup
+
+# 4. 備份環境變數範本（已移除敏感資訊）
+# 參考 backups/.env.template
+```
+
+**備份檔案說明**：
+- `*.dump` - PostgreSQL 自訂格式備份（包含完整資料和結構，gzip 壓縮）
+- `schema.prisma.backup` - Prisma Schema 備份
+- `.env.template` - 環境變數範本（不含敏感資訊）
+
+#### 還原資料庫
+
+```bash
+# 1. 創建新資料庫（生產環境）
+createdb shoe_store_production
+
+# 2. 從備份還原（使用 pg_restore）
+pg_restore -h localhost -p 5432 -U 你的用戶名 \
+  -d shoe_store_production \
+  -v backups/shoe_store_backup_YYYYMMDD_HHMMSS.dump
+
+# 3. 驗證還原是否成功
+psql -d shoe_store_production -c "SELECT COUNT(*) FROM users;"
+```
+
+**⚠️ 重要提醒**：
+- 備份檔案包含完整用戶資料，請妥善保管
+- 建議定期備份（每日/每週）
+- 生產環境資料庫 URL 需在 `.env` 中更新
+- 備份前確認磁碟空間充足
+
+**備份位置**: `/backups` 目錄（已在 `.gitignore` 中排除）
+
+**最近備份記錄**：
+- 2025-10-31 00:14:27 - 完整備份（37 張資料表，119KB 壓縮檔）
+
 ### 生產環境檢查清單
 
+- [ ] **備份開發環境資料庫** ✅
 - [ ] 設定生產環境變數
+- [ ] 創建生產資料庫
+- [ ] 還原資料到生產環境（或執行乾淨遷移）
 - [ ] 執行資料庫遷移
 - [ ] 執行效能優化 SQL 腳本
 - [ ] 啟動 Redis 服務器
@@ -865,6 +921,17 @@ pnpm db:migrate
 # 開發環境重置（危險！會清空資料）
 pnpm prisma migrate reset
 ```
+
+---
+
+## 📝 最近更新 (2025-10-31)
+
+- 🎨 **[品牌設計] 添加「財神賣鞋」品牌 favicon**：
+  - **位置**：`/public/favicon.png`
+  - **設計風格**：黑底白字「財神賣鞋」四字標誌
+  - **配置**：已在 `app/layout.tsx` 配置 Next.js metadata icons
+  - **更新**：網站標題更新為「財神賣鞋 - 現代化鞋履電商」
+  - **效果**：瀏覽器標籤頁、書籤、iOS 主屏幕均顯示品牌 favicon
 
 ---
 

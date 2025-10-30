@@ -8,8 +8,13 @@ import ModernHeader from '@/components/navigation/ModernHeader'
 import ReferralTracker from '@/components/common/ReferralTracker'
 
 export const metadata: Metadata = {
-  title: 'SHOE STORE - 現代化鞋履電商',
+  title: '財神賣鞋 - 現代化鞋履電商',
   description: '打造你的完美風格 - 提供最新潮流鞋款、專業尺碼建議與頂級購物體驗',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({

@@ -1,0 +1,1152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 用户系统
+// ============================================
+
+// 會員等級配置表（完全動態）
+model MembershipTierConfig {
+  id                    String    @id @default(cuid())
+  name                  String    @unique // 等級名稱（銅卡、銀卡、金卡等）
+  slug                  String    @unique // 唯一標識符（bronze, silver, gold）
+  minSpent              Decimal   @db.Decimal(12, 2) // 最低消費門檻
+  maxSpent              Decimal?  @db.Decimal(12, 2) // 最高消費門檻（最高等級為 null）
+  discount              Decimal   @default(0) @db.Decimal(5, 4) // 折扣率（0.05 = 5%）
+  pointsMultiplier      Decimal   @default(1.0) @db.Decimal(4, 2) // 積分倍數
+  freeShippingThreshold Decimal   @default(0) @db.Decimal(10, 2) // 免運門檻（0 = 永遠免運）
+  birthdayGift          Decimal   @default(0) @db.Decimal(10, 2) // 生日禮購物金
+  sortOrder             Int       @default(0) // 排序（數字越小等級越低）
+  color                 String?   // 顯示顏色（前端 UI 用）
+  icon                  String?   // 圖示（前端 UI 用）
+  description           String?   // 等級描述
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  users                 User[]
+
+  @@index([isActive, sortOrder])
+  @@index([slug])
+  @@map("membership_tier_configs")
+}
+
+model User {
+  id                     String                  @id @default(cuid())
+  email                  String?                 @unique
+  phone                  String?                 @unique
+  password               String?                 // 可選：用戶想要可以設定密碼
+  lineId                 String?                 @unique // LINE User ID
+  lineDisplayName        String?                 // LINE 顯示名稱
+  lineProfileImage       String?                 // LINE 大頭照
+  isLineConnected        Boolean                 @default(false) // 是否已綁定 LINE
+  isLineOfficialFriend   Boolean                 @default(false) // 是否為官方帳號好友
+  lineConnectedAt        DateTime?               // LINE 綁定時間
+  name                   String
+  role                   Role                    @default(USER)
+  avatar                 String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  lastLogin              DateTime?
+  birthday               DateTime?
+  emailVerifiedAt        DateTime?
+  firstName              String?
+  gender                 Gender?
+  isActive               Boolean                 @default(true)
+  isEmailVerified        Boolean                 @default(false)
+  isPhoneVerified        Boolean                 @default(false)
+  lastName               String?
+  membershipExpiredAt    DateTime?
+  membershipPoints       Int                     @default(0)
+  membershipTierId       String?                 // 動態會員等級外鍵
+  phoneVerifiedAt        DateTime?
+  preferences            Json                    @default("{}")
+  totalOrders            Int                     @default(0)
+  totalSpent             Decimal                 @default(0) @db.Decimal(12, 2)
+  isFirstTimeBuyer       Boolean                 @default(true)
+  firstPurchaseAt        DateTime?
+  // 郵件行銷訂閱
+  marketingEmailOptIn    Boolean                 @default(false) // 是否同意接收行銷郵件
+  marketingEmailOptInAt  DateTime?               // 同意時間（法律要求記錄）
+  unsubscribeToken       String?                 @unique // 退訂 token
+  addresses              Address[]
+  campaignOrders         CampaignOrder[]
+  campaignParticipations CampaignParticipation[]
+  campaignRewards        CampaignReward[]
+  cart                   Cart?
+  cartItems              CartItem[]
+  notifications          Notification[]
+  orders                 Order[]
+  reviews                Review[]
+  userCoupons            UserCoupon[]
+  credits                UserCredit[]
+  wishlistItems          WishlistItem[]
+  pointTransactions      PointTransaction[]
+  referralCodes          ReferralCode[]          @relation("ReferralCodeOwner")
+  referralsAsReferrer    ReferralUsage[]         @relation("ReferralReferrer")
+  referralsAsReferee     ReferralUsage[]         @relation("ReferralReferee")
+  conversations          Conversation[]
+  emailLogs              EmailLog[]              // 郵件發送記錄
+  membershipTierConfig   MembershipTierConfig?   @relation(fields: [membershipTierId], references: [id])
+
+  @@index([email])
+  @@index([phone])
+  @@index([lineId])
+  @@index([membershipTierId])
+  @@index([marketingEmailOptIn])
+  @@map("users")
+}
+
+// OTP 驗證系統（免密碼登入/註冊）
+model OtpVerification {
+  id          String   @id @default(cuid())
+  phone       String   // 手機號碼
+  code        String   // 6 位數驗證碼
+  purpose     OtpPurpose // 用途：REGISTER（註冊）或 LOGIN（登入）
+  expiresAt   DateTime // 有效期限（通常 5-10 分鐘）
+  isUsed      Boolean  @default(false) // 是否已使用
+  usedAt      DateTime? // 使用時間
+  attempts    Int      @default(0) // 嘗試次數（防止暴力破解）
+  createdAt   DateTime @default(now())
+
+  @@index([phone, purpose, expiresAt])
+  @@map("otp_verifications")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  phone     String
+  country   String   @default("台灣")
+  city      String
+  district  String
+  street    String
+  zipCode   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
+  @@map("addresses")
+}
+
+// ============================================
+// 产品系统（鞋店专属）
+// ============================================
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  image       String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  logo        String?
+  website     String?
+  country     String?
+  isActive    Boolean   @default(true)
+  isFeatured  Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id                 String           @id @default(cuid())
+  name               String
+  slug               String           @unique
+  description        String?
+  price              Decimal          @db.Decimal(10, 2)
+  originalPrice      Decimal?         @db.Decimal(10, 2)
+  cost               Decimal?         @db.Decimal(10, 2)
+  stock              Int              @default(0)
+  minStock           Int              @default(0)
+  weight             Decimal?         @db.Decimal(8, 2)
+  categoryId         String
+  brandId            String?
+  images             Json             @default("[]")
+  isActive           Boolean          @default(true)
+  isFeatured         Boolean          @default(false)
+  isNewArrival       Boolean          @default(false)
+  sortOrder          Int              @default(0)
+  viewCount          Int              @default(0)
+  soldCount          Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  averageRating      Decimal?         @db.Decimal(3, 2)
+  reviewCount        Int              @default(0)
+  favoriteCount      Int              @default(0)
+  // 鞋店专属字段
+  shoeType           String?          // 鞋类型（运动鞋、皮鞋、凉鞋、靴子）
+  gender             ProductGender?   // 性别（男、女、中性）
+  season             String?          // 季节（春夏、秋冬、四季）
+  heelHeight         Decimal?         @db.Decimal(5, 2) // 鞋跟高度（厘米）
+  closure            String?          // 闭合方式（系带、魔术贴、拉链、套脚）
+  sole               String?          // 鞋底材质（橡胶、皮革、EVA）
+  features           Json             @default("[]") // 特性（防水、透气、防滑）
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  variants           ProductVariant[]
+  sizeCharts         SizeChart[]      // 新增：尺码表
+  brand              Brand?           @relation(fields: [brandId], references: [id])
+  category           Category         @relation(fields: [categoryId], references: [id])
+  reviews            Review[]
+  wishlistItems      WishlistItem[]
+
+  // ✅ 單一欄位索引
+  @@index([slug])
+
+  // ✅ 複合索引（針對常見查詢組合優化）
+  @@index([isActive, categoryId])     // 分類篩選查詢
+  @@index([isActive, brandId])        // 品牌篩選查詢
+  @@index([isActive, gender])         // 性別篩選查詢
+  @@index([isActive, price])          // 價格排序查詢
+  @@index([isActive, createdAt])      // 最新產品查詢
+  @@index([isActive, isFeatured])     // 精選產品查詢
+  @@index([isActive, isNewArrival])   // 新品展示查詢
+  @@index([categoryId, brandId, isActive])  // 複合篩選查詢
+  @@map("products")
+}
+
+// 产品变体（颜色 × 尺码）
+model ProductVariant {
+  id              String      @id @default(cuid())
+  productId       String
+  name            String
+  barcode         String?
+  attributes      Json        // 原有属性
+  // 鞋店专属字段
+  color           String?     // 颜色名称（黑色、白色、红色）
+  colorHex        String?     // 颜色色码 (#000000)
+  colorImage      String?     // 该颜色的产品图
+  material        String?     // 材质（真皮、合成革、帆布）
+  pattern         String?     // 图案（纯色、条纹、印花）
+  priceAdjustment Decimal     @default(0) @db.Decimal(10, 2)
+  stock           Int         @default(0)
+  reservedStock   Int         @default(0)
+  images          Json        @default("[]")
+  weight          Decimal?    @db.Decimal(8, 2)
+  isActive        Boolean     @default(true)
+  isDefault       Boolean     @default(false)
+  sortOrder       Int         @default(0)
+  soldCount       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
+}
+
+// 新增：尺码表
+model SizeChart {
+  id         String     @id @default(cuid())
+  productId  String
+  variantId  String?    // 可选：特定颜色的尺码可能不同
+  eu         String     // 欧码 (36, 37, 38...)
+  us         String     // 美码 (6, 7, 8...)
+  uk         String     // 英码 (4, 5, 6...)
+  cm         String     // 厘米 (23, 24, 25...)
+  footLength Decimal    @db.Decimal(5, 2) // 脚长（厘米）
+  footWidth  String?    // 脚宽（窄/标准/宽）
+  stock      Int        @default(0) // 该尺码的库存
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+
+  @@unique([productId, variantId, eu])
+  @@index([productId])
+  @@index([stock])
+  @@map("size_charts")
+}
+
+// ============================================
+// 购物车与订单
+// ============================================
+
+// 购物车主表
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@index([userId])
+  @@map("carts")
+}
+
+// 购物车项目
+model CartItem {
+  id           String          @id @default(cuid())
+  cartId       String
+  userId       String
+  productId    String
+  quantity     Int             @default(1)
+  price        Decimal         @db.Decimal(10, 2)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  variantId    String?
+  sizeChartId  String?         // 关联到尺码表
+  sizeEu       String?         // 冗余字段：选择的欧码
+  cart         Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  sizeChart    SizeChart?      @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, variantId, sizeChartId])
+
+  // ✅ 單一欄位索引
+  @@index([cartId])
+  @@index([userId])
+  @@index([productId])
+
+  // ✅ 複合索引（優化查詢）
+  @@index([cartId, productId, variantId, sizeChartId])  // 查找重複項目
+  @@index([userId, productId])  // 用戶購物車查詢
+
+  @@map("cart_items")
+}
+
+model Order {
+  id                     String          @id @default(cuid())
+  orderNumber            String          @unique
+  userId                 String?
+  addressId              String?
+  subtotal               Decimal         @db.Decimal(10, 2)
+  shippingFee            Decimal         @default(0) @db.Decimal(10, 2)
+  discount               Decimal         @default(0) @db.Decimal(10, 2)
+  total                  Decimal         @db.Decimal(10, 2)
+  status                 OrderStatus     @default(PENDING)
+  paymentStatus          PaymentStatus   @default(PENDING)
+  shippingStatus         ShippingStatus  @default(PENDING)
+  paymentMethod          PaymentMethod?
+  paymentId              String?
+  paidAt                 DateTime?
+  shippingMethod         String?
+  trackingNumber         String?
+  shippedAt              DateTime?
+  deliveredAt            DateTime?
+  couponId               String?
+  notes                  String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  shippingName           String
+  shippingPhone          String
+  shippingCountry        String          @default("台灣")
+  shippingCity           String
+  shippingDistrict       String          @default("")
+  shippingStreet         String
+  shippingZipCode        String          @default("")
+  guestName              String?
+  guestPhone             String?
+  guestEmail             String?
+  bankTransferImage      String?
+  bankTransferNote       String?
+  bankTransferVerifiedAt DateTime?
+  pointsEarned           Int             @default(0)
+  pointsUsed             Int             @default(0)
+  cancelComment          String?
+  cancelReason           String?
+  cancelledAt            DateTime?
+  campaignOrders         CampaignOrder[]
+  items                  OrderItem[]
+  address                Address?        @relation(fields: [addressId], references: [id])
+  coupon                 Coupon?         @relation(fields: [couponId], references: [id])
+  user                   User?           @relation(fields: [userId], references: [id])
+  returns                Return[]
+
+  // ✅ 單一欄位索引
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([shippingStatus])
+  @@index([createdAt])
+  @@index([orderNumber])
+
+  // ✅ 複合索引（優化查詢）
+  @@index([userId, status])  // 用戶訂單篩選
+  @@index([userId, createdAt])  // 用戶訂單排序
+  @@index([status, createdAt])  // 管理員訂單篩選
+  @@index([status, paymentStatus])  // 訂單狀態組合查詢
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  productId    String
+  productName  String
+  productImage String?
+  price        Decimal         @db.Decimal(10, 2)
+  quantity     Int
+  subtotal     Decimal         @db.Decimal(10, 2)
+  createdAt    DateTime        @default(now())
+  variantAttrs Json?
+  variantId    String?
+  variantName  String?
+  sizeEu       String?         // 新增：购买的尺码
+  color        String?         // 新增：购买的颜色
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id])
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+  returnItems  ReturnItem[]
+
+  // ✅ 新增索引（優化查詢）
+  @@index([orderId])  // 訂單項目查詢
+  @@index([productId])  // 產品銷量統計
+  @@index([productId, orderId])  // 複合查詢
+
+  @@map("order_items")
+}
+
+// ============================================
+// 优惠券与营销活动
+// ============================================
+
+model Coupon {
+  id                   String           @id @default(cuid())
+  code                 String           @unique
+  name                 String
+  description          String?
+  type                 CouponType       @default(PERCENTAGE)
+  value                Decimal          @db.Decimal(10, 2)
+  minAmount            Decimal?         @db.Decimal(10, 2)
+  maxDiscount          Decimal?         @db.Decimal(10, 2)
+  usageLimit           Int?
+  usedCount            Int              @default(0)
+  userLimit            Int?
+  isActive             Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  applicableCategories Json             @default("[]")
+  applicableProducts   Json             @default("[]")
+  excludeProducts      Json             @default("[]")
+  isPublic             Boolean          @default(true)
+  validFrom            DateTime
+  validUntil           DateTime
+  campaignRewards      CampaignReward[]
+  orders               Order[]
+  userCoupons          UserCoupon[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([validFrom, validUntil])
+  @@map("coupons")
+}
+
+model UserCoupon {
+  id           String    @id @default(cuid())
+  userId       String
+  couponId     String
+  isUsed       Boolean   @default(false)
+  usedAt       DateTime?
+  orderId      String?
+  obtainedFrom String?
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime?
+  coupon       Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_coupons")
+}
+
+model Campaign {
+  id                String                  @id @default(cuid())
+  name              String
+  slug              String                  @unique
+  description       String?
+  type              CampaignType            @default(PURCHASE_REWARD)
+  rules             Json
+  conditions        Json
+  discountRules     Json
+  startDate         DateTime
+  endDate           DateTime
+  maxParticipants   Int?
+  maxUsagePerUser   Int?                    @default(1)
+  maxDiscountAmount Decimal?                @db.Decimal(10, 2)
+  minOrderAmount    Decimal?                @db.Decimal(10, 2)
+  status            CampaignStatus          @default(DRAFT)
+  priority          Int                     @default(0)
+  isActive          Boolean                 @default(true)
+  isPublic          Boolean                 @default(true)
+  bannerImage       String?
+  thumbnailImage    String?
+  participantCount  Int                     @default(0)
+  completedCount    Int                     @default(0)
+  totalRevenue      Decimal                 @default(0) @db.Decimal(12, 2)
+  totalDiscount     Decimal                 @default(0) @db.Decimal(12, 2)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  orders            CampaignOrder[]
+  participations    CampaignParticipation[]
+  rewards_given     CampaignReward[]
+
+  @@index([slug])
+  @@index([type])
+  @@index([status])
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+
+model CampaignParticipation {
+  id             String              @id @default(cuid())
+  campaignId     String
+  userId         String
+  status         ParticipationStatus @default(REGISTERED)
+  rewardsEarned  Json                @default("[]")
+  rewardsStatus  RewardStatus        @default(PENDING)
+  participatedAt DateTime            @default(now())
+  completedAt    DateTime?
+  campaign       Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@map("campaign_participations")
+}
+
+model CampaignReward {
+  id          String       @id @default(cuid())
+  campaignId  String
+  userId      String
+  rewardType  RewardType
+  rewardValue Decimal?     @db.Decimal(10, 2)
+  couponId    String?
+  productId   String?
+  status      RewardStatus @default(PENDING)
+  earnedAt    DateTime     @default(now())
+  grantedAt   DateTime?
+  expiresAt   DateTime?
+  campaign    Campaign     @relation(fields: [campaignId], references: [id])
+  coupon      Coupon?      @relation(fields: [couponId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+
+  @@map("campaign_rewards")
+}
+
+model CampaignOrder {
+  id             String   @id @default(cuid())
+  campaignId     String
+  orderId        String
+  userId         String?
+  discountAmount Decimal  @db.Decimal(10, 2)
+  discountType   String
+  originalPrice  Decimal  @db.Decimal(10, 2)
+  finalPrice     Decimal  @db.Decimal(10, 2)
+  appliedRules   Json     @default("[]")
+  appliedAt      DateTime @default(now())
+  campaign       Campaign @relation(fields: [campaignId], references: [id])
+  order          Order    @relation(fields: [orderId], references: [id])
+  user           User?    @relation(fields: [userId], references: [id])
+
+  @@unique([campaignId, orderId])
+  @@map("campaign_orders")
+}
+
+model UserCredit {
+  id               String        @id @default(cuid())
+  userId           String
+  amount           Decimal       @db.Decimal(10, 2)
+  balance          Decimal       @db.Decimal(10, 2)
+  source           CreditSource  @default(CAMPAIGN)
+  sourceId         String?
+  maxUsagePerOrder Decimal?      @db.Decimal(10, 2)
+  minOrderAmount   Decimal?      @db.Decimal(10, 2)
+  validFrom        DateTime      @default(now())
+  validUntil       DateTime
+  isActive         Boolean       @default(true)
+  isUsed           Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credits")
+}
+
+// 邀請碼全局設定（後台可配置）
+model ReferralSettings {
+  id                    String   @id @default(cuid())
+  isEnabled             Boolean  @default(true) // 是否啟用邀請碼系統
+  rewardAmount          Decimal  @default(100) @db.Decimal(10, 2) // 每筆訂單獎勵金額
+  minOrderAmount        Decimal  @default(0) @db.Decimal(10, 2) // 訂單金額門檻（0 = 無門檻）
+  maxRewardsPerReferee  Int      @default(0) // 每個被邀請人最多獎勵次數（0 = 無限制）
+  rewardType            String   @default("FIXED") // FIXED（固定金額）或 PERCENTAGE（百分比）
+  rewardPercentage      Decimal  @default(0) @db.Decimal(5, 2) // 獎勵百分比（當 rewardType = PERCENTAGE 時使用）
+  maxRewardPerOrder     Decimal? @db.Decimal(10, 2) // 單筆訂單最大獎勵金額（僅用於百分比模式）
+  creditValidityDays    Int      @default(365) // 購物金有效期（天）
+  description           String?  // 說明文字
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("referral_settings")
+}
+
+// 邀請碼系統
+model ReferralCode {
+  id              String   @id @default(cuid())
+  userId          String   // 邀請人
+  code            String   @unique // 邀請碼
+  usedCount       Int      @default(0) // 使用次數（無上限）
+  totalRewards    Decimal  @default(0) @db.Decimal(10, 2) // 累計獲得的獎勵總額
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation("ReferralCodeOwner", fields: [userId], references: [id], onDelete: Cascade)
+  usages          ReferralUsage[]
+
+  @@index([userId])
+  @@index([code])
+  @@map("referral_codes")
+}
+
+// 邀請碼使用記錄（每筆訂單都記錄）
+model ReferralUsage {
+  id             String        @id @default(cuid())
+  referralCodeId String
+  referrerId     String        // 邀請人
+  refereeId      String        // 被邀請人
+  orderId        String?       // 關聯的訂單 ID（每筆訂單都記錄）
+  orderAmount    Decimal?      @db.Decimal(10, 2) // 訂單金額
+  rewardAmount   Decimal       @default(0) @db.Decimal(10, 2) // 本次獎勵金額
+  rewardGranted  Boolean       @default(false) // 是否已發放獎勵
+  creditId       String?       // 發放的購物金 ID
+  createdAt      DateTime      @default(now())
+  referralCode   ReferralCode  @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrer       User          @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee        User          @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([referralCodeId])
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([orderId])
+  @@map("referral_usages")
+}
+
+// 客服聊天室系統
+model Conversation {
+  id           String    @id @default(cuid())
+  userId       String    // 客戶 ID
+  subject      String?   // 對話主題
+  status       ConversationStatus @default(OPEN)
+  lastMessageAt DateTime @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String       // 發送者 ID（可能是客戶或管理員）
+  senderType     SenderType   // USER 或 ADMIN
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+enum ConversationStatus {
+  OPEN      // 進行中
+  CLOSED    // 已關閉
+  RESOLVED  // 已解決
+}
+
+enum SenderType {
+  USER
+  ADMIN
+}
+
+// ============================================
+// 退换货系统（强化）
+// ============================================
+
+model Return {
+  id                String       @id @default(cuid())
+  returnNumber      String       @unique
+  orderId           String
+  type              ReturnType   @default(RETURN)
+  reason            ReturnReason @default(DEFECTIVE)
+  description       String?
+  images            Json         @default("[]")
+  refundAmount      Decimal      @db.Decimal(10, 2)
+  refundMethod      String?
+  refundStatus      RefundStatus @default(PENDING)
+  refundedAt        DateTime?
+  returnShippingFee Decimal      @default(0) @db.Decimal(10, 2)
+  trackingNumber    String?
+  status            ReturnStatus @default(REQUESTED)
+  processedBy       String?
+  processedAt       DateTime?
+  adminNotes        String?
+  // 鞋店专属：尺码不合
+  isSizeIssue       Boolean      @default(false) // 是否尺码问题
+  requestedSize     String?      // 想要换的尺码
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  items             ReturnItem[]
+  order             Order        @relation(fields: [orderId], references: [id])
+
+  @@map("returns")
+}
+
+model ReturnItem {
+  id          String    @id @default(cuid())
+  returnId    String
+  orderItemId String
+  quantity    Int
+  reason      String?
+  createdAt   DateTime  @default(now())
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  return      Return    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@map("return_items")
+}
+
+// ============================================
+// FAQ与评论
+// ============================================
+
+model Faq {
+  id           String   @id @default(cuid())
+  question     String
+  answer       String   @db.Text // 使用 Text 類型支援長文字
+  category     String?  // 分類（產品、訂購、配送、退換貨等）
+  slug         String   @unique
+  viewCount    Int      @default(0)
+  helpfulCount Int      @default(0)
+  isPublished  Boolean  @default(true)
+  sortOrder    Int      @default(0) // 排序（數字越小越前面）
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isPublished, sortOrder])
+  @@index([category])
+  @@map("faqs")
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  userId       String
+  productId    String
+  rating       Int
+  title        String?
+  content      String
+  images       Json     @default("[]")
+  orderId      String?
+  verified     Boolean  @default(false)
+  isApproved   Boolean  @default(false)
+  isPublic     Boolean  @default(true)
+  helpfulCount Int      @default(0)
+  // 鞋店专属：尺码反馈
+  sizeFit      SizeFit? // 尺码合适度（偏大/标准/偏小）
+  boughtSize   String?  // 购买的尺码
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productId, orderId])
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@index([isApproved])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+// ============================================
+// 通知与积分
+// ============================================
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  message    String
+  data       Json?
+  isRead     Boolean          @default(false)
+  isArchived Boolean          @default(false)
+  relatedId  String?
+  actionUrl  String?
+  createdAt  DateTime         @default(now())
+  expiresAt  DateTime?
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// 系統公告
+model Announcement {
+  id           String            @id @default(cuid())
+  title        String
+  content      String
+  type         AnnouncementType  @default(INFO)
+  priority     Int               @default(0) // 優先級，數字越大越優先顯示
+  isActive     Boolean           @default(true)
+  startDate    DateTime          @default(now())
+  endDate      DateTime?
+  actionUrl    String?
+  actionLabel  String?
+  createdBy    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([priority])
+  @@map("announcements")
+}
+
+model PointTransaction {
+  id          String               @id @default(cuid())
+  userId      String
+  type        PointTransactionType
+  amount      Int
+  orderId     String?
+  description String
+  createdAt   DateTime             @default(now())
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("point_transactions")
+}
+
+// ============================================
+// 枚举类型
+// ============================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OtpPurpose {
+  REGISTER  // 註冊新帳號
+  LOGIN     // 登入現有帳號
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ProductGender {
+  MEN
+  WOMEN
+  UNISEX
+  KIDS
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  BANK_TRANSFER_PENDING
+  BANK_TRANSFER_VERIFIED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  LINE_PAY
+  CREDIT_CARD
+  CASH_ON_DELIVERY
+}
+
+enum ShippingStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+}
+
+enum CampaignType {
+  PURCHASE_REWARD
+  FLASH_SALE
+  BUNDLE_DEAL
+  SEASONAL
+  FIRST_TIME_BUYER
+  BIRTHDAY_SPECIAL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum CreditSource {
+  CAMPAIGN
+  REFUND
+  ADMIN_GRANT
+  BIRTHDAY
+  REVIEW
+}
+
+enum ParticipationStatus {
+  REGISTERED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum RewardStatus {
+  PENDING
+  PROCESSING
+  GRANTED
+  FAILED
+  EXPIRED
+}
+
+enum RewardType {
+  CREDITS
+  COUPON
+  PRODUCT
+  DISCOUNT
+  FREE_SHIPPING
+  MEMBERSHIP_POINTS
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+  FREE_SHIPPING
+  BUY_X_GET_Y
+}
+
+enum ReturnType {
+  RETURN
+  EXCHANGE
+  REPAIR
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  SIZE_ISSUE
+  NOT_AS_DESCRIBED
+  DAMAGED_SHIPPING
+  CHANGED_MIND
+  OTHER
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PRODUCT_BACK_IN_STOCK
+  PRICE_DROP
+  PROMOTION
+  ACCOUNT_UPDATE
+  SYSTEM_MAINTENANCE
+  GENERAL
+}
+
+enum PointTransactionType {
+  FIRST_PURCHASE_BONUS
+  ORDER_REWARD
+  REFUND
+  ADMIN_ADJUSTMENT
+  CAMPAIGN_REWARD
+}
+
+enum SizeFit {
+  TOO_SMALL
+  SLIGHTLY_SMALL
+  TRUE_TO_SIZE
+  SLIGHTLY_LARGE
+  TOO_LARGE
+}
+
+enum AnnouncementType {
+  INFO        // 一般資訊
+  SUCCESS     // 成功訊息
+  WARNING     // 警告
+  ERROR       // 錯誤
+  PROMOTION   // 促銷活動
+  MAINTENANCE // 系統維護
+}
+
+enum EmailCampaignStatus {
+  DRAFT       // 草稿
+  SCHEDULED   // 已排程
+  SENDING     // 發送中
+  SENT        // 已發送
+  FAILED      // 發送失敗
+  CANCELLED   // 已取消
+}
+
+enum EmailLogStatus {
+  PENDING     // 等待發送
+  SENDING     // 發送中
+  SENT        // 已發送
+  OPENED      // 已打開
+  CLICKED     // 已點擊
+  BOUNCED     // 退回
+  FAILED      // 失敗
+}
+
+// ============================================
+// 首頁內容管理
+// ============================================
+
+// 首頁輪播圖
+model HeroSlide {
+  id          String   @id @default(cuid())
+  title       String   // 主標題
+  subtitle    String?  // 副標題
+  description String?  // 描述文字
+  image       String   // 圖片 URL
+  cta         String   // 按鈕文字（Call to Action）
+  link        String   // 按鈕連結
+  sortOrder   Int      @default(0) // 排序（數字越小越前面）
+  isActive    Boolean  @default(true) // 是否啟用
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("hero_slides")
+}
+
+// ============================================
+// 郵件行銷系統
+// ============================================
+
+// 郵件發送活動
+model EmailCampaign {
+  id               String              @id @default(cuid())
+  name             String              // 活動名稱
+  subject          String              // 郵件主旨
+  htmlContent      String              @db.Text // HTML 郵件內容
+  textContent      String?             @db.Text // 純文字內容（備用）
+  status           EmailCampaignStatus @default(DRAFT)
+  targetAudience   Json                @default("{}") // 目標受眾篩選條件
+  scheduledAt      DateTime?           // 預定發送時間
+  sentAt           DateTime?           // 實際發送時間
+  totalRecipients  Int                 @default(0) // 收件人總數
+  successCount     Int                 @default(0) // 成功發送數
+  failedCount      Int                 @default(0) // 失敗數
+  openedCount      Int                 @default(0) // 打開數（預留）
+  clickedCount     Int                 @default(0) // 點擊數（預留）
+  createdBy        String              // 建立者（管理員 ID）
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  emailLogs        EmailLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_campaigns")
+}
+
+// 郵件發送記錄
+model EmailLog {
+  id               String           @id @default(cuid())
+  campaignId       String           // 關聯的活動
+  userId           String           // 收件人
+  email            String           // 收件人郵件地址
+  status           EmailLogStatus   @default(PENDING)
+  sentAt           DateTime?        // 發送時間
+  openedAt         DateTime?        // 打開時間（預留）
+  clickedAt        DateTime?        // 點擊時間（預留）
+  bouncedAt        DateTime?        // 退回時間
+  errorMessage     String?          // 錯誤訊息
+  createdAt        DateTime         @default(now())
+  campaign         EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+  @@index([email])
+  @@map("email_logs")
+}
