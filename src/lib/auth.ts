@@ -52,3 +52,12 @@ export function getUserFromHeader(authorization?: string): JWTPayload | null {
   const token = authorization.replace('Bearer ', '')
   return verifyToken(token)
 }
+
+/**
+ * 檢查是否為管理員
+ */
+export function requireAdmin(context: any): void {
+  if (!context.user || context.user.role !== 'ADMIN') {
+    throw new Error('需要管理員權限才能執行此操作')
+  }
+}
