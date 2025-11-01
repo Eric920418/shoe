@@ -165,7 +165,7 @@ export const emailCampaignResolvers = {
           targetAudience: input.targetAudience || {},
           scheduledAt: input.scheduledAt,
           status: EmailCampaignStatus.DRAFT,
-          createdBy: context.user.id,
+          createdBy: context.user.userId,
         },
       })
 
@@ -397,6 +397,70 @@ export const emailCampaignResolvers = {
     },
 
     /**
+     * 發送測試郵件
+     */
+    sendTestEmail: async (
+      _: any,
+      { id, testEmail }: { id: string; testEmail: string },
+      context: any
+    ) => {
+      requireAdmin(context)
+
+      const campaign = await prisma.emailCampaign.findUnique({
+        where: { id },
+      })
+
+      if (!campaign) {
+        throw new GraphQLError('找不到該郵件活動', {
+          extensions: { code: 'NOT_FOUND' },
+        })
+      }
+
+      // 驗證郵件格式
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(testEmail)) {
+        throw new GraphQLError('無效的郵件地址', {
+          extensions: { code: 'BAD_REQUEST' },
+        })
+      }
+
+      try {
+        // 生成測試郵件內容（不包含退訂連結）
+        const htmlContent = generateEmailTemplate({
+          title: `【測試】${campaign.subject}`,
+          content: `
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+              <strong>⚠️ 這是一封測試郵件</strong>
+              <p style="margin: 5px 0 0 0; font-size: 14px;">
+                此郵件僅用於測試，不會發送給實際用戶。
+              </p>
+            </div>
+            ${campaign.htmlContent}
+          `,
+        })
+
+        const result = await sendEmail({
+          to: testEmail,
+          subject: `【測試】${campaign.subject}`,
+          html: htmlContent,
+          text: campaign.textContent,
+        })
+
+        if (!result.success) {
+          throw new GraphQLError(`測試郵件發送失敗：${result.error}`, {
+            extensions: { code: 'EMAIL_SEND_FAILED' },
+          })
+        }
+
+        return true
+      } catch (error: any) {
+        throw new GraphQLError(`發送測試郵件時發生錯誤：${error.message}`, {
+          extensions: { code: 'EMAIL_SEND_FAILED' },
+        })
+      }
+    },
+
+    /**
      * 刪除郵件活動
      */
     deleteEmailCampaign: async (
@@ -438,7 +502,7 @@ export const emailCampaignResolvers = {
       }
 
       const user = await prisma.user.update({
-        where: { id: context.user.id },
+        where: { id: context.user.userId },
         data: {
           marketingEmailOptIn: subscribed,
           marketingEmailOptInAt: subscribed ? new Date() : null,

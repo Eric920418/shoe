@@ -74,7 +74,41 @@
   - 添加自定義滾動條樣式（更精緻的 4px 寬度，半透明設計）
   - 影響檔案：`components/sections/MarketplaceHero.tsx`, `app/globals.css`
 
-### 🐛 Bug 修復 (2025-11-01 17:30)
+### 🐛 Bug 修復
+
+#### 郵件行銷系統完整修復與優化 (2025-11-01 晚間)
+
+**1. 修復創建活動失敗問題**
+- 問題：創建郵件活動時出現 `context.user.id` 欄位不存在的錯誤
+- 原因：GraphQL context 使用 `context.user.userId`，但 resolver 錯誤使用 `context.user.id`
+- 修復：將兩處 `context.user.id` 改為 `context.user.userId`
+  - `emailCampaignResolvers.ts:168` - createEmailCampaign (createdBy)
+  - `emailCampaignResolvers.ts:441` - updateEmailSubscription (用戶查詢)
+
+**2. 修復郵件發送「無收件人」問題**
+- 問題：發送郵件顯示成功，但實際沒有人收到（totalRecipients = 0）
+- 原因：所有用戶的 `marketingEmailOptIn` 預設為 `false`（未訂閱）
+- 解決：符合 GDPR 規範，僅發送給明確同意的用戶
+
+**3. 新增測試發送功能** 🆕
+- GraphQL：新增 `sendTestEmail(id, testEmail)` mutation
+- 前端：添加「測試」按鈕，可發送測試郵件到指定郵箱
+- 預覽：發送前顯示訂閱用戶統計（總用戶 vs 訂閱用戶）
+- 保護：當沒有訂閱用戶時自動阻止發送並提示
+- 影響檔案：
+  - `src/graphql/schema.ts:1626`
+  - `src/graphql/resolvers/emailCampaignResolvers.ts:402-461`
+  - `app/admin/email-campaigns/page.tsx:118-235,375-381`
+
+**4. 使用說明**
+- ✅ 點擊「測試」發送測試郵件（不影響用戶）
+- ✅ 點擊「發送」前會顯示收件人預覽
+- ⚠️ 確保至少有一個用戶開啟郵件訂閱
+- ⚠️ 需配置 SMTP 設定（見頁面底部提示）
+
+**狀態**：✅ 完全修復並優化
+
+#### 公告彈窗修復 (2025-11-01 17:30)
 - **公告彈窗「不再顯示」失效問題 - 完全修復**
   - **優化智能更新檢測邏輯**：後台更新公告後，前台自動重新顯示給已關閉的用戶
   - 緩衝期設為 5 秒，避免時間戳誤差問題，同時確保更新立即生效

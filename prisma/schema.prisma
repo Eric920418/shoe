@@ -445,6 +445,7 @@ model Coupon {
   usedCount            Int              @default(0)
   userLimit            Int?
   isActive             Boolean          @default(true)
+  isLocked             Boolean          @default(false) // 鎖定的優惠券不能被刪除，只能編輯
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   applicableCategories Json             @default("[]")

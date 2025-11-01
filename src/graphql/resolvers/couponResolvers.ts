@@ -417,6 +417,24 @@ export const couponResolvers = {
       }
 
       try {
+        // 檢查優惠券是否存在且是否被鎖定
+        const coupon = await prisma.coupon.findUnique({
+          where: { id },
+        })
+
+        if (!coupon) {
+          throw new GraphQLError('優惠券不存在', {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        // 檢查是否為鎖定的優惠券
+        if (coupon.isLocked) {
+          throw new GraphQLError('此優惠券已被系統鎖定，無法刪除。您只能編輯其內容。', {
+            extensions: { code: 'FORBIDDEN' },
+          })
+        }
+
         await prisma.coupon.update({
           where: { id },
           data: { isActive: false },
@@ -424,6 +442,9 @@ export const couponResolvers = {
 
         return true
       } catch (error) {
+        if (error instanceof GraphQLError) {
+          throw error
+        }
         console.error('刪除優惠券失敗:', error)
         throw new GraphQLError('刪除優惠券失敗', {
           extensions: { code: 'INTERNAL_ERROR' },

@@ -471,6 +471,7 @@ export const typeDefs = gql`
     usedCount: Int!
     userLimit: Int
     isActive: Boolean!
+    isLocked: Boolean!
     applicableCategories: JSON
     applicableProducts: JSON
     excludeProducts: JSON
@@ -1622,6 +1623,7 @@ export const typeDefs = gql`
     createEmailCampaign(input: CreateEmailCampaignInput!): EmailCampaign!
     updateEmailCampaign(id: ID!, input: UpdateEmailCampaignInput!): EmailCampaign!
     sendEmailCampaign(id: ID!): EmailCampaign!
+    sendTestEmail(id: ID!, testEmail: String!): Boolean!
     deleteEmailCampaign(id: ID!): Boolean!
 
     # 用戶郵件訂閱管理
@@ -1652,6 +1654,7 @@ export const typeDefs = gql`
 
   input UpdateProfileInput {
     name: String
+    email: String
     firstName: String
     lastName: String
     phone: String

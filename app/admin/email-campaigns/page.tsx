@@ -115,9 +115,55 @@ export default function EmailCampaignsPage() {
     }
   }
 
+  // 預覽收件人數量
+  const previewRecipients = async (id: string) => {
+    try {
+      const res = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            query {
+              emailPreviewStats(targetAudience: {}) {
+                totalRecipients
+                subscribedUsers
+              }
+            }
+          `,
+        }),
+      })
+
+      const json = await res.json()
+      if (json.errors) {
+        throw new Error(json.errors[0]?.message || '預覽失敗')
+      }
+
+      return json.data.emailPreviewStats
+    } catch (error: any) {
+      toast.error(error.message || '預覽失敗')
+      return null
+    }
+  }
+
   // 發送郵件活動
   const handleSend = async (id: string, name: string) => {
-    if (!confirm(`確定要發送「${name}」嗎？發送後無法撤回。`)) {
+    // 先預覽收件人數量
+    const preview = await previewRecipients(id)
+    if (!preview) return
+
+    if (preview.subscribedUsers === 0) {
+      toast.error('沒有訂閱用戶！請確保至少有一個用戶開啟了郵件訂閱。')
+      return
+    }
+
+    if (!confirm(
+      `確定要發送「${name}」嗎？\n\n` +
+      `📊 預覽統計：\n` +
+      `• 總用戶數：${preview.totalRecipients} 人\n` +
+      `• 訂閱用戶：${preview.subscribedUsers} 人\n\n` +
+      `✅ 將發送給 ${preview.subscribedUsers} 位訂閱用戶\n\n` +
+      `發送後無法撤回！`
+    )) {
       return
     }
 
@@ -147,6 +193,44 @@ export default function EmailCampaignsPage() {
       fetchCampaigns()
     } catch (error: any) {
       toast.error(error.message || '發送郵件失敗')
+    }
+  }
+
+  // 測試發送郵件
+  const handleTestSend = async (id: string, name: string) => {
+    const testEmail = prompt('請輸入接收測試郵件的郵箱地址：')
+
+    if (!testEmail) return
+
+    // 驗證郵件格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(testEmail)) {
+      toast.error('無效的郵箱地址')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            mutation SendTestEmail($id: ID!, $testEmail: String!) {
+              sendTestEmail(id: $id, testEmail: $testEmail)
+            }
+          `,
+          variables: { id, testEmail },
+        }),
+      })
+
+      const json = await res.json()
+      if (json.errors) {
+        throw new Error(json.errors[0]?.message || '測試發送失敗')
+      }
+
+      toast.success(`測試郵件已發送到 ${testEmail}`)
+    } catch (error: any) {
+      toast.error(error.message || '測試發送失敗')
     }
   }
 
@@ -287,12 +371,21 @@ export default function EmailCampaignsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {campaign.status === 'DRAFT' && (
-                      <button
-                        onClick={() => handleSend(campaign.id, campaign.name)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
-                      >
-                        發送
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleTestSend(campaign.id, campaign.name)}
+                          className="bg-gray-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-700 transition"
+                          title="發送測試郵件"
+                        >
+                          測試
+                        </button>
+                        <button
+                          onClick={() => handleSend(campaign.id, campaign.name)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
+                        >
+                          發送
+                        </button>
+                      </div>
                     )}
                     {campaign.status === 'SENT' && (
                       <span className="text-sm text-gray-500">

@@ -261,15 +261,76 @@ export const userResolvers = {
       }
 
       try {
+        // 獲取當前用戶資料
+        const currentUser = await prisma.user.findUnique({
+          where: { id: user.userId },
+        })
+
+        if (!currentUser) {
+          throw new GraphQLError('User not found', {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        // 檢測是否首次綁定真實信箱
+        const isBindingRealEmail =
+          input.email &&
+          input.email.trim() !== '' &&
+          !input.email.startsWith('line_') &&
+          !input.email.endsWith('@temp.local') &&
+          (!currentUser.email ||
+           currentUser.email.startsWith('line_') ||
+           currentUser.email.endsWith('@temp.local'))
+
+        // 更新用戶資料
         const updatedUser = await prisma.user.update({
           where: { id: user.userId },
           data: {
             name: input.name,
+            email: input.email,
             phone: input.phone,
             birthday: input.birthday,
             gender: input.gender,
           },
         })
+
+        // 如果是首次綁定信箱，發放優惠券
+        if (isBindingRealEmail) {
+          try {
+            // 檢查是否已經領取過綁定信箱優惠券
+            const existingCoupon = await prisma.userCoupon.findFirst({
+              where: {
+                userId: user.userId,
+                coupon: {
+                  code: 'EMAIL_BINDING_100',
+                },
+              },
+            })
+
+            // 如果還沒領取過，發放優惠券
+            if (!existingCoupon) {
+              const emailBindingCoupon = await prisma.coupon.findUnique({
+                where: { code: 'EMAIL_BINDING_100' },
+              })
+
+              if (emailBindingCoupon) {
+                await prisma.userCoupon.create({
+                  data: {
+                    userId: user.userId,
+                    couponId: emailBindingCoupon.id,
+                    obtainedFrom: '綁定信箱獎勵',
+                    expiresAt: emailBindingCoupon.validUntil,
+                  },
+                })
+
+                console.log(`✅ 已為用戶 ${user.userId} 發放綁定信箱優惠券`)
+              }
+            }
+          } catch (couponError) {
+            // 優惠券發放失敗不影響用戶資料更新
+            console.error('發放綁定信箱優惠券失敗:', couponError)
+          }
+        }
 
         return updatedUser
       } catch (error) {

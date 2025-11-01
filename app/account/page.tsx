@@ -135,9 +135,22 @@ export default function AccountPage() {
 
   const [updateProfile, { loading: updating }] = useMutation(UPDATE_PROFILE, {
     onCompleted: (data) => {
+      // 檢查是否首次綁定信箱
+      const wasTemporaryEmail = isTemporaryEmail(user?.email)
+      const isNowRealEmail = !isTemporaryEmail(data.updateProfile.email)
+      const isFirstTimeBinding = wasTemporaryEmail && isNowRealEmail && formData.email && formData.email.trim() !== ''
+
       updateUser(data.updateProfile)
       setIsEditing(false)
-      alert('資料已更新')
+
+      if (isFirstTimeBinding) {
+        alert('🎉 資料已更新！您已獲得 NT$100 優惠券，可至「購物金 & 優惠券」頁面查看！')
+      } else {
+        alert('資料已更新')
+      }
+
+      // 重新載入資料以更新 UI
+      refetch()
     },
     onError: (error) => {
       alert(error.message)
@@ -263,6 +276,40 @@ export default function AccountPage() {
 
           {/* 主內容 */}
           <div className="lg:col-span-3 space-y-4 sm:space-y-6">
+            {/* 綁定信箱獎勵提示 */}
+            {isTemporaryEmail(user?.email) && (
+              <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl shadow-lg p-6 border-2 border-orange-300">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 text-4xl">🎁</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                      綁定信箱即送 NT$100 優惠券！
+                    </h3>
+                    <p className="text-white/90 text-sm mb-3">
+                      立即綁定您的 Email，即可獲得一張 100 元優惠券（滿 500 元可使用）
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 立即發放
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 無使用期限
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 全站通用
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-shrink-0 px-6 py-3 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    立即綁定
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 基本資料 */}
             <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8 border border-orange-100">
               <div className="flex justify-between items-center mb-6 sm:mb-8">
