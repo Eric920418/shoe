@@ -4,10 +4,11 @@
  * 訂單成功頁面
  */
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('orderNumber') || 'ORD-UNKNOWN'
 
@@ -162,5 +163,19 @@ export default function OrderSuccessPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-3xl mx-auto px-4 py-16">
+        <div className="text-center">
+          <div className="text-2xl font-semibold text-gray-900 mb-2">載入中...</div>
+        </div>
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   )
 }

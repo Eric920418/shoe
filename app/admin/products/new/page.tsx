@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery } from '@apollo/client'
-import { CREATE_PRODUCT, GET_BRANDS, GET_CATEGORIES } from '@/graphql/queries'
+import { CREATE_PRODUCT, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS } from '@/graphql/queries'
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
 
@@ -23,6 +23,8 @@ interface ProductFormData {
   originalPrice: number | ''
   stock: number | ''
   status: string
+  isFeatured: boolean
+  isNewArrival: boolean
   shoeType: string
   gender: string
   season: string
@@ -43,6 +45,8 @@ const initialFormData: ProductFormData = {
   originalPrice: '',
   stock: '',
   status: 'DRAFT',
+  isFeatured: false,
+  isNewArrival: false,
   shoeType: '',
   gender: '',
   season: '',
@@ -76,6 +80,12 @@ export default function NewProductPage() {
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES)
 
   const [createProduct] = useMutation(CREATE_PRODUCT, {
+    refetchQueries: [
+      { query: GET_PRODUCTS },
+      { query: GET_BRANDS },
+      { query: GET_CATEGORIES },
+    ],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       toast.success('產品創建成功！')
       router.push('/admin/products')
@@ -151,7 +161,7 @@ export default function NewProductPage() {
       // 準備 GraphQL 輸入數據
       const input = {
         name: formData.name,
-        slug: formData.slug,
+        slug: formData.slug.trim() || undefined, // 只在有值時傳入 slug，否則讓後端自動生成
         description: formData.description,
         categoryId: formData.categoryId,
         brandId: formData.brandId || null,
@@ -159,6 +169,9 @@ export default function NewProductPage() {
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stock: Number(formData.stock),
         images: formData.images,
+        isActive: formData.status === 'ACTIVE',
+        isFeatured: formData.isFeatured,
+        isNewArrival: formData.isNewArrival,
         shoeType: formData.shoeType || null,
         gender: formData.gender || null,
         season: formData.season || null,
@@ -524,19 +537,52 @@ export default function NewProductPage() {
         {/* 狀態 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">產品狀態</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              狀態
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => updateField('status', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="DRAFT">草稿（不公開顯示）</option>
-              <option value="ACTIVE">在售（公開顯示）</option>
-              <option value="ARCHIVED">已下架</option>
-            </select>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                狀態
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => updateField('status', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="DRAFT">草稿（不公開顯示）</option>
+                <option value="ACTIVE">在售（公開顯示）</option>
+                <option value="ARCHIVED">已下架</option>
+              </select>
+            </div>
+
+            {/* 精選產品和新品展示 */}
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  checked={formData.isFeatured}
+                  onChange={(e) => updateField('isFeatured', e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                  <span className="font-medium">精選產品</span>
+                  <span className="text-gray-500 ml-2">（在首頁「精選推薦」區塊顯示）</span>
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isNewArrival"
+                  checked={formData.isNewArrival}
+                  onChange={(e) => updateField('isNewArrival', e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isNewArrival" className="ml-2 block text-sm text-gray-700">
+                  <span className="font-medium">新品展示</span>
+                  <span className="text-gray-500 ml-2">（在首頁「新品搶先體驗」區塊顯示）</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

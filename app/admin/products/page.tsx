@@ -38,13 +38,19 @@ export default function ProductsPage() {
       categoryId: filterCategory || undefined,
       brandId: filterBrand || undefined,
     },
+    fetchPolicy: 'network-only', // 總是從網路獲取最新資料
+    nextFetchPolicy: 'cache-first', // 後續查詢使用快取
   })
 
   // 獲取品牌列表（用於篩選）
-  const { data: brandsData } = useQuery(GET_BRANDS)
+  const { data: brandsData } = useQuery(GET_BRANDS, {
+    fetchPolicy: 'cache-and-network', // 使用快取但也從網路更新
+  })
 
   // 獲取分類列表（用於篩選）
-  const { data: categoriesData } = useQuery(GET_CATEGORIES)
+  const { data: categoriesData } = useQuery(GET_CATEGORIES, {
+    fetchPolicy: 'cache-and-network', // 使用快取但也從網路更新
+  })
 
   // 刪除產品 Mutation
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Æs≈b
+ * sb
  */
 
 import { useEffect } from 'react'
@@ -12,29 +12,29 @@ import Image from 'next/image'
 import { GET_ORDER, CANCEL_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 
-// Æ¿Ko:Mn
+// Ko:Mn
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  PENDING: { label: 'ÖU', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-  CONFIRMED: { label: 'Ú∫ç', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  PENDING: { label: 'U', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+  CONFIRMED: { label: '', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   PROCESSING: { label: 'U-', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  SHIPPED: { label: 'Ú˙®', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  COMPLETED: { label: 'Úå', color: 'text-green-700', bgColor: 'bg-green-100' },
-  CANCELLED: { label: 'Ú÷à', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  SHIPPED: { label: '', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  COMPLETED: { label: '', color: 'text-green-700', bgColor: 'bg-green-100' },
+  CANCELLED: { label: '÷à', color: 'text-gray-700', bgColor: 'bg-gray-100' },
 }
 
-// ÿ>¿KMn
+// >KMn
 const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PENDING: { label: 'Öÿ>', color: 'text-yellow-600' },
-  PAID: { label: 'Úÿ>', color: 'text-green-600' },
-  FAILED: { label: 'ÿ>1W', color: 'text-red-600' },
+  PENDING: { label: '>', color: 'text-yellow-600' },
+  PAID: { label: '>', color: 'text-green-600' },
+  FAILED: { label: '>1W', color: 'text-red-600' },
 }
 
-// ÿ>πMn
+// >Mn
 const PAYMENT_METHOD_CONFIG: Record<string, string> = {
-  BANK_TRANSFER: 'ÄLI3',
+  BANK_TRANSFER: 'LI3',
   LINE_PAY: 'LINE Pay',
-  COD: '®0ÿ>',
-  CREDIT_CARD: '·(a',
+  COD: '0>',
+  CREDIT_CARD: '(a',
 }
 
 export default function OrderDetailPage() {
@@ -43,10 +43,10 @@ export default function OrderDetailPage() {
   const orderId = params?.id as string
   const { isAuthenticated, isLoading: authLoading } = useAuth()
 
-  // Çú*{eÛI0{eb
+  // *{eI0{eb
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      alert('ÀH{eÂÂÆ')
+      alert('H{e')
       router.push('/auth/login')
     }
   }, [isAuthenticated, authLoading, router])
@@ -59,19 +59,19 @@ export default function OrderDetailPage() {
 
   const [cancelOrder, { loading: cancelling }] = useMutation(CANCEL_ORDER, {
     onCompleted: () => {
-      alert('ÆÚ÷à')
+      alert('÷à')
       refetch()
     },
     onError: (error) => {
-      console.error('÷àÆ1W:', error)
-      alert(error.message || '÷àÆ1WÀÕf')
+      console.error('÷à1W:', error)
+      alert(error.message || '÷à1Wf')
     },
   })
 
   const handleCancelOrder = async () => {
     if (!order) return
 
-    if (!confirm(`∫öÅ÷àÆ ${order.orderNumber} Œ`)) {
+    if (!confirm(`÷à ${order.orderNumber} `)) {
       return
     }
 
@@ -82,24 +82,24 @@ export default function OrderDetailPage() {
         },
       })
     } catch (error) {
-      console.error('÷àÆ1W:', error)
+      console.error('÷à1W:', error)
     }
   }
 
-  // 	e-¿K
+  // 	e-K
   if (authLoading || loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center">
           <div className="text-2xl font-semibold text-gray-900 mb-2">	e-...</div>
-          <p className="text-gray-600">c(r÷Æ«
+          <p className="text-gray-600">c(r
 </p>
         </div>
       </div>
     )
   }
 
-  // /§¿K
+  // /K
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
@@ -117,7 +117,7 @@ export default function OrderDetailPage() {
               href="/orders"
               className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              ‘ﬁÆh
+              h
             </Link>
           </div>
         </div>
@@ -131,12 +131,12 @@ export default function OrderDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center">
-          <div className="text-2xl font-semibold text-gray-900 mb-2">ÆX(</div>
+          <div className="text-2xl font-semibold text-gray-900 mb-2">X(</div>
           <Link
             href="/orders"
             className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
-            ‘ﬁÆh
+            h
           </Link>
         </div>
       </div>
@@ -152,12 +152,12 @@ export default function OrderDetailPage() {
       {/* bL */}
       <div className="mb-8">
         <Link href="/orders" className="text-primary-600 hover:text-primary-700 mb-4 inline-block">
-          ê ‘ﬁÆh
+           h
         </Link>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Æs≈</h1>
-            <p className="text-gray-600 mt-2">ÆË_: {order.orderNumber}</p>
+            <h1 className="text-3xl font-bold text-gray-900">s</h1>
+            <p className="text-gray-600 mt-2">_: {order.orderNumber}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className={`px-4 py-2 text-sm font-medium rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}>
@@ -171,11 +171,11 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ÊtÆs≈ */}
+        {/* ts */}
         <div className="lg:col-span-2 space-y-6">
-          {/* F¡h */}
+          {/* Fh */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">ÆF¡</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">F</h2>
 
             <div className="space-y-4">
               {order.items.map((item: any) => (
@@ -184,7 +184,7 @@ export default function OrderDetailPage() {
                     {item.productImage || item.product?.images?.[0] ? (
                       <Image
                         src={item.productImage || item.product.images[0]}
-                        alt={item.productName || item.product?.name || 'F¡'}
+                        alt={item.productName || item.product?.name || 'F'}
                         width={96}
                         height={96}
                         className="w-full h-full object-cover"
@@ -197,11 +197,11 @@ export default function OrderDetailPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-2">
-                      {item.productName || item.product?.name || '*ÂF¡'}
+                      {item.productName || item.product?.name || '*F'}
                     </h3>
                     <div className="text-sm text-gray-600 space-y-1">
                       {item.sizeEu && (
-                        <div>:¯: EU {item.sizeEu}</div>
+                        <div>:: EU {item.sizeEu}</div>
                       )}
                       {item.color && (
                         <div>Or: {item.color}</div>
@@ -212,7 +212,7 @@ export default function OrderDetailPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">xœ: {item.quantity}</p>
+                    <p className="text-sm text-gray-600 mb-1">x: {item.quantity}</p>
                     <p className="text-sm font-medium text-gray-900">
                       NT$ {item.price.toLocaleString()}
                     </p>
@@ -225,19 +225,19 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {/* M«
+          {/* M
  */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">M«
+            <h2 className="text-lg font-bold text-gray-900 mb-4">M
 </h2>
 
             <div className="space-y-3">
               <div className="flex">
-                <span className="w-24 text-gray-600">6ˆ∫:</span>
+                <span className="w-24 text-gray-600">6:</span>
                 <span className="font-medium text-gray-900">{order.shippingName}</span>
               </div>
               <div className="flex">
-                <span className="w-24 text-gray-600">oa˚q:</span>
+                <span className="w-24 text-gray-600">oaq:</span>
                 <span className="font-medium text-gray-900">{order.shippingPhone}</span>
               </div>
               <div className="flex">
@@ -250,7 +250,7 @@ export default function OrderDetailPage() {
               </div>
               {order.notes && (
                 <div className="flex">
-                  <span className="w-24 text-gray-600">ô;:</span>
+                  <span className="w-24 text-gray-600">;:</span>
                   <span className="text-gray-900">{order.notes}</span>
                 </div>
               )}
@@ -258,23 +258,23 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* ÛtÆXÅ */}
+        {/* tX */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-4 space-y-6">
-            {/* ÆXÅ */}
+            {/* X */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">ÆXÅ</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">X</h2>
 
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-700">
-                  <span>F¡</span>
+                  <span>F</span>
                   <span>NT$ {order.subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-700">
-                  <span>Kª</span>
+                  <span>K</span>
                   <span>
                     {order.shippingFee === 0 ? (
-                      <span className="text-green-600">MKª</span>
+                      <span className="text-green-600">MK</span>
                     ) : (
                       `NT$ ${order.shippingFee.toLocaleString()}`
                     )}
@@ -282,7 +282,7 @@ export default function OrderDetailPage() {
                 </div>
                 {order.discount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>òc</span>
+                    <span>c</span>
                     <span>-NT$ {order.discount.toLocaleString()}</span>
                   </div>
                 )}
@@ -297,18 +297,18 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* ÿ>«
+            {/* >
  */}
             <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-base font-bold text-gray-900 mb-3">ÿ>«
+              <h3 className="text-base font-bold text-gray-900 mb-3">>
 </h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">ÿ>π</span>
+                  <span className="text-gray-600">></span>
                   <span className="font-medium text-gray-900">{paymentMethodLabel}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">ÿ>¿K</span>
+                  <span className="text-gray-600">>K</span>
                   <span className={`font-medium ${paymentConfig.color}`}>
                     {paymentConfig.label}
                   </span>
@@ -316,14 +316,14 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Æ«
+            {/* 
  */}
             <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-base font-bold text-gray-900 mb-3">Æ«
+              <h3 className="text-base font-bold text-gray-900 mb-3">
 </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">˙ÀBì</span>
+                  <span className="text-gray-600">B</span>
                   <span className="text-gray-900">
                     {new Date(order.createdAt).toLocaleString('zh-TW')}
                   </span>
@@ -331,7 +331,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Õ\	 */}
+            {/* \	 */}
             {order.status !== 'CANCELLED' &&
               order.status !== 'COMPLETED' &&
               order.status !== 'SHIPPED' && (
@@ -341,7 +341,7 @@ export default function OrderDetailPage() {
                     disabled={cancelling}
                     className="w-full py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50"
                   >
-                    {cancelling ? 'U-...' : '÷àÆ'}
+                    {cancelling ? 'U-...' : '÷à'}
                   </button>
                 </div>
               )}

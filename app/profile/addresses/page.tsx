@@ -46,7 +46,7 @@ export default function AddressesPage() {
 
   const [createAddress, { loading: creating }] = useMutation(CREATE_ADDRESS, {
     onCompleted: () => {
-      alert('∞ûü')
+      alert('')
       setShowForm(false)
       resetForm()
       refetch()
@@ -55,7 +55,7 @@ export default function AddressesPage() {
 
   const [updateAddress, { loading: updating }] = useMutation(UPDATE_ADDRESS, {
     onCompleted: () => {
-      alert('Ù∞ü')
+      alert('')
       setShowForm(false)
       setEditingId(null)
       resetForm()
@@ -65,7 +65,7 @@ export default function AddressesPage() {
 
   const [deleteAddress] = useMutation(DELETE_ADDRESS, {
     onCompleted: () => {
-      alert('*dü')
+      alert('*d')
       refetch()
     },
   })
@@ -112,7 +112,7 @@ export default function AddressesPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('∫öÅ*dd0@Œ')) {
+    if (confirm('*dd0@')) {
       await deleteAddress({ variables: { id } })
     }
   }
@@ -128,7 +128,7 @@ export default function AddressesPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">0@°</h1>
+        <h1 className="text-3xl font-bold">0@</h1>
         <button
           onClick={() => {
             resetForm()
@@ -137,17 +137,17 @@ export default function AddressesPage() {
           }}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
         >
-          ∞û0@
+          0@
         </button>
       </div>
 
       {showForm && (
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">{editingId ? 'Ë/0@' : '∞û0@'}</h2>
+          <h2 className="text-xl font-bold mb-4">{editingId ? '/0@' : '0@'}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">6ˆ∫ *</label>
+                <label className="block text-sm font-medium mb-1">6 *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -170,7 +170,7 @@ export default function AddressesPage() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Œ *</label>
+                <label className="block text-sm font-medium mb-1"> *</label>
                 <input
                   type="text"
                   value={formData.city}
@@ -180,7 +180,7 @@ export default function AddressesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">@ﬂ *</label>
+                <label className="block text-sm font-medium mb-1">@ *</label>
                 <input
                   type="text"
                   value={formData.district}
@@ -190,7 +190,7 @@ export default function AddressesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">ı^@_</label>
+                <label className="block text-sm font-medium mb-1">^@_</label>
                 <input
                   type="text"
                   value={formData.zipCode}
@@ -219,7 +219,7 @@ export default function AddressesPage() {
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
                   className="mr-2"
                 />
-                -∫-0@
+                --0@
               </label>
             </div>
 
@@ -250,7 +250,7 @@ export default function AddressesPage() {
       <div className="space-y-4">
         {addresses.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border">
-            <p className="text-gray-600">Ñí	0@</p>
+            <p className="text-gray-600">	0@</p>
           </div>
         ) : (
           addresses.map((address: Address) => (
@@ -274,14 +274,14 @@ export default function AddressesPage() {
                     onClick={() => handleEdit(address)}
                     className="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded"
                   >
-                    Ë/
+                    /
                   </button>
                   {!address.isDefault && (
                     <button
                       onClick={() => handleSetDefault(address.id)}
                       className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
                     >
-                      -∫-
+                      --
                     </button>
                   )}
                   <button
@@ -298,7 +298,7 @@ export default function AddressesPage() {
       </div>
 
       <Link href="/profile" className="inline-block mt-6 text-primary-600 hover:text-primary-700">
-        ê ‘ﬁ∫«ô
+         «ô
       </Link>
     </div>
   )

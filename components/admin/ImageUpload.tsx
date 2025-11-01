@@ -12,11 +12,14 @@ interface ImageUploadProps {
 export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
 
+  // 確保 images 始終是陣列
+  const safeImages = Array.isArray(images) ? images : []
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    if (images.length + files.length > maxImages) {
+    if (safeImages.length + files.length > maxImages) {
       toast.error('最多只能上傳 ' + maxImages + ' 張圖片')
       return
     }
@@ -43,7 +46,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)
-      onChange([...images, ...uploadedUrls])
+      onChange([...safeImages, ...uploadedUrls])
       toast.success('成功上傳 ' + uploadedUrls.length + ' 張圖片')
     } catch (error: any) {
       console.error('圖片上傳失敗:', error)
@@ -55,13 +58,13 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
   }
 
   const handleRemove = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
+    const newImages = safeImages.filter((_, i) => i !== index)
     onChange(newImages)
     toast.success('圖片已移除')
   }
 
   const handleReorder = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images]
+    const newImages = [...safeImages]
     const [removed] = newImages.splice(fromIndex, 1)
     newImages.splice(toIndex, 0, removed)
     onChange(newImages)
@@ -71,16 +74,16 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          產品圖片 {images.length > 0 && '(' + images.length + '/' + maxImages + ')'}
+          產品圖片 {safeImages.length > 0 && '(' + safeImages.length + '/' + maxImages + ')'}
         </label>
         <div className="flex items-center gap-4">
-          <label className={'px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 transition-colors ' + (uploading || images.length >= maxImages ? 'opacity-50 cursor-not-allowed' : '')}>
+          <label className={'px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 transition-colors ' + (uploading || safeImages.length >= maxImages ? 'opacity-50 cursor-not-allowed' : '')}>
             <input
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml"
               multiple
               onChange={handleFileChange}
-              disabled={uploading || images.length >= maxImages}
+              disabled={uploading || safeImages.length >= maxImages}
               className="hidden"
             />
             <span className="text-sm text-gray-600">
@@ -91,20 +94,35 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
         </div>
       </div>
 
-      {images.length > 0 && (
+      {safeImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {images.map((url, index) => (
+          {safeImages.map((url, index) => (
             <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
               {index === 0 && (
                 <div className="absolute top-2 left-2 z-10 bg-primary-600 text-white text-xs px-2 py-1 rounded">主圖</div>
               )}
-              <Image src={url} alt={'產品圖片 ' + (index + 1)} fill className="object-cover" sizes="200px" />
+              {/* 對於上傳的圖片，使用標準 img 標籤避免 Next.js Image 優化問題 */}
+              {url.includes('/uploads/') || url.includes('/api/images/') ? (
+                <img
+                  src={url}
+                  alt={'產品圖片 ' + (index + 1)}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={url}
+                  alt={'產品圖片 ' + (index + 1)}
+                  fill
+                  className="object-cover"
+                  sizes="200px"
+                />
+              )}
               <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 {index > 0 && (
                   <button type="button" onClick={() => handleReorder(index, index - 1)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors" title="左移">←</button>
                 )}
                 <button type="button" onClick={() => handleRemove(index)} className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors" title="刪除">×</button>
-                {index < images.length - 1 && (
+                {index < safeImages.length - 1 && (
                   <button type="button" onClick={() => handleReorder(index, index + 1)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors" title="右移">→</button>
                 )}
               </div>
@@ -113,7 +131,7 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
         </div>
       )}
 
-      {images.length === 0 && <p className="text-sm text-gray-500">尚未上傳任何圖片</p>}
+      {safeImages.length === 0 && <p className="text-sm text-gray-500">尚未上傳任何圖片</p>}
     </div>
   )
 }

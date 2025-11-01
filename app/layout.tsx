@@ -4,6 +4,7 @@ import { ApolloProvider } from '@/components/providers/ApolloProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { GuestCartProvider } from '@/contexts/GuestCartContext'
 import { Toaster } from 'react-hot-toast'
+import { Suspense } from 'react'
 import ModernHeader from '@/components/navigation/ModernHeader'
 import ReferralTracker from '@/components/common/ReferralTracker'
 
@@ -28,7 +29,9 @@ export default function RootLayout({
         <ApolloProvider>
           <AuthProvider>
             <GuestCartProvider>
-              <ReferralTracker />
+              <Suspense fallback={null}>
+                <ReferralTracker />
+              </Suspense>
               <ModernHeader />
               <main className="pt-16">
                 {children}

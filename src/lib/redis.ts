@@ -55,7 +55,18 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 export async function cacheDel(key: string) {
   try {
     const client = await getRedisClient()
-    await client.del(key)
+
+    // 如果包含通配符，使用 KEYS 命令找出所有匹配的鍵
+    if (key.includes('*')) {
+      const keys = await client.keys(key)
+      if (keys.length > 0) {
+        await client.del(keys)
+        console.log(`Deleted ${keys.length} keys matching pattern: ${key}`)
+      }
+    } else {
+      // 單個鍵直接刪除
+      await client.del(key)
+    }
   } catch (error) {
     console.error('Redis del error:', error)
   }

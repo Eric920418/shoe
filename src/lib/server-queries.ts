@@ -23,6 +23,9 @@ function serializeProduct(product: any) {
     weight: product.weight instanceof Decimal ? product.weight.toNumber() : product.weight,
     heelHeight: product.heelHeight instanceof Decimal ? product.heelHeight.toNumber() : product.heelHeight,
     averageRating: product.averageRating instanceof Decimal ? product.averageRating.toNumber() : product.averageRating,
+    // 確保 isFeatured 和 isNewArrival 被序列化
+    isFeatured: product.isFeatured || false,
+    isNewArrival: product.isNewArrival || false,
     variants: product.variants?.map((v: any) => ({
       ...v,
       priceAdjustment: v.priceAdjustment instanceof Decimal ? v.priceAdjustment.toNumber() : v.priceAdjustment,
@@ -348,7 +351,8 @@ export const getFeaturedProducts = cache(async (limit: number = 10) => {
       ],
     })
 
-    return products
+    // 序列化所有產品
+    return products.map(serializeProduct)
   } catch (error) {
     console.error('Failed to fetch featured products:', error)
     return []
@@ -387,7 +391,8 @@ export const getNewArrivals = cache(async (limit: number = 10) => {
       },
     })
 
-    return products
+    // 序列化所有產品
+    return products.map(serializeProduct)
   } catch (error) {
     console.error('Failed to fetch new arrivals:', error)
     return []

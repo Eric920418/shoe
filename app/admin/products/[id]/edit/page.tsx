@@ -8,19 +8,23 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery } from '@apollo/client'
-import { UPDATE_PRODUCT, GET_PRODUCT_BY_ID, GET_BRANDS, GET_CATEGORIES } from '@/graphql/queries'
+import { UPDATE_PRODUCT, GET_PRODUCT_BY_ID, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS } from '@/graphql/queries'
 import toast from 'react-hot-toast'
+import ImageUpload from '@/components/admin/ImageUpload'
 
 interface ProductFormData {
   name: string
   slug: string
   description: string
+  images: string[]
   categoryId: string
   brandId: string
   price: number | ''
   originalPrice: number | ''
   stock: number | ''
   status: string
+  isFeatured: boolean
+  isNewArrival: boolean
   shoeType: string
   gender: string
   season: string
@@ -55,23 +59,30 @@ export default function EditProductPage() {
     variables: { id: productId },
     onCompleted: (data) => {
       if (data?.product) {
+        // 確保 images 和 features 始終是陣列
+        const images = Array.isArray(data.product.images) ? data.product.images : []
+        const features = Array.isArray(data.product.features) ? data.product.features : []
+
         setFormData({
           name: data.product.name || '',
           slug: data.product.slug || '',
           description: data.product.description || '',
+          images,
           categoryId: data.product.category?.id || '',
           brandId: data.product.brand?.id || '',
           price: data.product.price || '',
           originalPrice: data.product.originalPrice || '',
           stock: data.product.stock || '',
           status: data.product.isActive ? 'ACTIVE' : 'DRAFT',
+          isFeatured: data.product.isFeatured || false,
+          isNewArrival: data.product.isNewArrival || false,
           shoeType: data.product.shoeType || '',
           gender: data.product.gender || '',
           season: data.product.season || '',
           heelHeight: data.product.heelHeight || '',
           closure: data.product.closure || '',
           sole: data.product.sole || '',
-          features: data.product.features || [],
+          features,
         })
       }
     },
@@ -88,6 +99,12 @@ export default function EditProductPage() {
 
   // 更新產品 Mutation
   const [updateProduct] = useMutation(UPDATE_PRODUCT, {
+    refetchQueries: [
+      { query: GET_PRODUCTS },
+      { query: GET_BRANDS },
+      { query: GET_CATEGORIES },
+    ],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       toast.success('產品更新成功！')
       router.push('/admin/products')
@@ -156,15 +173,17 @@ export default function EditProductPage() {
       // 準備 GraphQL 輸入數據
       const input = {
         name: formData.name,
-        slug: formData.slug,
+        slug: formData.slug.trim() || undefined, // 只在有值時傳入 slug，否則讓後端自動生成
         description: formData.description,
+        images: formData.images,
         categoryId: formData.categoryId,
         brandId: formData.brandId || null,
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stock: Number(formData.stock),
         isActive: formData.status === 'ACTIVE',
-        isFeatured: false,
+        isFeatured: formData.isFeatured,
+        isNewArrival: formData.isNewArrival,
         shoeType: formData.shoeType || null,
         gender: formData.gender || null,
         season: formData.season || null,
@@ -232,6 +251,16 @@ export default function EditProductPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 圖片上傳 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片</h2>
+          <ImageUpload
+            images={formData.images}
+            onChange={(images) => updateField('images', images)}
+            maxImages={8}
+          />
+        </div>
+
         {/* 基本資訊 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">基本資訊</h2>
@@ -520,19 +549,52 @@ export default function EditProductPage() {
         {/* 狀態 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">產品狀態</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              狀態
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => updateField('status', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="DRAFT">草稿</option>
-              <option value="ACTIVE">在售</option>
-              <option value="ARCHIVED">已下架</option>
-            </select>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                狀態
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => updateField('status', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="DRAFT">草稿</option>
+                <option value="ACTIVE">在售</option>
+                <option value="ARCHIVED">已下架</option>
+              </select>
+            </div>
+
+            {/* 精選產品和新品展示 */}
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  checked={formData.isFeatured}
+                  onChange={(e) => updateField('isFeatured', e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                  <span className="font-medium">精選產品</span>
+                  <span className="text-gray-500 ml-2">（在首頁「精選推薦」區塊顯示）</span>
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isNewArrival"
+                  checked={formData.isNewArrival}
+                  onChange={(e) => updateField('isNewArrival', e.target.checked)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="isNewArrival" className="ml-2 block text-sm text-gray-700">
+                  <span className="font-medium">新品展示</span>
+                  <span className="text-gray-500 ml-2">（在首頁「新品搶先體驗」區塊顯示）</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

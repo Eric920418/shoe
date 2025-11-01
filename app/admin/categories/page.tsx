@@ -220,7 +220,7 @@ export default function CategoriesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {categories.map((category) => (
+              {categories.map((category: Category) => (
               <tr key={category.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">{category.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">

@@ -7,14 +7,10 @@ import NewArrivals from '@/components/sections/NewArrivals'
 import BrandStory from '@/components/sections/BrandStory'
 import FAQSection from '@/components/sections/FAQSection'
 import AnnouncementWrapper from '@/components/common/AnnouncementWrapper'
-import ReferralTracker from '@/components/common/ReferralTracker'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen overflow-x-hidden w-full">
-      {/* 邀請碼追蹤 */}
-      <ReferralTracker />
-
       {/* 導航欄 */}
       <ModernHeader />
 

@@ -1,7 +1,6 @@
 import { Metadata } from 'next'
 import dynamic from 'next/dynamic'
 import MainNav from '@/components/navigation/MainNav'
-import ReferralTracker from '@/components/common/ReferralTracker'
 import Link from 'next/link'
 
 // 動態導入重組件，減少首次載入
@@ -122,7 +121,6 @@ export default function OptimizedHomePage() {
   return (
     <div className="min-h-screen">
       {/* 關鍵組件保持同步載入 */}
-      <ReferralTracker />
       <MainNav />
 
       {/* 公告使用動態載入但保持 SSR */}

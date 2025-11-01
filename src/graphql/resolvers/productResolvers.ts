@@ -52,7 +52,7 @@ export const productResolvers = {
       return product
     },
 
-    // 獲取產品列表（帶快取）
+    // 獲取產品列表
     products: async (
       _: any,
       {
@@ -66,6 +66,7 @@ export const productResolvers = {
         search,
         where,
         orderBy = { createdAt: 'desc' },
+        noCache = false,
       }: {
         skip?: number
         take?: number
@@ -77,10 +78,12 @@ export const productResolvers = {
         search?: string
         where?: any
         orderBy?: any
+        noCache?: boolean
       }
     ) => {
       // 構建篩選條件
-      const filters: any = { isActive: true, ...where }
+      // 如果是後台管理查詢（noCache=true），不過濾 isActive
+      const filters: any = noCache ? { ...where } : { isActive: true, ...where }
 
       // 分類篩選
       if (categoryId) {
@@ -116,10 +119,8 @@ export const productResolvers = {
         ]
       }
 
-      // ✅ 生成快取鍵（包含所有查詢參數）
-      const cacheParams = `${skip}:${take}:${categoryId || 'all'}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
-
-      return await ProductCache.getList(cacheParams, async () => {
+      // 查詢資料的函數
+      const fetchProducts = async () => {
         return await prisma.product.findMany({
           skip,
           take,
@@ -131,7 +132,16 @@ export const productResolvers = {
             variants: { where: { isActive: true }, take: 1 },
           },
         })
-      })
+      }
+
+      // 如果需要跳過快取（例如：後台管理頁面）
+      if (noCache) {
+        return await fetchProducts()
+      }
+
+      // 正常情況使用快取
+      const cacheParams = `${skip}:${take}:${categoryId || 'all'}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+      return await ProductCache.getList(cacheParams, fetchProducts)
     },
 
     // 獲取分類
@@ -212,8 +222,27 @@ export const productResolvers = {
       }
 
       try {
-        // 自動生成 slug（如果未提供）
-        const slug = input.slug || await generateUniqueProductSlug(input.name)
+        // 生成或驗證 slug
+        let slug: string
+        if (input.slug && input.slug.trim()) {
+          // 如果用戶提供了 slug，檢查是否唯一
+          const trimmedSlug = input.slug.trim()
+          const existing = await prisma.product.findUnique({
+            where: { slug: trimmedSlug },
+            select: { id: true },
+          })
+
+          if (existing) {
+            // 如果已存在，自動生成唯一 slug
+            slug = await generateUniqueProductSlug(input.name)
+            console.log(`Slug "${trimmedSlug}" already exists, generated new slug: ${slug}`)
+          } else {
+            slug = trimmedSlug
+          }
+        } else {
+          // 如果未提供 slug，自動生成
+          slug = await generateUniqueProductSlug(input.name)
+        }
 
         // 資料驗證和清理
         const cleanedInput = {
@@ -260,9 +289,26 @@ export const productResolvers = {
         throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      // 如果更新了名稱且沒有提供 slug，自動重新生成 slug
       let updateData = { ...input }
-      if (input.name && !input.slug) {
+
+      // 處理 slug 邏輯
+      if (input.slug && input.slug.trim()) {
+        // 如果用戶提供了 slug，檢查是否唯一（排除自己）
+        const trimmedSlug = input.slug.trim()
+        const existing = await prisma.product.findUnique({
+          where: { slug: trimmedSlug },
+          select: { id: true },
+        })
+
+        if (existing && existing.id !== id) {
+          // 如果已被其他產品使用，自動生成唯一 slug
+          updateData.slug = await generateUniqueProductSlug(input.name || 'product', id)
+          console.log(`Slug "${trimmedSlug}" already in use, generated new slug: ${updateData.slug}`)
+        } else {
+          updateData.slug = trimmedSlug
+        }
+      } else if (input.name) {
+        // 如果只更新了名稱但沒有提供 slug，自動重新生成 slug
         updateData.slug = await generateUniqueProductSlug(input.name, id)
       }
 
@@ -287,12 +333,61 @@ export const productResolvers = {
         throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      await prisma.product.delete({ where: { id } })
+      try {
+        // 檢查是否有訂單項目關聯
+        const orderItemCount = await prisma.orderItem.count({
+          where: { productId: id },
+        })
 
-      // 清除相關快取
-      await ProductCache.invalidate(id)
+        if (orderItemCount > 0) {
+          throw new GraphQLError(
+            `無法刪除產品，因為還有 ${orderItemCount} 筆訂單項目使用此產品。建議改為停用產品（設為不活躍）而非刪除。`,
+            { extensions: { code: 'BAD_REQUEST' } }
+          )
+        }
 
-      return true
+        // 檢查是否有購物車項目關聯
+        const cartItemCount = await prisma.cartItem.count({
+          where: { productId: id },
+        })
+
+        if (cartItemCount > 0) {
+          // 購物車項目有 cascade delete，所以會自動刪除，但給予警告
+          console.warn(`刪除產品 ${id} 將同時刪除 ${cartItemCount} 個購物車項目`)
+        }
+
+        // 刪除產品（如果通過檢查）
+        await prisma.product.delete({ where: { id } })
+
+        // 清除相關快取
+        await ProductCache.invalidate(id)
+
+        return true
+      } catch (error: any) {
+        console.error('刪除產品失敗:', error)
+
+        // 如果是我們拋出的 GraphQLError，直接重新拋出
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+
+        // 處理其他資料庫錯誤
+        if (error.code === 'P2003') {
+          throw new GraphQLError(
+            '無法刪除產品，因為還有其他資料關聯到此產品（如訂單、評論等）。建議改為停用產品而非刪除。',
+            { extensions: { code: 'CONSTRAINT_VIOLATION' } }
+          )
+        }
+
+        if (error.code === 'P2025') {
+          throw new GraphQLError('產品不存在', { extensions: { code: 'NOT_FOUND' } })
+        }
+
+        // 其他未知錯誤
+        throw new GraphQLError(`刪除產品失敗: ${error.message}`, {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
+        })
+      }
     },
 
     // 創建分類（管理員）
