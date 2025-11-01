@@ -19,6 +19,7 @@ import { membershipTierResolvers } from './membershipTierResolvers'
 import { faqResolvers } from './faqResolvers'
 import { heroSlideResolvers } from './heroSlideResolvers'
 import { emailCampaignResolvers } from './emailCampaignResolvers'
+import { homepageResolvers } from './homepageResolvers'
 
 // 合并所有resolvers
 export const resolvers = {
@@ -39,6 +40,7 @@ export const resolvers = {
     ...faqResolvers.Query,
     ...heroSlideResolvers.Query,
     ...emailCampaignResolvers.Query,
+    ...homepageResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -58,6 +60,7 @@ export const resolvers = {
     ...faqResolvers.Mutation,
     ...heroSlideResolvers.Mutation,
     ...emailCampaignResolvers.Mutation,
+    ...homepageResolvers.Mutation,
   },
   User: authResolvers.User,
   Category: productResolvers.Category,

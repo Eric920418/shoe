@@ -702,10 +702,19 @@ export const typeDefs = gql`
     subtitle: String
     description: String
     image: String!
+    mobileImage: String
     cta: String!
+    ctaSecondary: String
     link: String!
+    linkSecondary: String
+    textColor: String!
+    bgColor: String
+    overlayOpacity: Float!
+    textPosition: TextPosition!
     sortOrder: Int!
     isActive: Boolean!
+    startDate: DateTime
+    endDate: DateTime
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -715,10 +724,19 @@ export const typeDefs = gql`
     subtitle: String
     description: String
     image: String!
+    mobileImage: String
     cta: String!
+    ctaSecondary: String
     link: String!
+    linkSecondary: String
+    textColor: String
+    bgColor: String
+    overlayOpacity: Float
+    textPosition: TextPosition
     sortOrder: Int
     isActive: Boolean
+    startDate: DateTime
+    endDate: DateTime
   }
 
   input UpdateHeroSlideInput {
@@ -726,9 +744,320 @@ export const typeDefs = gql`
     subtitle: String
     description: String
     image: String
+    mobileImage: String
     cta: String
+    ctaSecondary: String
     link: String
+    linkSecondary: String
+    textColor: String
+    bgColor: String
+    overlayOpacity: Float
+    textPosition: TextPosition
     sortOrder: Int
+    isActive: Boolean
+    startDate: DateTime
+    endDate: DateTime
+  }
+
+  # 首頁配置
+  type HomepageConfig {
+    id: ID!
+    componentId: String!
+    componentType: ComponentType!
+    title: String
+    subtitle: String
+    isActive: Boolean!
+    sortOrder: Int!
+    settings: JSON!
+    mobileSettings: JSON
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 促銷倒計時
+  type SaleCountdown {
+    id: ID!
+    title: String!
+    subtitle: String
+    endTime: DateTime!
+    bgColor: String!
+    textColor: String!
+    link: String
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 服務保證項目
+  type GuaranteeItem {
+    id: ID!
+    icon: String!
+    title: String!
+    description: String
+    link: String
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 分類展示設定
+  type CategoryDisplay {
+    id: ID!
+    categoryId: String!
+    displayName: String
+    icon: String
+    image: String
+    bgColor: String
+    textColor: String
+    sortOrder: Int!
+    isHighlighted: Boolean!
+    showOnHomepage: Boolean!
+    category: Category!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 限時搶購設定
+  type FlashSaleConfig {
+    id: ID!
+    name: String!
+    startTime: DateTime!
+    endTime: DateTime!
+    bgImage: String
+    bgColor: String!
+    products: JSON!
+    maxProducts: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 每日特價設定
+  type DailyDealConfig {
+    id: ID!
+    date: DateTime!
+    title: String!
+    subtitle: String
+    products: JSON!
+    bgColor: String
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 浮動促銷按鈕
+  type FloatingPromo {
+    id: ID!
+    type: FloatingPromoType!
+    icon: String
+    text: String!
+    link: String!
+    bgColor: String!
+    textColor: String!
+    position: FloatingPosition!
+    animation: String
+    startDate: DateTime
+    endDate: DateTime
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 超值優惠專區
+  type SuperDealSection {
+    id: ID!
+    title: String!
+    subtitle: String
+    bgImage: String
+    bgGradient: String
+    productIds: JSON!
+    maxProducts: Int!
+    layout: DealLayout!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 熱門產品設定
+  type PopularProductsConfig {
+    id: ID!
+    title: String!
+    subtitle: String
+    algorithm: PopularAlgorithm!
+    productIds: JSON
+    maxProducts: Int!
+    timeRange: Int
+    minSales: Int
+    showBadge: Boolean!
+    badgeText: String!
+    badgeColor: String!
+    autoRefresh: Boolean!
+    refreshInterval: Int
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 枚舉：組件類型
+  enum ComponentType {
+    HERO_SLIDER
+    SALE_COUNTDOWN
+    GUARANTEE_BAR
+    FLASH_SALE
+    CATEGORY_GRID
+    DAILY_DEALS
+    SUPER_DEALS
+    POPULAR_PRODUCTS
+    NEW_ARRIVALS
+    FEATURED_BRANDS
+    CUSTOMER_REVIEWS
+    NEWSLETTER
+    CUSTOM_BANNER
+    CUSTOM_HTML
+  }
+
+  # 枚舉：文字位置
+  enum TextPosition {
+    TOP_LEFT
+    TOP_CENTER
+    TOP_RIGHT
+    CENTER_LEFT
+    CENTER
+    CENTER_RIGHT
+    BOTTOM_LEFT
+    BOTTOM_CENTER
+    BOTTOM_RIGHT
+  }
+
+  # 枚舉：浮動按鈕類型
+  enum FloatingPromoType {
+    DISCOUNT
+    GIFT
+    CUSTOMER_SERVICE
+    CART
+    CUSTOM
+  }
+
+  # 枚舉：浮動位置
+  enum FloatingPosition {
+    TOP_LEFT
+    TOP_RIGHT
+    BOTTOM_LEFT
+    BOTTOM_RIGHT
+    CENTER_LEFT
+    CENTER_RIGHT
+  }
+
+  # 枚舉：佈局方式
+  enum DealLayout {
+    GRID
+    CAROUSEL
+    LIST
+    MASONRY
+  }
+
+  # 枚舉：熱門算法
+  enum PopularAlgorithm {
+    MANUAL
+    SALES_VOLUME
+    VIEW_COUNT
+    RATING
+    TRENDING
+  }
+
+  # Input 類型定義
+  input HomepageConfigOrder {
+    componentId: String!
+    sortOrder: Int!
+  }
+
+  input SaleCountdownInput {
+    title: String!
+    subtitle: String
+    endTime: DateTime!
+    bgColor: String
+    textColor: String
+    link: String
+    isActive: Boolean
+  }
+
+  input GuaranteeItemInput {
+    icon: String!
+    title: String!
+    description: String
+    link: String
+    isActive: Boolean
+  }
+
+  input CategoryDisplayInput {
+    displayName: String
+    icon: String
+    image: String
+    bgColor: String
+    textColor: String
+    sortOrder: Int
+    isHighlighted: Boolean
+    showOnHomepage: Boolean
+  }
+
+  input FlashSaleConfigInput {
+    name: String!
+    startTime: DateTime!
+    endTime: DateTime!
+    bgImage: String
+    bgColor: String
+    products: JSON!
+    maxProducts: Int
+    isActive: Boolean
+  }
+
+  input DailyDealConfigInput {
+    title: String!
+    subtitle: String
+    products: JSON!
+    bgColor: String
+    isActive: Boolean
+  }
+
+  input FloatingPromoInput {
+    type: FloatingPromoType!
+    icon: String
+    text: String!
+    link: String!
+    bgColor: String
+    textColor: String
+    position: FloatingPosition
+    animation: String
+    startDate: DateTime
+    endDate: DateTime
+    isActive: Boolean
+  }
+
+  input SuperDealSectionInput {
+    title: String!
+    subtitle: String
+    bgImage: String
+    bgGradient: String
+    productIds: JSON!
+    maxProducts: Int
+    layout: DealLayout
+    isActive: Boolean
+  }
+
+  input PopularProductsConfigInput {
+    title: String!
+    subtitle: String
+    algorithm: PopularAlgorithm!
+    productIds: JSON
+    maxProducts: Int
+    timeRange: Int
+    minSales: Int
+    showBadge: Boolean
+    badgeText: String
+    badgeColor: String
+    autoRefresh: Boolean
+    refreshInterval: Int
     isActive: Boolean
   }
 
@@ -1083,11 +1412,21 @@ export const typeDefs = gql`
     announcements(skip: Int, take: Int, where: JSON): AnnouncementsResponse!
     announcement(id: ID!): Announcement
 
-    # 首頁輪播圖
-    heroSlides: [HeroSlide!]!
+    # 首頁管理系統
+    homepageConfigs(isActive: Boolean): [HomepageConfig!]!
+    homepageConfig(componentId: String!): HomepageConfig
+    heroSlides(isActive: Boolean): [HeroSlide!]!
     activeHeroSlides: [HeroSlide!]!
-    # Admin: 輪播圖管理
     heroSlide(id: ID!): HeroSlide
+    activeSaleCountdown: SaleCountdown
+    guaranteeItems: [GuaranteeItem!]!
+    categoryDisplays: [CategoryDisplay!]!
+    activeFlashSale: FlashSaleConfig
+    todaysDeal: DailyDealConfig
+    activeFloatingPromos: [FloatingPromo!]!
+    activeSuperDealSection: SuperDealSection
+    popularProductsConfig: PopularProductsConfig
+    popularProducts: [Product!]!
 
     # 邀請碼
     myReferralCode: ReferralCode!
@@ -1249,9 +1588,22 @@ export const typeDefs = gql`
     uploadReturnTrackingNumber(returnId: ID!, trackingNumber: String!): Return!
 
     # 首頁輪播圖管理（Admin）
+    # 首頁管理系統
+    updateHomepageConfig(componentId: String!, input: JSON!): HomepageConfig!
+    updateHomepageConfigOrder(configs: [HomepageConfigOrder!]!): Boolean!
     createHeroSlide(input: CreateHeroSlideInput!): HeroSlide!
     updateHeroSlide(id: ID!, input: UpdateHeroSlideInput!): HeroSlide!
     deleteHeroSlide(id: ID!): Boolean!
+    upsertSaleCountdown(input: SaleCountdownInput!): SaleCountdown!
+    upsertGuaranteeItems(items: [GuaranteeItemInput!]!): [GuaranteeItem!]!
+    updateCategoryDisplay(categoryId: String!, input: CategoryDisplayInput!): CategoryDisplay!
+    upsertFlashSale(input: FlashSaleConfigInput!): FlashSaleConfig!
+    upsertDailyDeal(date: DateTime!, input: DailyDealConfigInput!): DailyDealConfig!
+    createFloatingPromo(input: FloatingPromoInput!): FloatingPromo!
+    updateFloatingPromo(id: ID!, input: FloatingPromoInput!): FloatingPromo!
+    deleteFloatingPromo(id: ID!): Boolean!
+    upsertSuperDealSection(input: SuperDealSectionInput!): SuperDealSection!
+    upsertPopularProductsConfig(input: PopularProductsConfigInput!): PopularProductsConfig!
     reorderHeroSlides(ids: [ID!]!): [HeroSlide!]!
 
     # 會員等級管理（Admin）

@@ -9,7 +9,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import ModernProductDetail from './ModernProductDetail'
-import ModernFooter from '@/components/common/ModernFooter'
 import { getProductBySlug } from '@/lib/server-queries'
 
 // getProductBySlug 已經使用 React cache，會自動去重
@@ -48,7 +47,6 @@ export default async function ProductDetailPage({
   return (
     <>
       <ModernProductDetail product={product} />
-      <ModernFooter />
     </>
   )
 }

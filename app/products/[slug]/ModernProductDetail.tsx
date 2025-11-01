@@ -118,10 +118,6 @@ export default function ModernProductDetail({ product }: { product: any }) {
               首頁
             </Link>
             <span className="text-gray-400">/</span>
-            <Link href="/products" className="text-gray-500 hover:text-black">
-              商品
-            </Link>
-            <span className="text-gray-400">/</span>
             <span className="text-black font-medium">{product.name}</span>
           </div>
         </div>

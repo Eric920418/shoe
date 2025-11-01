@@ -5,7 +5,6 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { GuestCartProvider } from '@/contexts/GuestCartContext'
 import { Toaster } from 'react-hot-toast'
 import { Suspense } from 'react'
-import ModernHeader from '@/components/navigation/ModernHeader'
 import ReferralTracker from '@/components/common/ReferralTracker'
 
 export const metadata: Metadata = {
@@ -32,8 +31,7 @@ export default function RootLayout({
               <Suspense fallback={null}>
                 <ReferralTracker />
               </Suspense>
-              <ModernHeader />
-              <main className="pt-16">
+              <main>
                 {children}
               </main>
               <Toaster

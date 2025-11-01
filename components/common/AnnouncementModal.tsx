@@ -3,8 +3,9 @@
  *
  * 功能：
  * - 彈窗式顯示系統公告
- * - 智能更新檢測：公告更新後會自動重新顯示
+ * - 智能更新檢測：後台更新公告後，前台自動重新顯示（5秒緩衝期避免時間戳誤差）
  * - localStorage 持久化記錄已關閉的公告
+ * - 支援登入/未登入用戶的獨立記錄
  *
  * 調試工具：
  * - 將下方 ENABLE_DEBUG_TOOLS 設為 true 可啟用調試工具
@@ -86,9 +87,9 @@ const ENABLE_DEBUG_TOOLS = false
 // 獲取儲存 key（根據用戶 ID）
 const getStorageKey = (userId?: string) => {
   if (userId) {
-    return `dismissed_announcements_v3_user_${userId}`
+    return `dismissed_announcements_v4_user_${userId}`
   }
-  return 'dismissed_announcements_v3_guest'
+  return 'dismissed_announcements_v4_guest'
 }
 
 interface DismissedRecord {
@@ -125,12 +126,18 @@ const saveDismissedRecords = (records: Map<string, string>, userId?: string, use
       dismissedAt
     }))
     storage.setItem(storageKey, JSON.stringify(array))
+
+    if (ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development') {
+      console.log(`✅ [公告系統] 已保存到 ${useSession ? 'sessionStorage' : 'localStorage'}`)
+      console.log(`✅ [公告系統] Key: ${storageKey}`)
+      console.log(`✅ [公告系統] 內容:`, array)
+    }
   } catch (error) {
-    console.error('無法儲存已關閉的公告:', error)
+    console.error('❌ [公告系統] 無法儲存已關閉的公告:', error)
   }
 }
 
-// 檢查公告是否應該顯示（考慮更新時間）
+// 檢查公告是否應該顯示（智能更新檢測：公告更新後自動重新顯示）
 const shouldShowAnnouncement = (
   announcement: any,
   dismissedRecords: Map<string, string>
@@ -138,20 +145,41 @@ const shouldShowAnnouncement = (
   const dismissedAt = dismissedRecords.get(announcement.id)
 
   // 沒有被關閉過，應該顯示
-  if (!dismissedAt) return true
+  if (!dismissedAt) {
+    if (ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development') {
+      console.log(`✅ [公告 ${announcement.id}] 從未被關閉 → 顯示`)
+    }
+    return true
+  }
 
   // 如果公告有 updatedAt 欄位，檢查是否在關閉之後更新過
   if (announcement.updatedAt) {
     const announcementUpdatedAt = new Date(announcement.updatedAt).getTime()
     const userDismissedAt = new Date(dismissedAt).getTime()
 
-    // 如果公告更新時間晚於用戶關閉時間，應該重新顯示
-    if (announcementUpdatedAt > userDismissedAt) {
+    // 設定 5 秒的小緩衝期，避免同一時刻的時間戳誤差問題
+    const bufferTime = 5 * 1000 // 5 秒
+    const timeDiff = announcementUpdatedAt - userDismissedAt
+
+    if (ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development') {
+      console.log(`🔍 [公告 ${announcement.id}] 時間檢查:`)
+      console.log(`   公告更新時間: ${new Date(announcementUpdatedAt).toLocaleString()}`)
+      console.log(`   用戶關閉時間: ${new Date(userDismissedAt).toLocaleString()}`)
+      console.log(`   時間差距: ${Math.floor(timeDiff / 1000)} 秒`)
+      console.log(`   結果: ${timeDiff > bufferTime ? '✅ 顯示 (公告已更新)' : '❌ 隱藏 (已被關閉)'}`)
+    }
+
+    // 如果公告更新時間晚於用戶關閉時間（超過5秒），重新顯示
+    if (timeDiff > bufferTime) {
       return true
     }
   }
 
   // 已經被關閉過且沒有更新，不顯示
+  if (ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development') {
+    console.log(`❌ [公告 ${announcement.id}] 已被關閉且未更新 → 隱藏`)
+    console.log(`   關閉時間: ${new Date(dismissedAt).toLocaleString()}`)
+  }
   return false
 }
 
@@ -165,8 +193,8 @@ export default function AnnouncementModal() {
     nextFetchPolicy: 'cache-first', // 後續查詢使用快取
   })
 
-  // 決定是否使用 sessionStorage（未登入用戶使用 session，確保每次打開瀏覽器都能看到公告）
-  const useSessionStorage = !user
+  // 統一使用 localStorage（不再使用 sessionStorage，確保關閉記錄持久保存）
+  const useSessionStorage = false
 
   // 初始化：從儲存中讀取已關閉的公告記錄（等待認證完成）
   useEffect(() => {
@@ -191,8 +219,8 @@ export default function AnnouncementModal() {
       data.activeAnnouncements.forEach((a: any) => {
         const dismissedAt = dismissedRecords.get(a.id)
         if (dismissedAt && a.updatedAt) {
-          const isUpdatedAfterDismiss = new Date(a.updatedAt).getTime() > new Date(dismissedAt).getTime()
-          if (isUpdatedAfterDismiss) {
+          const timeDiff = new Date(a.updatedAt).getTime() - new Date(dismissedAt).getTime()
+          if (timeDiff > 5000) { // 5秒緩衝期
             console.log(`🔄 [公告系統] 公告 "${a.title}" 已更新，將重新顯示`)
           }
         }
@@ -230,8 +258,13 @@ export default function AnnouncementModal() {
                     const storageKey = getStorageKey(user?.id)
                     localStorage.removeItem(storageKey)
                     sessionStorage.removeItem(storageKey)
-                    localStorage.removeItem('dismissed_announcements') // 清除舊版本
-                    localStorage.removeItem('dismissed_announcements_v2') // 清除舊版本
+                    // 清除舊版本
+                    localStorage.removeItem('dismissed_announcements')
+                    localStorage.removeItem('dismissed_announcements_v2')
+                    localStorage.removeItem('dismissed_announcements_v3_guest')
+                    if (user?.id) {
+                      localStorage.removeItem(`dismissed_announcements_v3_user_${user.id}`)
+                    }
                     setDismissedRecords(new Map())
                     refetch()
                   }}
@@ -269,8 +302,21 @@ export default function AnnouncementModal() {
     const now = new Date().toISOString()
     const newRecords = new Map(dismissedRecords)
     newRecords.set(id, now)
+
+    if (ENABLE_DEBUG_TOOLS && process.env.NODE_ENV === 'development') {
+      console.log(`📢 [公告系統] 關閉公告: ${id}`)
+      console.log(`📢 [公告系統] 關閉時間: ${now}`)
+      console.log(`📢 [公告系統] 使用 Storage:`, useSessionStorage ? 'sessionStorage' : 'localStorage')
+      console.log(`📢 [公告系統] Storage Key:`, getStorageKey(user?.id))
+    }
+
     setDismissedRecords(newRecords)
     saveDismissedRecords(newRecords, user?.id, useSessionStorage)
+
+    // 如果只剩這一個公告，關閉整個彈窗
+    if (visibleAnnouncements.length === 1) {
+      setIsOpen(false)
+    }
   }
 
   // 關閉所有公告（保存到儲存，記錄關閉時間）
@@ -403,8 +449,13 @@ export default function AnnouncementModal() {
                     const storageKey = getStorageKey(user?.id)
                     localStorage.removeItem(storageKey)
                     sessionStorage.removeItem(storageKey)
-                    localStorage.removeItem('dismissed_announcements') // 清除舊版本
-                    localStorage.removeItem('dismissed_announcements_v2') // 清除舊版本
+                    // 清除舊版本
+                    localStorage.removeItem('dismissed_announcements')
+                    localStorage.removeItem('dismissed_announcements_v2')
+                    localStorage.removeItem('dismissed_announcements_v3_guest')
+                    if (user?.id) {
+                      localStorage.removeItem(`dismissed_announcements_v3_user_${user.id}`)
+                    }
                     setDismissedRecords(new Map())
                     refetch()
                     console.log('✅ 已清除所有已關閉的公告記錄')

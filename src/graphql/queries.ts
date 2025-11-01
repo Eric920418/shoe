@@ -171,6 +171,49 @@ export const GET_BRANDS = gql`
   }
 `
 
+// 首頁展示用產品查詢（包含銷售數據）
+export const GET_HOMEPAGE_PRODUCTS = gql`
+  query GetHomepageProducts(
+    $skip: Int
+    $take: Int
+    $categoryId: String
+    $brandId: String
+    $minPrice: Float
+    $maxPrice: Float
+    $gender: ProductGender
+    $search: String
+  ) {
+    products(
+      skip: $skip
+      take: $take
+      categoryId: $categoryId
+      brandId: $brandId
+      minPrice: $minPrice
+      maxPrice: $maxPrice
+      gender: $gender
+      search: $search
+    ) {
+      id
+      name
+      slug
+      price
+      originalPrice
+      images
+      stock
+      soldCount
+      viewCount
+      averageRating
+      reviewCount
+      brand {
+        name
+      }
+      category {
+        name
+      }
+    }
+  }
+`
+
 // ============================================
 // 購物車相關查詢
 // ============================================

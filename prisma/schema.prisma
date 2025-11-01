@@ -151,6 +151,7 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
+  categoryDisplay CategoryDisplay?
 
   @@map("categories")
 }
@@ -1057,6 +1058,77 @@ enum AnnouncementType {
   MAINTENANCE // 系統維護
 }
 
+// ============================================
+// 首頁管理系統枚舉
+// ============================================
+
+// 組件類型枚舉
+enum ComponentType {
+  HERO_SLIDER        // 輪播圖
+  SALE_COUNTDOWN     // 促銷倒計時
+  GUARANTEE_BAR      // 服務保證欄
+  FLASH_SALE         // 限時搶購
+  CATEGORY_GRID      // 分類網格
+  DAILY_DEALS        // 每日特價
+  SUPER_DEALS        // 超值優惠
+  POPULAR_PRODUCTS   // 熱門商品
+  NEW_ARRIVALS       // 新品上架
+  FEATURED_BRANDS    // 精選品牌
+  CUSTOMER_REVIEWS   // 客戶評價
+  NEWSLETTER         // 電子報訂閱
+  CUSTOM_BANNER      // 自定義橫幅
+  CUSTOM_HTML        // 自定義 HTML
+}
+
+// 文字位置枚舉
+enum TextPosition {
+  TOP_LEFT
+  TOP_CENTER
+  TOP_RIGHT
+  CENTER_LEFT
+  CENTER
+  CENTER_RIGHT
+  BOTTOM_LEFT
+  BOTTOM_CENTER
+  BOTTOM_RIGHT
+}
+
+// 浮動按鈕類型
+enum FloatingPromoType {
+  DISCOUNT      // 折扣
+  GIFT          // 禮物
+  CUSTOMER_SERVICE // 客服
+  CART          // 購物車
+  CUSTOM        // 自定義
+}
+
+// 浮動位置
+enum FloatingPosition {
+  TOP_LEFT
+  TOP_RIGHT
+  BOTTOM_LEFT
+  BOTTOM_RIGHT
+  CENTER_LEFT
+  CENTER_RIGHT
+}
+
+// 佈局方式
+enum DealLayout {
+  GRID          // 網格
+  CAROUSEL      // 輪播
+  LIST          // 列表
+  MASONRY       // 瀑布流
+}
+
+// 熱門算法
+enum PopularAlgorithm {
+  MANUAL        // 手動選擇
+  SALES_VOLUME  // 銷量
+  VIEW_COUNT    // 瀏覽次數
+  RATING        // 評分
+  TRENDING      // 趨勢（綜合算法）
+}
+
 enum EmailCampaignStatus {
   DRAFT       // 草稿
   SCHEDULED   // 已排程
@@ -1082,19 +1154,29 @@ enum EmailLogStatus {
 
 // 首頁輪播圖
 model HeroSlide {
-  id          String   @id @default(cuid())
-  title       String   // 主標題
-  subtitle    String?  // 副標題
-  description String?  // 描述文字
-  image       String   // 圖片 URL
-  cta         String   // 按鈕文字（Call to Action）
-  link        String   // 按鈕連結
-  sortOrder   Int      @default(0) // 排序（數字越小越前面）
-  isActive    Boolean  @default(true) // 是否啟用
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String        @id @default(cuid())
+  title          String        // 主標題
+  subtitle       String?       // 副標題
+  description    String?       // 描述文字
+  image          String        // 圖片 URL
+  mobileImage    String?       // 手機版圖片 URL
+  cta            String        // 按鈕文字
+  ctaSecondary   String?       // 次要按鈕文字
+  link           String        // 主按鈕連結
+  linkSecondary  String?       // 次要按鈕連結
+  textColor      String        @default("#FFFFFF") // 文字顏色
+  bgColor        String?       // 背景顏色
+  overlayOpacity Float         @default(0.3) // 遮罩透明度
+  textPosition   TextPosition  @default(CENTER_LEFT) // 文字位置
+  sortOrder      Int           @default(0)
+  isActive       Boolean       @default(true)
+  startDate      DateTime?     // 開始顯示時間
+  endDate        DateTime?     // 結束顯示時間
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([isActive, sortOrder])
+  @@index([startDate, endDate])
   @@map("hero_slides")
 }
 
@@ -1149,4 +1231,176 @@ model EmailLog {
   @@index([status])
   @@index([email])
   @@map("email_logs")
+}
+
+// ============================================
+// 首頁管理系統
+// ============================================
+
+// 首頁配置（控制組件顯示與順序）
+model HomepageConfig {
+  id             String        @id @default(cuid())
+  componentId    String        @unique // 組件識別碼
+  componentType  ComponentType // 組件類型
+  title          String?       // 顯示標題
+  subtitle       String?       // 副標題
+  isActive       Boolean       @default(true) // 是否啟用
+  sortOrder      Int           @default(0) // 排序順序
+  settings       Json          @default("{}") // 組件特定設定（JSON格式）
+  mobileSettings Json?         // 手機版特定設定
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("homepage_configs")
+}
+
+// 促銷倒計時設定
+model SaleCountdown {
+  id          String   @id @default(cuid())
+  title       String   // 標題（如：限時特賣）
+  subtitle    String?  // 副標題
+  endTime     DateTime // 結束時間
+  bgColor     String   @default("#FF0000") // 背景顏色
+  textColor   String   @default("#FFFFFF") // 文字顏色
+  link        String?  // 點擊連結
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, endTime])
+  @@map("sale_countdowns")
+}
+
+// 服務保證項目
+model GuaranteeItem {
+  id          String   @id @default(cuid())
+  icon        String   // 圖示名稱或 URL
+  title       String   // 標題（如：免費退貨）
+  description String?  // 描述
+  link        String?  // 連結
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("guarantee_items")
+}
+
+// 分類展示設定
+model CategoryDisplay {
+  id              String   @id @default(cuid())
+  categoryId      String   // 關聯到 Category 表
+  displayName     String?  // 顯示名稱（覆蓋原分類名稱）
+  icon            String?  // 圖示
+  image           String?  // 分類圖片
+  bgColor         String?  // 背景顏色
+  textColor       String?  // 文字顏色
+  sortOrder       Int      @default(0)
+  isHighlighted   Boolean  @default(false) // 是否突出顯示
+  showOnHomepage  Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId])
+  @@index([showOnHomepage, sortOrder])
+  @@map("category_displays")
+}
+
+// 限時搶購設定
+model FlashSaleConfig {
+  id          String    @id @default(cuid())
+  name        String    // 活動名稱
+  startTime   DateTime  // 開始時間
+  endTime     DateTime  // 結束時間
+  bgImage     String?   // 背景圖片
+  bgColor     String    @default("#FF6B6B") // 背景顏色
+  products    Json      // 產品 ID 列表與折扣設定
+  maxProducts Int       @default(6) // 最多顯示產品數
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive, startTime, endTime])
+  @@map("flash_sale_configs")
+}
+
+// 每日特價設定
+model DailyDealConfig {
+  id          String    @id @default(cuid())
+  date        DateTime  // 特價日期
+  title       String    @default("今日特價")
+  subtitle    String?
+  products    Json      // 產品 ID 列表與折扣設定
+  bgColor     String?   // 背景顏色
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([date])
+  @@index([isActive, date])
+  @@map("daily_deal_configs")
+}
+
+// 浮動促銷按鈕設定
+model FloatingPromo {
+  id          String   @id @default(cuid())
+  type        FloatingPromoType @default(DISCOUNT) // 類型
+  icon        String?  // 圖示
+  text        String   // 顯示文字
+  link        String   // 連結
+  bgColor     String   @default("#FF0000") // 背景顏色
+  textColor   String   @default("#FFFFFF") // 文字顏色
+  position    FloatingPosition @default(BOTTOM_RIGHT) // 位置
+  animation   String?  // 動畫效果類型
+  startDate   DateTime? // 開始顯示時間
+  endDate     DateTime? // 結束顯示時間
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, startDate, endDate])
+  @@map("floating_promos")
+}
+
+// 超值優惠專區設定
+model SuperDealSection {
+  id          String   @id @default(cuid())
+  title       String   @default("超值優惠")
+  subtitle    String?
+  bgImage     String?  // 背景圖片
+  bgGradient  String?  // 背景漸層
+  productIds  Json     // 產品 ID 列表
+  maxProducts Int      @default(8)
+  layout      DealLayout @default(GRID) // 佈局方式
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("super_deal_sections")
+}
+
+// 熱門產品設定
+model PopularProductsConfig {
+  id              String   @id @default(cuid())
+  title           String   @default("熱門商品")
+  subtitle        String?
+  algorithm       PopularAlgorithm @default(MANUAL) // 選擇算法
+  productIds      Json?    // 手動選擇的產品 ID
+  maxProducts     Int      @default(12)
+  timeRange       Int?     // 統計時間範圍（天數）
+  minSales        Int?     // 最低銷量門檻
+  showBadge       Boolean  @default(true) // 顯示熱門標籤
+  badgeText       String   @default("HOT")
+  badgeColor      String   @default("#FF0000")
+  autoRefresh     Boolean  @default(false) // 自動更新
+  refreshInterval Int?     // 更新間隔（小時）
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("popular_products_configs")
 }
