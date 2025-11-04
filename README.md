@@ -1053,10 +1053,13 @@ psql -d shoe_store_production -c "SELECT COUNT(*) FROM users;"
 
 ### HTTPS 配置指南
 
-本專案已配置完整的 HTTPS 支援，包含：
-- 自定義 HTTPS 伺服器（`server.mjs`）
+本專案使用 **Nginx 反向代理 + SSL** 架構：
+- Nginx 處理 HTTPS (443) 和 HTTP (80) 重定向
+- Next.js 運行在 localhost:3000
 - 自動 HTTP 到 HTTPS 重定向
-- SSL 證書管理
+- SSL/TLS 1.2/1.3 支援，HTTP/2 啟用
+
+**架構流程**：客戶端 → Nginx (SSL 終止) → Next.js (3000端口)
 
 #### SSL 證書檔案結構
 
@@ -1068,78 +1071,43 @@ ssl/
 └── *.crt                # CA 證書（已整合到 fullchain.pem）
 ```
 
-#### 開發環境 HTTPS
+#### Nginx 配置位置
 
-使用非特權端口進行測試（不需要 sudo）：
+- **配置檔案**：`/etc/nginx/sites-available/shoe-store`
+- **啟用連結**：`/etc/nginx/sites-enabled/shoe-store`
+- **HTTPS 訪問日誌**：`/var/log/nginx/shoe-store-https-access.log`
+- **HTTP 訪問日誌**：`/var/log/nginx/shoe-store-http-access.log`
+- **錯誤日誌**：`/var/log/nginx/shoe-store-https-error.log`
+
+#### 一鍵重啟部署（推薦）
 
 ```bash
-# 使用測試端口（HTTPS: 3443, HTTP: 8080）
-HTTPS_PORT=3443 HTTP_PORT=8080 pnpm dev:https
-
-# 訪問網站
-# HTTPS: https://localhost:3443
-# HTTP: http://localhost:8080 (自動重定向到 HTTPS)
+# 使用 restart.sh 腳本（自動處理一切）
+./restart.sh
 ```
 
-#### 生產環境 HTTPS
+這個腳本會自動：
+1. 停止現有的 Next.js 進程
+2. 清除 `.next` 緩存
+3. 重新構建專案
+4. 重新加載 Nginx 配置
+5. 啟動 Next.js 在端口 3000（後台運行）
 
-生產環境使用標準端口（443/80），有以下方案：
-
-**方案一：使用 Node.js 能力授權（推薦）**
-
-```bash
-# 給 Node.js 綁定低端口的權限（僅需執行一次）
-sudo setcap 'cap_net_bind_service=+ep' $(which node)
-
-# 啟動 HTTPS 伺服器（使用 443/80 端口）
-pnpm start:https
-```
-
-**方案二：使用 PM2 管理（推薦用於生產）**
+#### 手動操作（進階）
 
 ```bash
-# 安裝 PM2
-pnpm add -g pm2
+# 重啟 Nginx
+sudo systemctl reload nginx
 
-# 構建專案
+# 停止 Next.js
+pkill -f next
+
+# 構建並啟動 Next.js
 pnpm build
+nohup pnpm start > logs/server.log 2>&1 &
 
-# 使用 PM2 啟動
-pm2 start server.mjs --name "shoe-https"
-
-# 設定開機自動啟動
-pm2 startup
-pm2 save
-```
-
-**方案三：使用反向代理（Nginx/Caddy）**
-
-如果您已經有 Nginx 或 Caddy，可以讓它們處理 SSL，然後轉發到 Next.js：
-
-```nginx
-# Nginx 配置範例
-server {
-    listen 443 ssl http2;
-    server_name xn--cjzl80byf571b.tw;
-
-    ssl_certificate /var/www/shoe/ssl/fullchain.pem;
-    ssl_certificate_key /var/www/shoe/ssl/private.key;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-
-server {
-    listen 80;
-    server_name xn--cjzl80byf571b.tw;
-    return 301 https://$host$request_uri;
-}
+# 查看日誌
+tail -f logs/server.log
 ```
 
 #### 環境變數配置
@@ -1147,44 +1115,73 @@ server {
 確保 `.env` 中已設定 HTTPS 相關變數：
 
 ```env
-# HTTPS 服務器端口
-HTTPS_PORT=443
-HTTP_PORT=80
-
 # Next.js 公開 URL（使用 HTTPS）
 NEXT_PUBLIC_API_URL="https://xn--cjzl80byf571b.tw"
 NEXT_PUBLIC_GRAPHQL_URL="https://xn--cjzl80byf571b.tw/api/graphql"
 NEXT_PUBLIC_SITE_URL="https://xn--cjzl80byf571b.tw"
+
+# LINE 回調 URL（必須使用 HTTPS）
+LINE_CALLBACK_URL="https://xn--cjzl80byf571b.tw/auth/line-verify"
 ```
 
 #### SSL 證書續期
 
-證書有效期：2025-11-03 至 2026-11-02
+證書有效期：**2025-11-03 至 2026-11-02**
 
 續期步驟：
-1. 從證書提供商下載新證書
+1. 從證書提供商下載新證書文件
 2. 更新 `ssl/` 目錄中的檔案
 3. 重新生成 fullchain.pem：
    ```bash
+   cd /var/www/shoe
    cat ssl/xn--cjzl80byf571b_tw.crt \
        ssl/SectigoPublicServerAuthenticationCADVR36.crt \
        ssl/USERTrustRSACertificationAuthority.crt \
        > ssl/fullchain.pem
+   chmod 644 ssl/fullchain.pem
    ```
-4. 重啟伺服器：`pm2 restart shoe-https`
+4. 重新加載 Nginx：
+   ```bash
+   sudo nginx -t  # 測試配置
+   sudo systemctl reload nginx  # 重新加載
+   ```
 
 #### 驗證 HTTPS 配置
 
 ```bash
 # 檢查證書資訊
-openssl x509 -in ssl/xn--cjzl80byf571b_tw.crt -text -noout
+openssl x509 -in ssl/xn--cjzl80byf571b_tw.crt -text -noout | grep -E "Subject:|Issuer:|Not"
 
-# 測試 HTTPS 連線
+# 測試 HTTPS 連線（應返回 HTTP/2 200）
 curl -I https://xn--cjzl80byf571b.tw
 
-# 測試 HTTP 重定向
+# 測試 HTTP 重定向（應返回 301 → HTTPS）
 curl -I http://xn--cjzl80byf571b.tw
+
+# 檢查 Nginx 狀態
+sudo systemctl status nginx
+
+# 查看 HTTPS 訪問日誌
+sudo tail -f /var/log/nginx/shoe-store-https-access.log
 ```
+
+#### 故障排除
+
+**502 Bad Gateway**
+- 檢查 Next.js 是否運行：`ps aux | grep next`
+- 檢查端口 3000：`lsof -i :3000`
+- 查看 Next.js 日誌：`tail -f logs/server.log`
+- 重啟應用：`./restart.sh`
+
+**SSL 證書錯誤**
+- 驗證證書文件：`ls -l ssl/`
+- 測試 Nginx 配置：`sudo nginx -t`
+- 檢查證書有效期：`openssl x509 -in ssl/fullchain.pem -noout -dates`
+
+**HTTP 不重定向**
+- 檢查 Nginx 80 端口監聽：`sudo lsof -i :80`
+- 查看 Nginx 配置：`sudo cat /etc/nginx/sites-enabled/shoe-store`
+- 重新加載 Nginx：`sudo systemctl reload nginx`
 
 ### 建議部署平台
 

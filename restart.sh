@@ -1,24 +1,14 @@
 #!/bin/bash
 
-# 完整重启服务器脚本（支援 HTTPS）
+# 完整重启服务器脚本（Nginx + Next.js）
 
 echo "🚀 开始重启服务器..."
-echo ""
-
-# 检查 SSL 证书
-if [ -f "ssl/private.key" ] && [ -f "ssl/fullchain.pem" ]; then
-    echo "🔐 检测到 SSL 证书，将启用 HTTPS"
-    USE_HTTPS=true
-else
-    echo "⚠️  未检测到 SSL 证书，使用标准 HTTP"
-    USE_HTTPS=false
-fi
 echo ""
 
 # 1. 停止现有进程（更彻底）
 echo "⏹️  停止现有进程..."
 pkill -f "next" 2>/dev/null && echo "   已停止 Next.js 进程" || true
-pkill -f "server.mjs" 2>/dev/null && echo "   已停止 HTTPS 服务器" || true
+pkill -f "server.mjs" 2>/dev/null && echo "   已停止自定义服务器" || true
 sleep 2
 
 # 再次确认进程已停止
@@ -41,48 +31,39 @@ echo "🔨 构建项目（这可能需要几分钟）..."
 pnpm build || echo "⚠️  构建有 prerender 警告，但继续启动..."
 echo ""
 
-# 4. 启动服务器（后台运行）
-echo "✅ 重启完成！正在启动服务器..."
+# 4. 重启 Nginx（重新加载配置）
+echo "🔄 重启 Nginx..."
+sudo systemctl reload nginx
+if [ $? -eq 0 ]; then
+    echo "   ✅ Nginx 已重启"
+else
+    echo "   ⚠️  Nginx 重启失败，请检查配置"
+fi
+echo ""
+
+# 5. 启动 Next.js 服务器（后台运行）
+echo "✅ 构建完成！正在启动服务器..."
 
 # 创建日志目录（如果不存在）
 mkdir -p logs
 
-# 根据是否有 SSL 证书选择启动方式
-if [ "$USE_HTTPS" = true ]; then
-    echo "🔐 启动 HTTPS 服务器..."
-    echo "🌐 服务器地址: https://xn--cjzl80byf571b.tw (HTTPS)"
-    echo "   HTTP 自动重定向: http://xn--cjzl80byf571b.tw -> HTTPS"
-    echo "📝 日志文件: ./logs/server.log"
-    echo ""
+echo "🌐 Next.js 运行在: http://localhost:3000"
+echo "🔐 公开访问地址: https://xn--cjzl80byf571b.tw"
+echo "   (Nginx 反向代理 + HTTPS)"
+echo "📝 日志文件: ./logs/server.log"
+echo ""
 
-    # 设置环境变量并启动 HTTPS 服务器
-    NODE_ENV=production nohup node server.mjs > logs/server.log 2>&1 &
-    SERVER_PID=$!
+# 启动标准 Next.js 服务器
+nohup pnpm start > logs/server.log 2>&1 &
+SERVER_PID=$!
 
-    echo "✅ HTTPS 服务器已在后台启动！"
-    echo "   进程 PID: $SERVER_PID"
-    echo "   HTTPS 端口: 443"
-    echo "   HTTP 端口: 80"
-    echo ""
-    echo "📌 常用命令:"
-    echo "   查看日志: tail -f logs/server.log"
-    echo "   停止服务器: pkill -f server.mjs"
-    echo "   查看进程: ps aux | grep server.mjs"
-else
-    echo "🌐 服务器地址: http://localhost:3000"
-    echo "📝 日志文件: ./logs/server.log"
-    echo ""
-
-    # 启动标准 Next.js 服务器
-    nohup pnpm start > logs/server.log 2>&1 &
-    SERVER_PID=$!
-
-    echo "✅ 服务器已在后台启动！"
-    echo "   进程 PID: $SERVER_PID"
-    echo ""
-    echo "📌 常用命令:"
-    echo "   查看日志: tail -f logs/server.log"
-    echo "   停止服务器: pkill -f next"
-    echo "   查看进程: ps aux | grep next"
-fi
+echo "✅ Next.js 服务器已在后台启动！"
+echo "   进程 PID: $SERVER_PID"
+echo ""
+echo "📌 常用命令:"
+echo "   查看 Next.js 日志: tail -f logs/server.log"
+echo "   查看 Nginx 日志: sudo tail -f /var/log/nginx/shoe-store-https-access.log"
+echo "   停止 Next.js: pkill -f next"
+echo "   查看进程: ps aux | grep next"
+echo "   Nginx 状态: sudo systemctl status nginx"
 echo ""
