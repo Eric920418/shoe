@@ -22,27 +22,46 @@ const GET_FLASH_SALE = gql`
   }
 `
 
-const FlashSale = () => {
+interface FlashSaleProps {
+  serverProducts?: any[]
+  serverFlashSale?: any
+}
+
+const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
     seconds: 0
   })
 
-  // 查詢限時搶購設定
-  const { data: flashSaleData } = useQuery(GET_FLASH_SALE, {
-    fetchPolicy: 'cache-and-network',
-    pollInterval: 60000, // 每分鐘更新一次
+  // 查詢限時搶購設定（僅當沒有伺服器資料時）
+  const { data: flashSaleData, startPolling, stopPolling } = useQuery(GET_FLASH_SALE, {
+    fetchPolicy: 'cache-first',
+    skip: !!serverFlashSale, // 如果有伺服器資料，跳過查詢
   })
 
-  const flashSaleConfig = flashSaleData?.activeFlashSale
+  const flashSaleConfig = serverFlashSale || flashSaleData?.activeFlashSale
 
-  // 查詢產品資料
+  // 控制輪詢：只在有活動時才輪詢
+  useEffect(() => {
+    if (!serverFlashSale && flashSaleConfig) {
+      // 有限時搶購活動，啟動輪詢（每分鐘更新一次）
+      startPolling(60000)
+    } else if (!serverFlashSale && flashSaleData !== undefined && !flashSaleConfig) {
+      // 查詢完成但沒有活動，停止輪詢
+      stopPolling()
+    }
+    return () => {
+      stopPolling() // 組件卸載時停止輪詢
+    }
+  }, [flashSaleConfig, flashSaleData, serverFlashSale, startPolling, stopPolling])
+
+  // 查詢產品資料（僅當沒有伺服器資料時）
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
-      take: flashSaleConfig?.maxProducts || 20, // 使用後台設定的數量或預設20個
+      take: flashSaleConfig?.maxProducts || 20,
     },
-    skip: !flashSaleConfig && !flashSaleData, // 如果沒有限時搶購設定且數據還在載入，跳過查詢
+    skip: !!serverProducts || !flashSaleConfig, // 只在沒有伺服器資料且有配置時才查詢
   })
 
   // 更新倒計時
@@ -93,7 +112,8 @@ const FlashSale = () => {
 
   // 處理產品資料
   const flashProducts = React.useMemo(() => {
-    if (!data?.products) return []
+    const allProducts = serverProducts || data?.products
+    if (!allProducts) return []
 
     let productsToShow = []
     const productIds = productsConfig?.productIds || []
@@ -101,10 +121,10 @@ const FlashSale = () => {
 
     if (productIds && productIds.length > 0) {
       // 如果後台指定了產品ID，只顯示這些產品
-      productsToShow = data.products.filter((p: any) => productIds.includes(p.id))
+      productsToShow = allProducts.filter((p: any) => productIds.includes(p.id))
     } else {
       // 如果沒有指定產品，顯示所有有折扣的產品
-      productsToShow = data.products
+      productsToShow = allProducts
         .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
     }
 
@@ -140,7 +160,7 @@ const FlashSale = () => {
       .sort((a: any, b: any) => b.discount - a.discount)
       // 限制數量
       .slice(0, flashSaleConfig?.maxProducts || 6)
-  }, [data, flashSaleConfig, productsConfig])
+  }, [serverProducts, data, flashSaleConfig, productsConfig])
 
   if (error) {
     console.error('載入限時搶購產品失敗:', error)

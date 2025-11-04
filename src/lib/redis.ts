@@ -51,17 +51,39 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 
 /**
  * 刪除快取
+ *
+ * ⚠️ 重要：使用 SCAN 代替 KEYS 避免阻塞 Redis
+ * KEYS 命令會阻塞整個 Redis，在生產環境極度危險
+ * SCAN 命令是非阻塞的，分批掃描，不會影響其他請求
  */
 export async function cacheDel(key: string) {
   try {
     const client = await getRedisClient()
 
-    // 如果包含通配符，使用 KEYS 命令找出所有匹配的鍵
+    // 如果包含通配符，使用 SCAN 命令（非阻塞）
     if (key.includes('*')) {
-      const keys = await client.keys(key)
-      if (keys.length > 0) {
-        await client.del(keys)
-        console.log(`Deleted ${keys.length} keys matching pattern: ${key}`)
+      const keysToDelete: string[] = []
+      let cursor = 0
+
+      // 使用 SCAN 分批掃描，避免阻塞
+      do {
+        const result = await client.scan(cursor, {
+          MATCH: key,
+          COUNT: 100, // 每次掃描 100 個 key
+        })
+
+        cursor = result.cursor
+        keysToDelete.push(...result.keys)
+      } while (cursor !== 0)
+
+      // 分批刪除（每次最多 100 個，避免一次刪除過多）
+      if (keysToDelete.length > 0) {
+        const BATCH_SIZE = 100
+        for (let i = 0; i < keysToDelete.length; i += BATCH_SIZE) {
+          const batch = keysToDelete.slice(i, i + BATCH_SIZE)
+          await client.del(batch)
+        }
+        console.log(`Deleted ${keysToDelete.length} keys matching pattern: ${key}`)
       }
     } else {
       // 單個鍵直接刪除

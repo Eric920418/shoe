@@ -126,6 +126,7 @@ export const userResolvers = {
       const users = await prisma.user.findMany({
         where,
         include: {
+          membershipTierConfig: true, // ✅ 載入會員等級配置，避免 N+1 查詢
           orders: {
             select: {
               id: true,
@@ -171,6 +172,7 @@ export const userResolvers = {
       const targetUser = await prisma.user.findUnique({
         where: { id },
         include: {
+          membershipTierConfig: true, // ✅ 載入會員等級配置，避免 N+1 查詢
           addresses: true,
           orders: {
             orderBy: { createdAt: 'desc' },

@@ -122,7 +122,6 @@ export default function DailyDealsPage() {
               <Calendar className="text-white" size={28} />
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold">今日特價</h1>
-                <p className="text-xs sm:text-sm opacity-90">每日10點準時更新</p>
               </div>
             </div>
 
@@ -144,35 +143,10 @@ export default function DailyDealsPage() {
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-4">
-        {/* 日期選擇 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">選擇日期</h2>
-            <button className="text-orange-500 hover:text-orange-600 text-sm flex items-center gap-1">
-              <Bell size={16} />
-              訂閱提醒
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto">
-            {weekDates.map(date => (
-              <button
-                key={date.value}
-                onClick={() => setSelectedDate(date.value)}
-                className={`flex-shrink-0 px-4 py-3 rounded-lg text-center transition-colors ${
-                  selectedDate === date.value
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <p className="text-sm font-medium">{date.label}</p>
-                <p className="text-xs opacity-80">{date.date}</p>
-              </button>
-            ))}
-          </div>
-        </div>
+       
 
         {/* 特價商品網格 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 py-4 md:py-8">
           {dailyDeals.map((deal) => (
             <div
               key={deal.id}
@@ -249,15 +223,7 @@ export default function DailyDealsPage() {
           ))}
         </div>
 
-        {/* 更多優惠提示 */}
-        <div className="mt-8 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6 text-center">
-          <Clock className="mx-auto text-orange-500 mb-3" size={48} />
-          <h3 className="text-lg font-bold text-gray-800 mb-2">更多優惠即將上線</h3>
-          <p className="text-sm text-gray-600 mb-4">每日10點準時更新，記得設定提醒不錯過</p>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            設定提醒
-          </button>
-        </div>
+      
       </div>
     </div>
   )

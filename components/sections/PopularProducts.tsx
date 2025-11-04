@@ -41,7 +41,11 @@ const GET_POPULAR_PRODUCTS = gql`
   }
 `
 
-const PopularProducts = () => {
+interface PopularProductsProps {
+  serverProducts?: any[]
+}
+
+const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
   const [activeTab, setActiveTab] = useState('trending')
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
 
@@ -52,20 +56,24 @@ const PopularProducts = () => {
     { id: 'discount', label: '折扣榜', icon: Flame, color: 'text-orange-500' }
   ]
 
-  // 查詢熱門產品配置和數據
+  // 查詢熱門產品配置和數據（僅當沒有伺服器資料時）
   const { data: popularData } = useQuery(GET_POPULAR_PRODUCTS, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first',
+    skip: !!serverProducts,
   })
 
-  // 查詢所有產品資料（用於生成各種榜單）
+  // 查詢所有產品資料（僅當沒有伺服器資料時）
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
-      take: 25, // 多取一些產品以便分類
-    }
+      take: 25,
+    },
+    skip: !!serverProducts,
   })
 
   // 處理產品資料
   const products = React.useMemo(() => {
+    const allProducts = serverProducts || data?.products
+
     // 如果有後台配置的熱門產品，優先使用
     let trendingProducts = []
     if (popularData?.popularProducts && popularData.popularProducts.length > 0) {
@@ -97,7 +105,7 @@ const PopularProducts = () => {
       })
     }
 
-    if (!data?.products) {
+    if (!allProducts) {
       // 如果只有後台數據，返回熱銷榜使用後台數據，其他榜單為空
       return {
         trending: trendingProducts,
@@ -107,7 +115,7 @@ const PopularProducts = () => {
       }
     }
 
-    const allProducts = data.products.map((product: any) => {
+    const processedProducts = allProducts.map((product: any) => {
       const price = parseFloat(product.price)
       const originalPrice = parseFloat(product.originalPrice) || price
       const soldCount = product.soldCount || 0
@@ -136,33 +144,33 @@ const PopularProducts = () => {
     // 熱銷榜：優先使用後台數據，否則按銷量排序
     const trending = trendingProducts.length > 0
       ? trendingProducts
-      : [...allProducts]
+      : [...processedProducts]
         .sort((a, b) => b.soldCount - a.soldCount)
         .slice(0, 8)
         .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     // 好評榜：按評分排序（至少有評分的）
-    const rated = [...allProducts]
+    const rated = [...processedProducts]
       .filter(p => p.averageRating > 0)
       .sort((a, b) => b.averageRating - a.averageRating)
       .slice(0, 8)
       .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     // 人氣榜：按瀏覽次數排序
-    const viewed = [...allProducts]
+    const viewed = [...processedProducts]
       .sort((a, b) => b.viewCount - a.viewCount)
       .slice(0, 8)
       .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     // 折扣榜：按折扣率排序（有折扣的）
-    const discount = [...allProducts]
+    const discount = [...processedProducts]
       .filter(p => p.discount > 0)
       .sort((a, b) => b.discount - a.discount)
       .slice(0, 8)
       .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     return { trending, rated, viewed, discount }
-  }, [data, popularData])
+  }, [serverProducts, data, popularData])
 
   // 使用後台配置或預設值
   const config = popularData?.popularProductsConfig

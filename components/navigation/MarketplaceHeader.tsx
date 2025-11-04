@@ -56,31 +56,31 @@ const MarketplaceHeader = () => {
     <header className="sticky top-0 z-50 bg-white shadow-md">
       {/* 頂部工具欄 */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs">
-        <div className="max-w-[1400px] mx-auto px-4 py-1 flex justify-between items-center">
+        <div className="max-w-[1400px] mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Link href="/help" className="flex items-center gap-1 hover:text-yellow-300">
-              <MessageCircle size={14} />
+              <MessageCircle size={24} />
               <span>24小時客服</span>
             </Link>
             <span className="hidden sm:inline">｜</span>
             <Link href="/about" className="hidden sm:flex items-center gap-1 hover:text-yellow-300">
-              <Store size={14} />
+              <Store size={24} />
               <span>關於我們</span>
             </Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/notifications" className="flex items-center gap-1 hover:text-yellow-300 relative">
-              <Bell size={14} />
+              <Bell size={24} />
               <span className="hidden sm:inline">通知</span>
-              <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-600 text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">3</span>
+              <span className="absolute -top-1 right-[42%] bg-yellow-400 text-red-600 text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">3</span>
             </Link>
             <Link href="/help" className="flex items-center gap-1 hover:text-yellow-300">
-              <MessageCircle size={14} />
+              <MessageCircle size={24} />
               <span className="hidden sm:inline">幫助中心</span>
             </Link>
             {user ? (
               <Link href="/account" className="flex items-center gap-1 hover:text-yellow-300">
-                <User size={14} />
+                <User size={24} />
                 <span>{user.name || user.email}</span>
               </Link>
             ) : (

@@ -35,7 +35,11 @@ const GET_TODAYS_DEAL = gql`
   }
 `
 
-const MarketplaceHero = () => {
+interface MarketplaceHeroProps {
+  serverProducts?: any[]
+}
+
+const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   // 查詢輪播圖資料
@@ -55,12 +59,12 @@ const MarketplaceHero = () => {
 
   const dealConfig = dealConfigData?.todaysDeal
 
-  // 查詢產品資料
+  // 查詢產品資料（僅當沒有伺服器資料時）
   const { data } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
       take: 20,
     },
-    skip: !dealConfig && !dealConfigData,
+    skip: !!serverProducts || !dealConfig, // 如果有伺服器資料或沒有配置，跳過查詢
   })
 
   // 解析 products JSON
@@ -78,17 +82,18 @@ const MarketplaceHero = () => {
 
   // 獲取今日必搶產品（從後台配置讀取）
   const todayDeal = React.useMemo(() => {
-    if (!data?.products) return null
+    const productsData = serverProducts || data?.products
+    if (!productsData) return null
 
     const productIds = productsConfig?.productIds || []
     let selectedProduct = null
 
     if (productIds && productIds.length > 0) {
       // 如果後台指定了產品ID，顯示第一個
-      selectedProduct = data.products.find((p: any) => p.id === productIds[0])
+      selectedProduct = productsData.find((p: any) => p.id === productIds[0])
     } else {
       // 如果沒有指定產品，自動選擇折扣最大的產品
-      const productsWithDiscount = data.products
+      const productsWithDiscount = productsData
         .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
         .map((p: any) => {
           const price = parseFloat(p.price)
@@ -117,7 +122,7 @@ const MarketplaceHero = () => {
       discount,
       soldPercentage: stock > 0 ? Math.min((soldCount / (soldCount + stock)) * 100, 100) : 0
     }
-  }, [data, productsConfig])
+  }, [serverProducts, data, productsConfig])
 
   // 預設輪播圖（當後台沒有設定時使用）
   const defaultBanners = [
@@ -200,11 +205,16 @@ const MarketplaceHero = () => {
   ]
 
   useEffect(() => {
+    // 當 banners 改變時，重置 currentSlide 避免越界
+    if (currentSlide >= banners.length) {
+      setCurrentSlide(0)
+    }
+
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length)
     }, 4000)
     return () => clearInterval(timer)
-  }, [])
+  }, [banners.length, currentSlide]) // 加入依賴，確保使用最新的 banners.length
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % banners.length)

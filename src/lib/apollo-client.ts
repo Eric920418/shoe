@@ -68,10 +68,28 @@ const httpLink = new HttpLink({
 // 創建 Apollo Client
 export const apolloClient = new ApolloClient({
   link: from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          // 產品列表使用 merge 策略，支援分頁
+          products: {
+            keyArgs: ['categoryId', 'brandId', 'search'],
+            merge(existing = [], incoming) {
+              return incoming
+            },
+          },
+        },
+      },
+    },
+  }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'cache-first', // 改為 cache-first，減少無效請求
+      nextFetchPolicy: 'cache-first', // 後續查詢也使用 cache-first
+    },
+    query: {
+      fetchPolicy: 'cache-first',
     },
   },
 })

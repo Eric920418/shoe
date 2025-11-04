@@ -436,3 +436,138 @@ export const getBestSellers = cache(async (limit: number = 10) => {
     return []
   }
 })
+
+/**
+ * 獲取首頁配置
+ */
+export const getHomepageConfig = cache(async () => {
+  try {
+    const configs = await prisma.homepageConfig.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        sortOrder: 'asc',
+      },
+    })
+
+    return configs
+  } catch (error) {
+    console.error('Failed to fetch homepage config:', error)
+    return []
+  }
+})
+
+/**
+ * 獲取首頁產品（包含完整資料）
+ */
+export const getHomepageProducts = cache(async (limit: number = 25) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+      },
+      take: limit,
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: [
+        { soldCount: 'desc' },
+        { viewCount: 'desc' },
+      ],
+    })
+
+    // 序列化產品
+    return products.map(serializeProduct)
+  } catch (error) {
+    console.error('Failed to fetch homepage products:', error)
+    return []
+  }
+})
+
+/**
+ * 獲取活動中的限時搶購
+ */
+export const getActiveFlashSale = cache(async () => {
+  try {
+    const now = new Date()
+    const flashSale = await prisma.flashSale.findFirst({
+      where: {
+        isActive: true,
+        startTime: {
+          lte: now,
+        },
+        endTime: {
+          gte: now,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return flashSale
+  } catch (error) {
+    console.error('Failed to fetch active flash sale:', error)
+    return null
+  }
+})
+
+/**
+ * 獲取分類展示配置
+ */
+export const getCategoryDisplays = cache(async () => {
+  try {
+    const displays = await prisma.categoryDisplay.findMany({
+      where: {
+        showOnHomepage: true,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            _count: {
+              select: {
+                products: {
+                  where: {
+                    isActive: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        sortOrder: 'asc',
+      },
+      take: 8,
+    })
+
+    return displays.map((display) => ({
+      ...display,
+      category: {
+        ...display.category,
+        productCount: display.category._count.products,
+      },
+    }))
+  } catch (error) {
+    console.error('Failed to fetch category displays:', error)
+    return []
+  }
+})

@@ -25,7 +25,7 @@ export const productResolvers = {
 
       const cacheKey = id || slug!
       const product = await ProductCache.get(cacheKey, async () => {
-        return await prisma.product.findUnique({
+        const prod = await prisma.product.findUnique({
           where: id ? { id } : { slug },
           include: {
             category: true,
@@ -35,6 +35,17 @@ export const productResolvers = {
             reviews: { where: { isApproved: true, isPublic: true }, take: 10, orderBy: { createdAt: 'desc' } },
           },
         })
+
+        // ✅ 預先計算 totalStock
+        if (prod) {
+          const totalStock = prod.sizeCharts?.reduce(
+            (sum, chart) => sum + chart.stock,
+            0
+          ) || 0
+          return { ...prod, totalStock }
+        }
+
+        return prod
       })
 
       if (!product) {
@@ -121,7 +132,7 @@ export const productResolvers = {
 
       // 查詢資料的函數
       const fetchProducts = async () => {
-        return await prisma.product.findMany({
+        const products = await prisma.product.findMany({
           skip,
           take,
           where: filters,
@@ -130,7 +141,20 @@ export const productResolvers = {
             category: true,
             brand: true,
             variants: { where: { isActive: true }, take: 1 },
+            sizeCharts: {
+              where: { isActive: true },
+              select: { stock: true }, // ✅ 載入尺碼庫存
+            },
           },
+        })
+
+        // ✅ 預先計算 totalStock，避免在 resolver 中重複查詢
+        return products.map(product => {
+          const totalStock = product.sizeCharts?.reduce(
+            (sum, chart) => sum + chart.stock,
+            0
+          ) || 0
+          return { ...product, totalStock }
         })
       }
 

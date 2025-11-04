@@ -19,7 +19,11 @@ const GET_TODAYS_DEAL = gql`
   }
 `
 
-const DailyDeals = () => {
+interface DailyDealsProps {
+  serverProducts?: any[]
+}
+
+const DailyDeals = ({ serverProducts }: DailyDealsProps) => {
   // 查詢今日必搶配置
   const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
     fetchPolicy: 'cache-and-network',
@@ -27,12 +31,12 @@ const DailyDeals = () => {
 
   const dealConfig = dealConfigData?.todaysDeal
 
-  // 查詢產品資料
+  // 查詢產品資料（僅當沒有伺服器資料時）
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
       take: 20,
     },
-    skip: !dealConfig && !dealConfigData, // 如果沒有配置且數據還在載入，跳過查詢
+    skip: !!serverProducts || !dealConfig, // 如果有伺服器資料或沒有配置，跳過查詢
   })
 
   // 解析 products JSON
@@ -50,7 +54,8 @@ const DailyDeals = () => {
 
   // 處理產品資料 - 顯示多個產品
   const deals = React.useMemo(() => {
-    if (!data?.products) return []
+    const productsData = serverProducts || data?.products
+    if (!productsData) return []
 
     let productsToShow = []
     const productIds = productsConfig?.productIds || []
@@ -58,10 +63,10 @@ const DailyDeals = () => {
 
     if (productIds && productIds.length > 0) {
       // 如果後台指定了產品ID，只顯示這些產品
-      productsToShow = data.products.filter((p: any) => productIds.includes(p.id))
+      productsToShow = productsData.filter((p: any) => productIds.includes(p.id))
     } else {
       // 如果沒有指定產品，顯示所有有折扣的產品
-      productsToShow = data.products
+      productsToShow = productsData
         .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
     }
 
@@ -106,7 +111,7 @@ const DailyDeals = () => {
       })
       // 限制數量
       .slice(0, maxProducts)
-  }, [data, productsConfig])
+  }, [serverProducts, data, productsConfig])
 
   if (error) {
     console.error('載入今日特價產品失敗:', error)

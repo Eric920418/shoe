@@ -173,11 +173,10 @@ const FloatingPromo = () => {
         // 預設的邀請獎勵按鈕
         <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
           <Link href="/account/referral">
-            <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer">
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-4 rounded-lg shadow-lg max-w-[150px] text-center hover:scale-105 transition-transform cursor-pointer">
               <div className="text-3xl mb-2">🎁</div>
               <p className="text-xs font-bold mb-1">邀請好友</p>
-              <p className="text-[10px]">賺購物金</p>
-              <div className="mt-2 bg-yellow-400 text-purple-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-300 transition-colors">
+              <div className="text-nowrap mt-2 bg-yellow-400 text-purple-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-300 transition-colors">
                 立即邀請
               </div>
             </div>

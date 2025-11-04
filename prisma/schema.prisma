@@ -99,6 +99,10 @@ model User {
   @@index([lineId])
   @@index([membershipTierId])
   @@index([marketingEmailOptIn])
+  @@index([isActive, role])          // 後台用戶列表篩選（管理員/用戶）
+  @@index([totalSpent])               // 會員等級計算查詢
+  @@index([createdAt])                // 註冊時間排序
+  @@index([isActive, createdAt])      // 複合篩選（活躍用戶排序）
   @@map("users")
 }
 
@@ -398,6 +402,8 @@ model Order {
   @@index([userId, createdAt])  // 用戶訂單排序
   @@index([status, createdAt])  // 管理員訂單篩選
   @@index([status, paymentStatus])  // 訂單狀態組合查詢
+  @@index([paymentMethod, status])  // 支付方式分析
+  @@index([paidAt])  // 支付時間統計
 
   @@map("orders")
 }
@@ -792,6 +798,8 @@ model Review {
   @@index([rating])
   @@index([isApproved])
   @@index([createdAt])
+  @@index([productId, isApproved, rating])  // 產品評分統計查詢
+  @@index([userId, isApproved])             // 用戶評論歷史查詢
   @@map("reviews")
 }
 

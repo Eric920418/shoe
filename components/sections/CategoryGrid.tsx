@@ -27,10 +27,15 @@ const GET_CATEGORY_DISPLAYS = gql`
   }
 `
 
-const CategoryGrid = () => {
-  // 查詢分類展示設定
+interface CategoryGridProps {
+  serverCategoryDisplays?: any[]
+}
+
+const CategoryGrid = ({ serverCategoryDisplays }: CategoryGridProps) => {
+  // 查詢分類展示設定（僅當沒有伺服器資料時）
   const { data } = useQuery(GET_CATEGORY_DISPLAYS, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first',
+    skip: !!serverCategoryDisplays, // 如果有伺服器資料，跳過查詢
   })
 
   // 預設分類
@@ -123,9 +128,10 @@ const CategoryGrid = () => {
 
   // 使用後台數據或預設數據
   const categories = React.useMemo(() => {
-    if (data?.categoryDisplays && data.categoryDisplays.length > 0) {
+    const categoryDisplays = serverCategoryDisplays || data?.categoryDisplays
+    if (categoryDisplays && categoryDisplays.length > 0) {
       let highlightIndex = 0
-      return data.categoryDisplays
+      return categoryDisplays
         .filter((item: any) => item.showOnHomepage)
         .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
         .slice(0, 8) // 最多顯示8個分類
@@ -152,7 +158,7 @@ const CategoryGrid = () => {
         })
     }
     return defaultCategories
-  }, [data])
+  }, [serverCategoryDisplays, data])
 
   const quickLinks = [
     { icon: TrendingUp, text: '熱銷排行', link: '/popular', color: 'text-orange-600' },

@@ -173,8 +173,18 @@ export const orderResolvers = {
       return order
     },
 
-    // 獲取我的訂單列表（✅ 優化：減少不必要的關聯載入）
-    myOrders: async (_: any, __: any, { user }: GraphQLContext) => {
+    // 獲取我的訂單列表（✅ 優化：減少不必要的關聯載入 + 支援分頁）
+    myOrders: async (
+      _: any,
+      {
+        skip = 0,
+        take = 50, // 預設每次載入 50 筆，防止一次載入過多
+      }: {
+        skip?: number
+        take?: number
+      } = {},
+      { user }: GraphQLContext
+    ) => {
       if (!user) {
         throw new GraphQLError('請先登入', {
           extensions: { code: 'UNAUTHENTICATED' },
@@ -182,9 +192,12 @@ export const orderResolvers = {
       }
 
       // ✅ 訂單列表頁面只需要基本資料，不需要載入完整的產品詳情
+      // ✅ 加入分頁參數，避免一次載入數百筆訂單
       return await prisma.order.findMany({
         where: { userId: user.userId },
         orderBy: { createdAt: 'desc' },
+        skip,
+        take: Math.min(take, 100), // 最多一次載入 100 筆，防止濫用
         include: {
           items: {
             // ✅ 只選擇必要欄位，不載入整個 product 關聯
