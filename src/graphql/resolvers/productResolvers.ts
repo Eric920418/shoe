@@ -289,42 +289,91 @@ export const productResolvers = {
         throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
       }
 
-      let updateData = { ...input }
-
-      // 處理 slug 邏輯
-      if (input.slug && input.slug.trim()) {
-        // 如果用戶提供了 slug，檢查是否唯一（排除自己）
-        const trimmedSlug = input.slug.trim()
-        const existing = await prisma.product.findUnique({
-          where: { slug: trimmedSlug },
-          select: { id: true },
+      try {
+        // 確認產品存在
+        const existingProduct = await prisma.product.findUnique({
+          where: { id },
+          select: { id: true, name: true },
         })
 
-        if (existing && existing.id !== id) {
-          // 如果已被其他產品使用，自動生成唯一 slug
-          updateData.slug = await generateUniqueProductSlug(input.name || 'product', id)
-          console.log(`Slug "${trimmedSlug}" already in use, generated new slug: ${updateData.slug}`)
-        } else {
-          updateData.slug = trimmedSlug
+        if (!existingProduct) {
+          throw new GraphQLError(`產品不存在 (ID: ${id})`, {
+            extensions: { code: 'NOT_FOUND' },
+          })
         }
-      } else if (input.name) {
-        // 如果只更新了名稱但沒有提供 slug，自動重新生成 slug
-        updateData.slug = await generateUniqueProductSlug(input.name, id)
+
+        let updateData = { ...input }
+
+        // 處理 slug 邏輯
+        if (input.slug && input.slug.trim()) {
+          // 如果用戶提供了 slug，檢查是否唯一（排除自己）
+          const trimmedSlug = input.slug.trim()
+          const existing = await prisma.product.findUnique({
+            where: { slug: trimmedSlug },
+            select: { id: true },
+          })
+
+          if (existing && existing.id !== id) {
+            // 如果已被其他產品使用，自動生成唯一 slug
+            updateData.slug = await generateUniqueProductSlug(input.name || existingProduct.name, id)
+            console.log(`Slug "${trimmedSlug}" already in use, generated new slug: ${updateData.slug}`)
+          } else {
+            updateData.slug = trimmedSlug
+          }
+        } else if (input.name) {
+          // 如果只更新了名稱但沒有提供 slug，自動重新生成 slug
+          updateData.slug = await generateUniqueProductSlug(input.name, id)
+        }
+
+        console.log('Updating product with data:', JSON.stringify(updateData, null, 2))
+
+        const product = await prisma.product.update({
+          where: { id },
+          data: updateData,
+          include: {
+            category: true,
+            brand: true,
+          },
+        })
+
+        // 清除相關快取
+        await ProductCache.invalidate(id)
+
+        console.log('Product updated successfully:', product.id)
+        return product
+      } catch (error: any) {
+        console.error('更新產品失敗:', error)
+
+        // 如果是我們拋出的 GraphQLError，直接重新拋出
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+
+        // 處理 Prisma 特定錯誤
+        if (error.code === 'P2025') {
+          throw new GraphQLError(`產品不存在 (ID: ${id})`, {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        if (error.code === 'P2002') {
+          const target = error.meta?.target || []
+          throw new GraphQLError(`更新失敗：${target.join(', ')} 已經存在`, {
+            extensions: { code: 'UNIQUE_CONSTRAINT_VIOLATION', target },
+          })
+        }
+
+        if (error.code === 'P2003') {
+          throw new GraphQLError(`更新失敗：關聯的資料不存在（可能是分類或品牌 ID 無效）`, {
+            extensions: { code: 'FOREIGN_KEY_VIOLATION' },
+          })
+        }
+
+        // 其他未知錯誤
+        throw new GraphQLError(`更新產品失敗: ${error.message}`, {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
+        })
       }
-
-      const product = await prisma.product.update({
-        where: { id },
-        data: updateData,
-        include: {
-          category: true,
-          brand: true,
-        },
-      })
-
-      // 清除相關快取
-      await ProductCache.invalidate(id)
-
-      return product
     },
 
     // 刪除產品（管理員）
@@ -567,6 +616,30 @@ export const productResolvers = {
       return await prisma.product.count({
         where: { brandId: brand.id, isActive: true },
       })
+    },
+  },
+
+  Product: {
+    totalStock: async (product: any) => {
+      // 如果已經有預先計算的 totalStock，直接返回
+      if (product.totalStock !== undefined) {
+        return product.totalStock
+      }
+
+      // 計算所有尺碼的庫存總和
+      const sizeCharts = await prisma.sizeChart.findMany({
+        where: {
+          productId: product.id,
+          isActive: true,
+        },
+        select: {
+          stock: true,
+        },
+      })
+
+      // 加總所有尺碼庫存
+      const total = sizeCharts.reduce((sum, chart) => sum + chart.stock, 0)
+      return total
     },
   },
 }

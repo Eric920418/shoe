@@ -7,6 +7,7 @@ import {
   Calendar, Clock, Flame, Star, TrendingUp,
   RefreshCw, Bell, ShoppingCart, Heart
 } from 'lucide-react'
+import WishlistButton from '@/components/product/WishlistButton'
 
 export default function DailyDealsPage() {
   const [timeUntilRefresh, setTimeUntilRefresh] = useState({ hours: 14, minutes: 30, seconds: 45 })
@@ -199,10 +200,10 @@ export default function DailyDealsPage() {
                     <span className="text-xs block">OFF</span>
                   </div>
 
-                  {/* 收藏 */}
-                  <button className="absolute bottom-2 right-2 bg-white/80 p-1.5 rounded-full hover:bg-white">
-                    <Heart size={14} className="text-gray-600" />
-                  </button>
+                  {/* 願望清單按鈕 */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <WishlistButton productId={deal.id.toString()} size="sm" />
+                  </div>
 
                   {/* 庫存進度 */}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur p-2">

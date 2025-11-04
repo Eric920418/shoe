@@ -3,9 +3,44 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Sparkles, TrendingUp, Award, Zap } from 'lucide-react'
+import { Sparkles, TrendingUp, Award, Zap, Package } from 'lucide-react'
+import { useQuery, gql } from '@apollo/client'
+
+// GraphQL 查詢：獲取首頁展示的組合套裝（最多3個）
+const GET_HOMEPAGE_BUNDLES = gql`
+  query GetHomepageBundles {
+    homepageBundles {
+      id
+      name
+      slug
+      description
+      originalPrice
+      bundlePrice
+      discount
+      discountPercent
+      image
+      isFeatured
+      items {
+        id
+        quantity
+        product {
+          id
+          name
+          images
+        }
+      }
+    }
+  }
+`
 
 const SuperDeals = () => {
+  // 查詢組合套裝數據
+  const { data, loading } = useQuery(GET_HOMEPAGE_BUNDLES, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const bundleDeals = data?.homepageBundles?.slice(0, 3) || []
+
   const superDeals = [
     {
       id: 1,
@@ -30,36 +65,6 @@ const SuperDeals = () => {
       image: '/api/placeholder/400/200',
       bgColor: 'from-orange-500 to-red-500',
       link: '/account'
-    }
-  ]
-
-  const bundleDeals = [
-    {
-      id: 1,
-      title: '運動套裝',
-      items: ['運動鞋 x1', '運動襪 x3', '鞋墊 x1'],
-      originalPrice: 2999,
-      bundlePrice: 1999,
-      saved: 1000,
-      image: '/api/placeholder/200/200'
-    },
-    {
-      id: 2,
-      title: '情侶組合',
-      items: ['男鞋 x1', '女鞋 x1', '購物袋 x2'],
-      originalPrice: 4999,
-      bundlePrice: 3499,
-      saved: 1500,
-      image: '/api/placeholder/200/200'
-    },
-    {
-      id: 3,
-      title: '家庭套餐',
-      items: ['成人鞋 x2', '童鞋 x1', '清潔組 x1'],
-      originalPrice: 5999,
-      bundlePrice: 3999,
-      saved: 2000,
-      image: '/api/placeholder/200/200'
     }
   ]
 
@@ -99,59 +104,92 @@ const SuperDeals = () => {
           ))}
         </div>
 
-        {/* 套裝優惠 */}
-        <div className="border-t pt-4 sm:pt-6">
-          <h3 className="font-bold text-sm sm:text-lg text-gray-800 mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <Zap className="text-orange-500" size={18} />
-            組合套裝
-            <span className="bg-red-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">限時優惠</span>
-          </h3>
+        {/* 套裝優惠 - 只在有數據時顯示 */}
+        {!loading && bundleDeals.length > 0 && (
+          <div className="border-t pt-4 sm:pt-6">
+            <h3 className="font-bold text-sm sm:text-lg text-gray-800 mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Zap className="text-orange-500" size={18} />
+              組合套裝
+              <span className="bg-red-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">限時優惠</span>
+            </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            {bundleDeals.map((bundle) => (
-              <div
-                key={bundle.id}
-                className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-gradient-to-br from-yellow-50 to-orange-50"
-              >
-                <div className="flex gap-3 sm:gap-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex-shrink-0">
-                    <Image
-                      src={bundle.image}
-                      alt={bundle.title}
-                      width={80}
-                      height={80}
-                      className="rounded-lg"
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+              {bundleDeals.map((bundle) => (
+                <Link
+                  key={bundle.id}
+                  href={`/bundles/${bundle.slug}`}
+                  className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-gradient-to-br from-yellow-50 to-orange-50 block"
+                >
+                  <div className="flex gap-3 sm:gap-4">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex-shrink-0 relative">
+                      {bundle.image ? (
+                        <Image
+                          src={bundle.image}
+                          alt={bundle.name}
+                          fill
+                          className="rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package size={32} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-800 mb-1 sm:mb-2 text-sm sm:text-base truncate">
+                        {bundle.name}
+                        {bundle.isFeatured && (
+                          <span className="ml-2 text-[10px] bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full">
+                            熱門
+                          </span>
+                        )}
+                      </h4>
+                      <ul className="text-[10px] sm:text-xs text-gray-600 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
+                        {bundle.items.slice(0, 3).map((item) => (
+                          <li key={item.id} className="flex items-center gap-1 truncate">
+                            <span className="text-orange-500 flex-shrink-0">✓</span>
+                            <span className="truncate">{item.product.name} x{item.quantity}</span>
+                          </li>
+                        ))}
+                        {bundle.items.length > 3 && (
+                          <li className="text-gray-500">...還有 {bundle.items.length - 3} 項</li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-800 mb-1 sm:mb-2 text-sm sm:text-base truncate">{bundle.title}</h4>
-                    <ul className="text-[10px] sm:text-xs text-gray-600 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
-                      {bundle.items.map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-1 truncate">
-                          <span className="text-orange-500 flex-shrink-0">✓</span>
-                          <span className="truncate">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
 
-                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-500 line-through">${bundle.originalPrice}</p>
-                    <p className="text-base sm:text-xl font-bold text-red-500">${bundle.bundlePrice}</p>
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex items-end justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-500 line-through">
+                        ${parseFloat(bundle.originalPrice).toFixed(0)}
+                      </p>
+                      <p className="text-base sm:text-xl font-bold text-red-500">
+                        ${parseFloat(bundle.bundlePrice).toFixed(0)}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[10px] sm:text-xs text-green-600 font-medium whitespace-nowrap">
+                        省 ${parseFloat(bundle.discount || 0).toFixed(0)}
+                      </p>
+                      <span className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 sm:px-3 rounded text-xs sm:text-sm font-medium transition-colors mt-1 whitespace-nowrap">
+                        查看詳情
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-[10px] sm:text-xs text-green-600 font-medium whitespace-nowrap">省 ${bundle.saved}</p>
-                    <button className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 sm:px-3 rounded text-xs sm:text-sm font-medium transition-colors mt-1 whitespace-nowrap">
-                      購買
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* 載入中狀態 */}
+        {loading && (
+          <div className="border-t pt-4 sm:pt-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 獎勵提示橫幅 */}

@@ -67,9 +67,9 @@ export default function ProductsPage() {
   const products = productsData?.products || []
 
   // 計算統計數據
-  const activeProducts = products.filter((p: any) => p.stock > 0)
-  const outOfStockProducts = products.filter((p: any) => p.stock === 0)
-  const lowStockProducts = products.filter((p: any) => p.stock > 0 && p.stock <= 10)
+  const activeProducts = products.filter((p: any) => p.totalStock > 0)
+  const outOfStockProducts = products.filter((p: any) => p.totalStock === 0)
+  const lowStockProducts = products.filter((p: any) => p.totalStock > 0 && p.totalStock <= 10)
 
   // 切換產品選擇
   const toggleProductSelection = (id: string) => {
@@ -295,7 +295,7 @@ export default function ProductsPage() {
                     }
                   }
                   const firstImage = images[0] || '/images/placeholder-product.svg'
-                  const status = product.stock === 0 ? 'OUT_OF_STOCK' : 'ACTIVE'
+                  const status = product.totalStock === 0 ? 'OUT_OF_STOCK' : 'ACTIVE'
 
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
@@ -344,14 +344,14 @@ export default function ProductsPage() {
                       <td className="px-4 py-4">
                         <span
                           className={`text-sm font-medium ${
-                            product.stock === 0
+                            product.totalStock === 0
                               ? 'text-red-600'
-                              : product.stock <= 10
+                              : product.totalStock <= 10
                               ? 'text-orange-600'
                               : 'text-green-600'
                           }`}
                         >
-                          {product.stock} 件
+                          {product.totalStock} 件
                         </span>
                       </td>
                       <td className="px-4 py-4">

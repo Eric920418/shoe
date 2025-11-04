@@ -468,7 +468,7 @@ export default function CartPage() {
                   </Link>
 
                   <Link
-                    href="/products"
+                    href="/"
                     className="block w-full py-4 border-2 border-black text-black text-center rounded-full hover:bg-gray-50 transition-colors font-medium text-sm uppercase tracking-wide"
                   >
                     繼續購物

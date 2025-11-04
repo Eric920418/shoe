@@ -20,9 +20,45 @@ import { faqResolvers } from './faqResolvers'
 import { heroSlideResolvers } from './heroSlideResolvers'
 import { emailCampaignResolvers } from './emailCampaignResolvers'
 import { homepageResolvers } from './homepageResolvers'
+import { wishlistResolvers } from './wishlistResolvers'
+import { bundleResolvers } from './bundleResolvers'
+import { GraphQLScalarType, Kind } from 'graphql'
+
+// Decimal scalar 定義 - 用於處理精確的十進制數字
+const DecimalScalar = new GraphQLScalarType({
+  name: 'Decimal',
+  description: 'A high precision decimal value represented as a string',
+
+  // 序列化：從資料庫讀取時，將 Prisma Decimal 轉換為字符串
+  serialize(value: any) {
+    if (value === null || value === undefined) return null
+    // Prisma Decimal 對象有 toString() 方法
+    return value.toString()
+  },
+
+  // 解析值：從變量傳入時（JSON），將數字或字符串轉換為字符串
+  parseValue(value: any) {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number' || typeof value === 'string') {
+      return String(value)
+    }
+    throw new Error('Decimal must be a number or string')
+  },
+
+  // 解析字面量：從查詢字符串傳入時，轉換為字符串
+  parseLiteral(ast: any) {
+    if (ast.kind === Kind.INT || ast.kind === Kind.FLOAT || ast.kind === Kind.STRING) {
+      return ast.value
+    }
+    return null
+  },
+})
 
 // 合并所有resolvers
 export const resolvers = {
+  // 添加 Decimal scalar 處理器
+  Decimal: DecimalScalar,
+
   Query: {
     ...authResolvers.Query,
     ...productResolvers.Query,
@@ -41,6 +77,8 @@ export const resolvers = {
     ...heroSlideResolvers.Query,
     ...emailCampaignResolvers.Query,
     ...homepageResolvers.Query,
+    ...wishlistResolvers.Query,
+    ...bundleResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -61,8 +99,11 @@ export const resolvers = {
     ...heroSlideResolvers.Mutation,
     ...emailCampaignResolvers.Mutation,
     ...homepageResolvers.Mutation,
+    ...wishlistResolvers.Mutation,
+    ...bundleResolvers.Mutation,
   },
   User: authResolvers.User,
+  Product: productResolvers.Product,
   Category: productResolvers.Category,
   Brand: productResolvers.Brand,
   SizeChart: sizeResolvers.SizeChart,
@@ -77,4 +118,5 @@ export const resolvers = {
   ReturnItem: returnResolvers.ReturnItem,
   EmailCampaign: emailCampaignResolvers.EmailCampaign,
   EmailLog: emailCampaignResolvers.EmailLog,
+  WishlistItem: wishlistResolvers.WishlistItem,
 }

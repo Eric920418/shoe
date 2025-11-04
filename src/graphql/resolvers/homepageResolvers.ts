@@ -216,7 +216,7 @@ export const homepageResolvers = {
             },
             orderBy: [
               { averageRating: 'desc' },
-              { totalReviews: 'desc' },
+              { reviewCount: 'desc' },
             ],
             include: {
               category: true,
@@ -246,13 +246,13 @@ export const homepageResolvers = {
               OR: [
                 { isFeatured: true },
                 { averageRating: { gte: 4.0 } },
-                { totalReviews: { gte: 10 } },
+                { reviewCount: { gte: 10 } },
               ],
             },
             orderBy: [
               { isFeatured: 'desc' },
               { averageRating: 'desc' },
-              { totalReviews: 'desc' },
+              { reviewCount: 'desc' },
             ],
             include: {
               category: true,

@@ -8,6 +8,7 @@ import {
   Filter, ChevronDown, Star, Heart, ShoppingBag,
   Grid3X3, List, SlidersHorizontal
 } from 'lucide-react'
+import WishlistButton from '@/components/product/WishlistButton'
 
 export default function CategoryPage() {
   const params = useParams()
@@ -310,9 +311,9 @@ export default function CategoryPage() {
                           </span>
                         )}
 
-                        <button className="absolute top-2 right-2 bg-white/80 p-1.5 rounded-full hover:bg-white">
-                          <Heart size={16} className="text-gray-600" />
-                        </button>
+                        <div className="absolute top-2 right-2 z-20">
+                          <WishlistButton productId={product.id.toString()} size="sm" />
+                        </div>
                       </div>
 
                       <div className="p-3">
@@ -386,14 +387,6 @@ export default function CategoryPage() {
                   </div>
                 )
               ))}
-            </div>
-
-            {/* 載入更多 */}
-            <div className="flex justify-center mt-8">
-              <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
-                載入更多
-                <ChevronDown size={18} />
-              </button>
             </div>
           </div>
         </div>

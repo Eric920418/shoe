@@ -8,6 +8,7 @@ import {
   Clock, Flame, Filter, Star, TrendingUp,
   ChevronDown, ShoppingCart, Heart, Zap, Timer
 } from 'lucide-react'
+import WishlistButton from '@/components/product/WishlistButton'
 
 // GraphQL 查詢
 const GET_FLASH_SALE = gql`
@@ -356,10 +357,10 @@ export default function FlashSalePage() {
                     )}
                   </div>
 
-                  {/* 收藏按鈕 */}
-                  <button className="absolute top-2 right-2 bg-white/80 p-1.5 rounded-full hover:bg-white transition-colors">
-                    <Heart size={16} className="text-gray-600" />
-                  </button>
+                  {/* 願望清單按鈕 */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <WishlistButton productId={product.id} size="sm" />
+                  </div>
 
                   {/* 搶購進度 */}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur p-2">
@@ -401,7 +402,14 @@ export default function FlashSalePage() {
                         ${product.salePrice}
                       </p>
                     </div>
-                    <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:shadow-md transition-shadow">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        // TODO: 加入購物車功能
+                      }}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:shadow-md transition-shadow relative z-10"
+                    >
                       搶購
                     </button>
                   </div>
@@ -409,16 +417,6 @@ export default function FlashSalePage() {
               </Link>
             </div>
           ))}
-        </div>
-        )}
-
-        {/* 查看更多 */}
-        {!loading && !error && products.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
-            查看更多商品
-            <ChevronDown size={18} />
-          </button>
         </div>
         )}
       </div>

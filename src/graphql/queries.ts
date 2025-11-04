@@ -132,7 +132,7 @@ export const GET_PRODUCTS = gql`
       price
       originalPrice
       images
-      stock
+      totalStock
       brand {
         name
       }
@@ -967,5 +967,180 @@ export const UPDATE_BRAND = gql`
 export const DELETE_BRAND = gql`
   mutation DeleteBrand($id: ID!) {
     deleteBrand(id: $id)
+  }
+`
+
+// ============================================
+// 願望清單相關查詢
+// ============================================
+
+export const GET_MY_WISHLIST = gql`
+  query GetMyWishlist {
+    myWishlist {
+      id
+      productId
+      createdAt
+      product {
+        id
+        name
+        slug
+        price
+        originalPrice
+        stock
+        images
+        isActive
+        isFeatured
+        favoriteCount
+        shoeType
+        gender
+        category {
+          id
+          name
+          slug
+        }
+        brand {
+          id
+          name
+          logo
+        }
+        variants {
+          id
+          color
+          colorHex
+          stock
+          isActive
+        }
+        sizeCharts {
+          id
+          eu
+          us
+          uk
+          cm
+          stock
+          isActive
+        }
+      }
+    }
+  }
+`
+
+export const IS_IN_WISHLIST = gql`
+  query IsInWishlist($productId: ID!) {
+    isInWishlist(productId: $productId)
+  }
+`
+
+export const ADD_TO_WISHLIST = gql`
+  mutation AddToWishlist($productId: ID!) {
+    addToWishlist(productId: $productId) {
+      id
+      productId
+      createdAt
+      product {
+        id
+        name
+        slug
+        price
+        originalPrice
+        images
+        favoriteCount
+      }
+    }
+  }
+`
+
+export const REMOVE_FROM_WISHLIST = gql`
+  mutation RemoveFromWishlist($id: ID!) {
+    removeFromWishlist(id: $id)
+  }
+`
+
+export const REMOVE_FROM_WISHLIST_BY_PRODUCT = gql`
+  mutation RemoveFromWishlistByProduct($productId: ID!) {
+    removeFromWishlistByProduct(productId: $productId)
+  }
+`
+
+export const CLEAR_WISHLIST = gql`
+  mutation ClearWishlist {
+    clearWishlist
+  }
+`
+
+export const TOGGLE_WISHLIST = gql`
+  mutation ToggleWishlist($productId: ID!) {
+    toggleWishlist(productId: $productId) {
+      isInWishlist
+      message
+    }
+  }
+`
+
+// ============================================
+// 尺碼管理相關查詢
+// ============================================
+
+export const GET_PRODUCT_SIZE_CHARTS = gql`
+  query GetProductSizeCharts($productId: ID!, $variantId: ID) {
+    productSizeChart(productId: $productId, variantId: $variantId) {
+      id
+      productId
+      variantId
+      eu
+      us
+      uk
+      cm
+      footLength
+      footWidth
+      stock
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const CREATE_SIZE_CHART = gql`
+  mutation CreateSizeChart($input: CreateSizeChartInput!) {
+    createSizeChart(input: $input) {
+      id
+      productId
+      variantId
+      eu
+      us
+      uk
+      cm
+      footLength
+      footWidth
+      stock
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const UPDATE_SIZE_CHART = gql`
+  mutation UpdateSizeChart($id: ID!, $input: UpdateSizeChartInput!) {
+    updateSizeChart(id: $id, input: $input) {
+      id
+      productId
+      variantId
+      eu
+      us
+      uk
+      cm
+      footLength
+      footWidth
+      stock
+      isActive
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_SIZE_CHART = gql`
+  mutation DeleteSizeChart($id: ID!) {
+    deleteSizeChart(id: $id)
   }
 `

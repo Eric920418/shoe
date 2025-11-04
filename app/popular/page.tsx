@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award, Trophy } from 'lucide-react'
+import WishlistButton from '@/components/product/WishlistButton'
 
 export default function PopularPage() {
   const [activeTab, setActiveTab] = useState('trending')
@@ -129,13 +130,22 @@ export default function PopularPage() {
                     className="object-cover group-hover:scale-105 transition-transform"
                   />
 
+                  {/* 願望清單按鈕 - 右上角 */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <WishlistButton productId={product.id.toString()} size="sm" />
+                  </div>
+
                   {/* 快速操作 */}
                   <div className="hidden md:block absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex justify-center gap-2">
-                      <button className="bg-white/90 p-2 rounded-full hover:bg-white">
-                        <Heart size={16} className="text-gray-700" />
-                      </button>
-                      <button className="bg-orange-500 text-white px-3 py-2 rounded-full hover:bg-orange-600 flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          // TODO: 加入購物車功能
+                        }}
+                        className="bg-orange-500 text-white px-3 py-2 rounded-full hover:bg-orange-600 flex items-center gap-1 relative z-10"
+                      >
                         <ShoppingCart size={16} />
                         <span className="text-xs">加入</span>
                       </button>

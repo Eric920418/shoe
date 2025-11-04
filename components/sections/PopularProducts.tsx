@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
+import WishlistButton from '@/components/product/WishlistButton'
+import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
 
 // GraphQL 查詢：獲取熱門產品設定和產品
 const GET_POPULAR_PRODUCTS = gql`
@@ -41,6 +43,7 @@ const GET_POPULAR_PRODUCTS = gql`
 
 const PopularProducts = () => {
   const [activeTab, setActiveTab] = useState('trending')
+  const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
 
   const tabs = [
     { id: 'trending', label: '熱銷榜', icon: TrendingUp, color: 'text-red-500' },
@@ -161,12 +164,17 @@ const PopularProducts = () => {
     return { trending, rated, viewed, discount }
   }, [data, popularData])
 
-  const currentProducts = products[activeTab] || products.trending
-
   // 使用後台配置或預設值
   const config = popularData?.popularProductsConfig
   const title = config?.title || '人氣精選'
   const subtitle = config?.subtitle || '大家都在買'
+
+  const currentProducts = products[activeTab] || products.trending
+  const maxProducts = config?.maxProducts || 8
+  const displayedProducts = currentProducts.slice(0, maxProducts)
+
+  // 判斷是否有更多產品可以顯示
+  const hasMoreProducts = currentProducts.length > maxProducts
 
   // 如果後台配置停用了該組件，不顯示
   if (config && !config.isActive) {
@@ -223,7 +231,7 @@ const PopularProducts = () => {
 
       {/* 商品網格 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
-        {currentProducts.slice(0, config?.maxProducts || 8).map((product) => (
+        {displayedProducts.map((product) => (
           <div
             key={product.id}
             className="group border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 bg-white"
@@ -246,18 +254,24 @@ const PopularProducts = () => {
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
 
+                {/* 願望清單按鈕 - 右上角固定位置 */}
+                <div className="absolute top-2 right-2 z-20">
+                  <WishlistButton productId={product.id} size="sm" />
+                </div>
+
                 {/* 快速操作按鈕 - 手機版隱藏 */}
                 <div className="hidden md:block absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex justify-center gap-2">
-                    <button className="bg-white/90 backdrop-blur p-2 rounded-full hover:bg-white transition-colors">
-                      <Heart size={18} className="text-gray-700" />
-                    </button>
-                    <button className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-colors flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setModalProduct({ id: product.id, name: product.name })
+                      }}
+                      className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-colors flex items-center gap-1"
+                    >
                       <ShoppingCart size={18} />
                       <span className="text-sm font-medium">加入購物車</span>
-                    </button>
-                    <button className="bg-white/90 backdrop-blur p-2 rounded-full hover:bg-white transition-colors">
-                      <Eye size={18} className="text-gray-700" />
                     </button>
                   </div>
                 </div>
@@ -301,15 +315,26 @@ const PopularProducts = () => {
         ))}
       </div>
 
-      {/* 查看更多 */}
-      <div className="text-center mt-6">
-        <Link
-          href="/popular"
-          className="inline-block bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300 hover:scale-105"
-        >
-          查看完整榜單
-        </Link>
-      </div>
+      {/* 查看更多 - 只在有更多產品時顯示 */}
+      {hasMoreProducts && (
+        <div className="text-center mt-6">
+          <Link
+            href="/popular"
+            className="inline-block bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300 hover:scale-105"
+          >
+            查看完整榜單
+          </Link>
+        </div>
+      )}
+
+      {/* 快速加入購物車 Modal */}
+      {modalProduct && (
+        <QuickAddToCartModal
+          productId={modalProduct.id}
+          productName={modalProduct.name}
+          onClose={() => setModalProduct(null)}
+        />
+      )}
     </div>
   )
 }

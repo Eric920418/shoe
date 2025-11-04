@@ -8,9 +8,20 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery } from '@apollo/client'
-import { UPDATE_PRODUCT, GET_PRODUCT_BY_ID, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS } from '@/graphql/queries'
+import {
+  UPDATE_PRODUCT,
+  GET_PRODUCT_BY_ID,
+  GET_BRANDS,
+  GET_CATEGORIES,
+  GET_PRODUCTS,
+  GET_PRODUCT_SIZE_CHARTS,
+  CREATE_SIZE_CHART,
+  UPDATE_SIZE_CHART,
+  DELETE_SIZE_CHART,
+} from '@/graphql/queries'
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
+import SizeManagement from '@/components/admin/SizeManagement'
 
 interface ProductFormData {
   name: string
@@ -50,6 +61,7 @@ export default function EditProductPage() {
   const params = useParams()
   const productId = params.id as string
 
+  const [activeTab, setActiveTab] = useState<'info' | 'sizes'>('info')
   const [formData, setFormData] = useState<ProductFormData | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -139,8 +151,8 @@ export default function EditProductPage() {
   }
 
   // 驗證表單
-  const validateForm = (): boolean => {
-    if (!formData) return false
+  const validateForm = (): { isValid: boolean; errors: Record<string, string> } => {
+    if (!formData) return { isValid: false, errors: { form: '表單資料不存在' } }
     const newErrors: Record<string, string> = {}
 
     if (!formData.name.trim()) newErrors.name = '請輸入產品名稱'
@@ -153,15 +165,24 @@ export default function EditProductPage() {
       newErrors.stock = '請輸入有效的庫存'
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
   }
 
   // 提交表單
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) {
-      toast.error('請檢查表單錯誤')
+    const validation = validateForm()
+
+    if (!validation.isValid) {
+      const errorFields = Object.keys(validation.errors).join('、')
+      const errorMessages = Object.values(validation.errors).join('；')
+
+      toast.error(`表單驗證失敗：${errorMessages}`)
+
+      // 在 console 顯示詳細錯誤
+      console.error('表單驗證錯誤:', validation.errors)
+      console.error('表單資料:', formData)
       return
     }
 
@@ -170,6 +191,9 @@ export default function EditProductPage() {
     setIsSubmitting(true)
 
     try {
+      console.log('開始更新產品，ID:', productId)
+      console.log('更新資料:', formData)
+
       // 準備 GraphQL 輸入數據
       const input = {
         name: formData.name,
@@ -190,12 +214,30 @@ export default function EditProductPage() {
         heelHeight: formData.heelHeight ? Number(formData.heelHeight) : null,
         closure: formData.closure || null,
         sole: formData.sole || null,
+        features: formData.features, // 添加產品特性欄位
       }
+
+      console.log('GraphQL mutation input:', input)
 
       await updateProduct({ variables: { id: productId, input } })
     } catch (error: any) {
-      console.error('更新產品失敗:', error)
-      const errorMessage = error.graphQLErrors?.[0]?.message || error.message || '更新產品失敗，請重試'
+      console.error('更新產品失敗 - 完整錯誤:', error)
+      console.error('GraphQL 錯誤:', error.graphQLErrors)
+      console.error('網路錯誤:', error.networkError)
+
+      // 提取最詳細的錯誤訊息
+      let errorMessage = '更新產品失敗'
+
+      if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+        // 顯示所有 GraphQL 錯誤
+        const messages = error.graphQLErrors.map((err: any) => err.message).join('；')
+        errorMessage = `GraphQL 錯誤：${messages}`
+      } else if (error.networkError) {
+        errorMessage = `網路錯誤：${error.networkError.message}`
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
       toast.error(errorMessage)
       setIsSubmitting(false)
     }
@@ -232,25 +274,47 @@ export default function EditProductPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">編輯產品</h1>
-          <p className="text-gray-600 mt-1">修改產品資訊</p>
+          <p className="text-gray-600 mt-1">修改產品資訊和管理尺碼</p>
         </div>
-        <div className="flex gap-3">
-          <Link
-            href={`/admin/products/${productId}/sizes`}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            管理尺碼
-          </Link>
-          <Link
-            href="/admin/products"
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            返回列表
-          </Link>
-        </div>
+        <Link
+          href="/admin/products"
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          返回列表
+        </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Tab 導航 */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            type="button"
+            onClick={() => setActiveTab('info')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'info'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            基本資訊
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('sizes')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'sizes'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            尺碼管理
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab 內容 */}
+      {activeTab === 'info' ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* 圖片上傳 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片</h2>
@@ -615,6 +679,11 @@ export default function EditProductPage() {
           </button>
         </div>
       </form>
+      ) : (
+        <div className="space-y-6">
+          <SizeManagement productId={productId} />
+        </div>
+      )}
     </div>
   )
 }

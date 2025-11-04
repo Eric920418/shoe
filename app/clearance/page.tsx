@@ -7,6 +7,7 @@ import {
   Tag, Percent, AlertTriangle, TrendingDown,
   Filter, ShoppingCart, Heart, Clock, Zap
 } from 'lucide-react'
+import WishlistButton from '@/components/product/WishlistButton'
 
 export default function ClearancePage() {
   const [sortBy, setSortBy] = useState('discount')
@@ -272,10 +273,10 @@ export default function ClearancePage() {
                     </div>
                   )}
 
-                  {/* 收藏按鈕 */}
-                  <button className="absolute bottom-2 right-2 bg-white/80 p-1.5 rounded-full hover:bg-white transition-colors">
-                    <Heart size={16} className="text-gray-600" />
-                  </button>
+                  {/* 願望清單按鈕 */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <WishlistButton productId={product.id.toString()} size="sm" />
+                  </div>
                 </div>
 
                 <div className="p-3">

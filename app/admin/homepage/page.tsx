@@ -80,6 +80,71 @@ const GET_PRODUCTS = gql`
   }
 `
 
+const GET_BUNDLES = gql`
+  query GetBundles {
+    productBundles {
+      id
+      name
+      slug
+      originalPrice
+      bundlePrice
+      discount
+      discountPercent
+      isActive
+      isFeatured
+      showOnHomepage
+      sortOrder
+      startDate
+      endDate
+      items {
+        id
+        productId
+        quantity
+        product {
+          name
+          price
+        }
+      }
+    }
+  }
+`
+
+const CREATE_BUNDLE = gql`
+  mutation CreateProductBundle($input: CreateProductBundleInput!) {
+    createProductBundle(input: $input) {
+      id
+    }
+  }
+`
+
+const UPDATE_BUNDLE = gql`
+  mutation UpdateProductBundle($id: ID!, $input: UpdateProductBundleInput!) {
+    updateProductBundle(id: $id, input: $input) {
+      id
+    }
+  }
+`
+
+const DELETE_BUNDLE = gql`
+  mutation DeleteProductBundle($id: ID!) {
+    deleteProductBundle(id: $id)
+  }
+`
+
+const ADD_BUNDLE_ITEM = gql`
+  mutation AddBundleItem($input: AddBundleItemInput!) {
+    addBundleItem(input: $input) {
+      id
+    }
+  }
+`
+
+const REMOVE_BUNDLE_ITEM = gql`
+  mutation RemoveBundleItem($id: ID!) {
+    removeBundleItem(id: $id)
+  }
+`
+
 const CREATE_HERO_SLIDE = gql`
   mutation CreateHeroSlide($input: CreateHeroSlideInput!) {
     createHeroSlide(input: $input) {
@@ -140,6 +205,7 @@ export default function HomepageManagement() {
   // 查詢數據
   const { data, loading, refetch } = useQuery(GET_HOMEPAGE_DATA)
   const { data: productsData } = useQuery(GET_PRODUCTS)
+  const { data: bundlesData, refetch: refetchBundles } = useQuery(GET_BUNDLES)
 
   // Mutations
   const [createHeroSlide] = useMutation(CREATE_HERO_SLIDE)
@@ -149,6 +215,11 @@ export default function HomepageManagement() {
   const [upsertFlashSale] = useMutation(UPSERT_FLASH_SALE)
   const [upsertPopularProducts] = useMutation(UPSERT_POPULAR_PRODUCTS)
   const [upsertDailyDeal] = useMutation(UPSERT_DAILY_DEAL)
+  const [createBundle] = useMutation(CREATE_BUNDLE)
+  const [updateBundle] = useMutation(UPDATE_BUNDLE)
+  const [deleteBundle] = useMutation(DELETE_BUNDLE)
+  const [addBundleItem] = useMutation(ADD_BUNDLE_ITEM)
+  const [removeBundleItem] = useMutation(REMOVE_BUNDLE_ITEM)
 
   // 輪播圖管理
   const [editingSlide, setEditingSlide] = useState(null)
@@ -196,6 +267,18 @@ export default function HomepageManagement() {
     subtitle: '每日10點更新',
     selectedProducts: [], // 多個產品
     maxProducts: 4 // 顯示數量
+  })
+
+  // 組合套裝管理
+  const [editingBundle, setEditingBundle] = useState(null)
+  const [bundleForm, setBundleForm] = useState({
+    name: '',
+    description: '',
+    bundlePrice: 0,
+    isActive: true,
+    isFeatured: false,
+    showOnHomepage: true,
+    selectedProducts: [] // { productId, quantity }
   })
 
   // 處理輪播圖保存
@@ -359,6 +442,135 @@ export default function HomepageManagement() {
     }
   }
 
+  // 處理組合套裝保存
+  const handleSaveBundle = async () => {
+    try {
+      // 計算原價總和
+      const originalPrice = bundleForm.selectedProducts.reduce((sum, item) => {
+        const product = productsData?.products?.find(p => p.id === item.productId)
+        return sum + (product ? parseFloat(product.price) * item.quantity : 0)
+      }, 0)
+
+      // 確保 bundlePrice 是有效數字
+      const bundlePrice = parseFloat(bundleForm.bundlePrice) || 0
+
+      // 驗證數據
+      if (originalPrice <= 0) {
+        toast.error('請選擇至少一個產品')
+        return
+      }
+
+      if (bundlePrice <= 0) {
+        toast.error('套裝價格必須大於 0')
+        return
+      }
+
+      if (bundlePrice > originalPrice) {
+        toast.error('套裝價格不能高於原價')
+        return
+      }
+
+      const input = {
+        name: bundleForm.name,
+        description: bundleForm.description,
+        originalPrice: String(originalPrice.toFixed(2)),  // 轉換為字符串，保留2位小數
+        bundlePrice: String(bundlePrice.toFixed(2)),      // 轉換為字符串，保留2位小數
+        isActive: bundleForm.isActive,
+        isFeatured: bundleForm.isFeatured,
+        showOnHomepage: bundleForm.showOnHomepage
+      }
+
+      console.log('準備創建組合套裝，input:', input)
+
+      let bundleId
+
+      if (editingBundle) {
+        await updateBundle({
+          variables: {
+            id: editingBundle,
+            input
+          }
+        })
+        bundleId = editingBundle
+        toast.success('組合套裝已更新')
+      } else {
+        const result = await createBundle({
+          variables: { input }
+        })
+        bundleId = result.data.createProductBundle.id
+        toast.success('組合套裝已創建')
+      }
+
+      // 添加產品到組合
+      for (const item of bundleForm.selectedProducts) {
+        await addBundleItem({
+          variables: {
+            input: {
+              bundleId,
+              productId: item.productId,
+              quantity: item.quantity,
+              allowVariantSelection: true
+            }
+          }
+        })
+      }
+
+      setEditingBundle(null)
+      setBundleForm({
+        name: '',
+        description: '',
+        bundlePrice: 0,
+        isActive: true,
+        isFeatured: false,
+        showOnHomepage: true,
+        selectedProducts: []
+      })
+      refetchBundles()
+    } catch (error) {
+      console.error('組合套裝保存錯誤:', error)
+      toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  // 處理刪除組合套裝
+  const handleDeleteBundle = async (id) => {
+    if (!confirm('確定要刪除這個組合套裝嗎？')) return
+
+    try {
+      await deleteBundle({ variables: { id } })
+      toast.success('組合套裝已刪除')
+      refetchBundles()
+    } catch (error) {
+      toast.error('刪除失敗')
+    }
+  }
+
+  // 切換產品選擇（用於組合套裝）
+  const toggleBundleProduct = (productId) => {
+    const existing = bundleForm.selectedProducts.find(p => p.productId === productId)
+    if (existing) {
+      setBundleForm({
+        ...bundleForm,
+        selectedProducts: bundleForm.selectedProducts.filter(p => p.productId !== productId)
+      })
+    } else {
+      setBundleForm({
+        ...bundleForm,
+        selectedProducts: [...bundleForm.selectedProducts, { productId, quantity: 1 }]
+      })
+    }
+  }
+
+  // 更新產品數量
+  const updateBundleProductQuantity = (productId, quantity) => {
+    setBundleForm({
+      ...bundleForm,
+      selectedProducts: bundleForm.selectedProducts.map(p =>
+        p.productId === productId ? { ...p, quantity: parseInt(quantity) || 1 } : p
+      )
+    })
+  }
+
   // 載入現有數據
   React.useEffect(() => {
     if (data) {
@@ -449,6 +661,7 @@ export default function HomepageManagement() {
             { id: 'flash', label: '限時搶購', icon: Tag },
             { id: 'daily', label: '今日特價', icon: Package },
             { id: 'popular', label: '熱門產品', icon: Star },
+            { id: 'bundles', label: '組合套裝', icon: ShoppingBag },
           ].map((tab) => {
             const Icon = tab.icon
             return (
@@ -1038,6 +1251,250 @@ export default function HomepageManagement() {
               <Save size={18} />
               保存設定
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 組合套裝 */}
+      {activeTab === 'bundles' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <ShoppingBag className="text-indigo-600" />
+            組合套裝管理
+          </h2>
+
+          {/* 現有組合列表 */}
+          <div className="space-y-3 mb-6">
+            {bundlesData?.productBundles?.map((bundle) => (
+              <div key={bundle.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-lg">{bundle.name}</h3>
+                      {bundle.isFeatured && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
+                          精選
+                        </span>
+                      )}
+                      {!bundle.isActive && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                          已停用
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{bundle.description}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">原價：</span>
+                        <span className="line-through">${bundle.originalPrice}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">優惠價：</span>
+                        <span className="text-red-600 font-semibold">${bundle.bundlePrice}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">折扣：</span>
+                        <span className="text-green-600">{bundle.discountPercent}%</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-500">
+                      包含 {bundle.items?.length || 0} 個產品
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingBundle(bundle.id)
+                        setBundleForm({
+                          name: bundle.name,
+                          description: bundle.description,
+                          bundlePrice: bundle.bundlePrice,
+                          isActive: bundle.isActive,
+                          isFeatured: bundle.isFeatured,
+                          showOnHomepage: bundle.showOnHomepage,
+                          selectedProducts: bundle.items?.map(item => ({
+                            productId: item.productId,
+                            quantity: item.quantity
+                          })) || []
+                        })
+                      }}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBundle(bundle.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 新增/編輯表單 */}
+          <div className="border-t pt-6">
+            <h3 className="font-semibold mb-4">
+              {editingBundle ? '編輯組合套裝' : '新增組合套裝'}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  組合名稱 *
+                </label>
+                <input
+                  type="text"
+                  value={bundleForm.name}
+                  onChange={(e) => setBundleForm({ ...bundleForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  placeholder="例：春季運動套組"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  系統會自動生成 URL，無需手動輸入
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  描述
+                </label>
+                <textarea
+                  value={bundleForm.description}
+                  onChange={(e) => setBundleForm({ ...bundleForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  rows={3}
+                  placeholder="組合套裝的詳細描述..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  優惠套裝價 *
+                </label>
+                <input
+                  type="number"
+                  value={bundleForm.bundlePrice}
+                  onChange={(e) => setBundleForm({ ...bundleForm, bundlePrice: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  placeholder="0"
+                  min="0"
+                  step="0.01"
+                />
+                {bundleForm.selectedProducts.length > 0 && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    原價總和：${bundleForm.selectedProducts.reduce((sum, item) => {
+                      const product = productsData?.products?.find(p => p.id === item.productId)
+                      return sum + (product ? parseFloat(product.price) * item.quantity : 0)
+                    }, 0).toFixed(2)}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={bundleForm.isActive}
+                    onChange={(e) => setBundleForm({ ...bundleForm, isActive: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">啟用</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={bundleForm.isFeatured}
+                    onChange={(e) => setBundleForm({ ...bundleForm, isFeatured: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">精選推薦</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={bundleForm.showOnHomepage}
+                    onChange={(e) => setBundleForm({ ...bundleForm, showOnHomepage: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">首頁展示</span>
+                </label>
+              </div>
+
+              {/* 產品選擇器 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  選擇組合產品 *
+                </label>
+                <div className="border rounded-lg p-4 max-h-80 overflow-y-auto">
+                  {productsData?.products?.map((product) => {
+                    const isSelected = bundleForm.selectedProducts.find(p => p.productId === product.id)
+                    return (
+                      <div key={product.id} className="flex items-center gap-3 py-2 hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={!!isSelected}
+                          onChange={() => toggleBundleProduct(product.id)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                          <p className="text-sm text-gray-500">
+                            ${product.price} {product.category?.name && `· ${product.category.name}`}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-600">數量：</label>
+                            <input
+                              type="number"
+                              value={isSelected.quantity}
+                              onChange={(e) => updateBundleProductQuantity(product.id, e.target.value)}
+                              className="w-16 px-2 py-1 border rounded focus:ring-2 focus:ring-indigo-500"
+                              min="1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  已選擇 {bundleForm.selectedProducts.length} 個產品
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveBundle}
+                  disabled={!bundleForm.name || bundleForm.selectedProducts.length === 0}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  保存組合套裝
+                </button>
+                {editingBundle && (
+                  <button
+                    onClick={() => {
+                      setEditingBundle(null)
+                      setBundleForm({
+                        name: '',
+                        description: '',
+                        bundlePrice: 0,
+                        isActive: true,
+                        isFeatured: false,
+                        showOnHomepage: true,
+                        selectedProducts: []
+                      })
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  >
+                    取消
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

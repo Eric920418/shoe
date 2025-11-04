@@ -282,7 +282,8 @@ export const typeDefs = gql`
     price: Decimal!
     originalPrice: Decimal
     cost: Decimal
-    stock: Int!
+    stock: Int! # 已廢棄：請使用 totalStock
+    totalStock: Int! # 計算欄位：所有尺碼庫存總和
     minStock: Int!
     weight: Decimal
     categoryId: String!
@@ -697,6 +698,101 @@ export const typeDefs = gql`
   }
 
   # ==================== 首頁內容管理 ====================
+
+  # ==================== 組合套裝系統 ====================
+
+  # 組合套裝
+  type ProductBundle {
+    id: ID!
+    name: String!
+    slug: String!
+    description: String
+    originalPrice: Decimal!
+    bundlePrice: Decimal!
+    discount: Decimal
+    discountPercent: Decimal
+    image: String
+    images: JSON!
+    isActive: Boolean!
+    isFeatured: Boolean!
+    showOnHomepage: Boolean!
+    sortOrder: Int!
+    startDate: DateTime
+    endDate: DateTime
+    maxPurchaseQty: Int
+    soldCount: Int!
+    viewCount: Int!
+    items: [BundleItem!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 組合項目
+  type BundleItem {
+    id: ID!
+    bundleId: ID!
+    productId: ID!
+    variantId: ID
+    quantity: Int!
+    allowVariantSelection: Boolean!
+    sortOrder: Int!
+    product: Product!
+    variant: ProductVariant
+    bundle: ProductBundle!
+    createdAt: DateTime!
+  }
+
+  input CreateProductBundleInput {
+    name: String!
+    slug: String  # 可選，系統會自動生成
+    description: String
+    originalPrice: Decimal!
+    bundlePrice: Decimal!
+    image: String
+    images: JSON
+    isActive: Boolean
+    isFeatured: Boolean
+    showOnHomepage: Boolean
+    sortOrder: Int
+    startDate: DateTime
+    endDate: DateTime
+    maxPurchaseQty: Int
+  }
+
+  input UpdateProductBundleInput {
+    name: String
+    slug: String
+    description: String
+    originalPrice: Decimal
+    bundlePrice: Decimal
+    image: String
+    images: JSON
+    isActive: Boolean
+    isFeatured: Boolean
+    showOnHomepage: Boolean
+    sortOrder: Int
+    startDate: DateTime
+    endDate: DateTime
+    maxPurchaseQty: Int
+  }
+
+  input AddBundleItemInput {
+    bundleId: ID!
+    productId: ID!
+    variantId: ID
+    quantity: Int
+    allowVariantSelection: Boolean
+    sortOrder: Int
+  }
+
+  input UpdateBundleItemInput {
+    quantity: Int
+    variantId: ID
+    allowVariantSelection: Boolean
+    sortOrder: Int
+  }
+
+  # ==================== 首頁管理系統 ====================
 
   # 首頁輪播圖
   type HeroSlide {
@@ -1212,6 +1308,11 @@ export const typeDefs = gql`
     createdAt: DateTime!
   }
 
+  type WishlistToggleResult {
+    isInWishlist: Boolean!
+    message: String!
+  }
+
   # FAQ
   type Faq {
     id: ID!
@@ -1430,6 +1531,12 @@ export const typeDefs = gql`
     popularProductsConfig: PopularProductsConfig
     popularProducts: [Product!]!
 
+    # 組合套裝系統
+    productBundles(isActive: Boolean): [ProductBundle!]!
+    productBundle(slug: String!): ProductBundle
+    activeBundles: [ProductBundle!]!
+    homepageBundles: [ProductBundle!]!
+
     # 邀請碼
     myReferralCode: ReferralCode!
     validateReferralCode(code: String!): ReferralCodeValidation!
@@ -1451,6 +1558,7 @@ export const typeDefs = gql`
 
     # 愿望清单
     myWishlist: [WishlistItem!]!
+    isInWishlist(productId: ID!): Boolean!
 
     # FAQ
     faqs(category: String): [Faq!]!
@@ -1583,6 +1691,9 @@ export const typeDefs = gql`
     # 愿望清单
     addToWishlist(productId: ID!): WishlistItem!
     removeFromWishlist(id: ID!): Boolean!
+    removeFromWishlistByProduct(productId: ID!): Boolean!
+    clearWishlist: Boolean!
+    toggleWishlist(productId: ID!): WishlistToggleResult!
 
     # 退货
     createReturn(input: CreateReturnInput!): Return!
@@ -1607,6 +1718,14 @@ export const typeDefs = gql`
     upsertSuperDealSection(input: SuperDealSectionInput!): SuperDealSection!
     upsertPopularProductsConfig(input: PopularProductsConfigInput!): PopularProductsConfig!
     reorderHeroSlides(ids: [ID!]!): [HeroSlide!]!
+
+    # 組合套裝管理（Admin）
+    createProductBundle(input: CreateProductBundleInput!): ProductBundle!
+    updateProductBundle(id: ID!, input: UpdateProductBundleInput!): ProductBundle!
+    deleteProductBundle(id: ID!): Boolean!
+    addBundleItem(input: AddBundleItemInput!): BundleItem!
+    updateBundleItem(id: ID!, input: UpdateBundleItemInput!): BundleItem!
+    removeBundleItem(id: ID!): Boolean!
 
     # 會員等級管理（Admin）
     createMembershipTier(input: CreateMembershipTierInput!): MembershipTierConfig!
