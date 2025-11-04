@@ -1051,6 +1051,141 @@ psql -d shoe_store_production -c "SELECT COUNT(*) FROM users;"
 - [ ] 配置監控和日誌（Sentry/Datadog）
 - [ ] 壓力測試（確保支持 500+ req/s）
 
+### HTTPS 配置指南
+
+本專案已配置完整的 HTTPS 支援，包含：
+- 自定義 HTTPS 伺服器（`server.mjs`）
+- 自動 HTTP 到 HTTPS 重定向
+- SSL 證書管理
+
+#### SSL 證書檔案結構
+
+```
+ssl/
+├── private.key           # 私鑰檔案
+├── fullchain.pem        # 完整證書鏈
+├── xn--cjzl80byf571b_tw.crt  # 主域名證書
+└── *.crt                # CA 證書（已整合到 fullchain.pem）
+```
+
+#### 開發環境 HTTPS
+
+使用非特權端口進行測試（不需要 sudo）：
+
+```bash
+# 使用測試端口（HTTPS: 3443, HTTP: 8080）
+HTTPS_PORT=3443 HTTP_PORT=8080 pnpm dev:https
+
+# 訪問網站
+# HTTPS: https://localhost:3443
+# HTTP: http://localhost:8080 (自動重定向到 HTTPS)
+```
+
+#### 生產環境 HTTPS
+
+生產環境使用標準端口（443/80），有以下方案：
+
+**方案一：使用 Node.js 能力授權（推薦）**
+
+```bash
+# 給 Node.js 綁定低端口的權限（僅需執行一次）
+sudo setcap 'cap_net_bind_service=+ep' $(which node)
+
+# 啟動 HTTPS 伺服器（使用 443/80 端口）
+pnpm start:https
+```
+
+**方案二：使用 PM2 管理（推薦用於生產）**
+
+```bash
+# 安裝 PM2
+pnpm add -g pm2
+
+# 構建專案
+pnpm build
+
+# 使用 PM2 啟動
+pm2 start server.mjs --name "shoe-https"
+
+# 設定開機自動啟動
+pm2 startup
+pm2 save
+```
+
+**方案三：使用反向代理（Nginx/Caddy）**
+
+如果您已經有 Nginx 或 Caddy，可以讓它們處理 SSL，然後轉發到 Next.js：
+
+```nginx
+# Nginx 配置範例
+server {
+    listen 443 ssl http2;
+    server_name xn--cjzl80byf571b.tw;
+
+    ssl_certificate /var/www/shoe/ssl/fullchain.pem;
+    ssl_certificate_key /var/www/shoe/ssl/private.key;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+server {
+    listen 80;
+    server_name xn--cjzl80byf571b.tw;
+    return 301 https://$host$request_uri;
+}
+```
+
+#### 環境變數配置
+
+確保 `.env` 中已設定 HTTPS 相關變數：
+
+```env
+# HTTPS 服務器端口
+HTTPS_PORT=443
+HTTP_PORT=80
+
+# Next.js 公開 URL（使用 HTTPS）
+NEXT_PUBLIC_API_URL="https://xn--cjzl80byf571b.tw"
+NEXT_PUBLIC_GRAPHQL_URL="https://xn--cjzl80byf571b.tw/api/graphql"
+NEXT_PUBLIC_SITE_URL="https://xn--cjzl80byf571b.tw"
+```
+
+#### SSL 證書續期
+
+證書有效期：2025-11-03 至 2026-11-02
+
+續期步驟：
+1. 從證書提供商下載新證書
+2. 更新 `ssl/` 目錄中的檔案
+3. 重新生成 fullchain.pem：
+   ```bash
+   cat ssl/xn--cjzl80byf571b_tw.crt \
+       ssl/SectigoPublicServerAuthenticationCADVR36.crt \
+       ssl/USERTrustRSACertificationAuthority.crt \
+       > ssl/fullchain.pem
+   ```
+4. 重啟伺服器：`pm2 restart shoe-https`
+
+#### 驗證 HTTPS 配置
+
+```bash
+# 檢查證書資訊
+openssl x509 -in ssl/xn--cjzl80byf571b_tw.crt -text -noout
+
+# 測試 HTTPS 連線
+curl -I https://xn--cjzl80byf571b.tw
+
+# 測試 HTTP 重定向
+curl -I http://xn--cjzl80byf571b.tw
+```
+
 ### 建議部署平台
 
 - **全端應用**: Vercel / Netlify

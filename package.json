@@ -4,8 +4,10 @@
   "description": "鞋店电商系统 - Next.js全端架构",
   "scripts": {
     "dev": "next dev",
+    "dev:https": "node server.mjs",
     "build": "next build",
     "start": "next start",
+    "start:https": "NODE_ENV=production node server.mjs",
     "lint": "next lint",
     "restart": "./restart.sh",
     "db:generate": "prisma generate",
