@@ -15,6 +15,29 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
           locations
         )}, Path: ${path}`
       )
+
+      // ✅ 處理認證錯誤：觸發自動登出事件
+      const authErrorPatterns = [
+        '請先登入',
+        '用戶不存在',
+        '請重新登入',
+        '認證',
+        'unauthorized',
+        'unauthenticated',
+      ]
+
+      const isAuthError = authErrorPatterns.some(pattern =>
+        message.toLowerCase().includes(pattern.toLowerCase())
+      )
+
+      if (isAuthError) {
+        console.warn('🔒 檢測到認證錯誤，觸發自動登出:', message)
+
+        // 發送自定義事件，讓 AuthContext 處理登出
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth-error', { detail: { message } }))
+        }
+      }
     })
   }
 

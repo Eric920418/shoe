@@ -3,116 +3,169 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useQuery, gql } from '@apollo/client'
 import {
   Clock, Flame, Filter, Star, TrendingUp,
   ChevronDown, ShoppingCart, Heart, Zap, Timer
 } from 'lucide-react'
 
+// GraphQL 查詢
+const GET_FLASH_SALE = gql`
+  query GetActiveFlashSale {
+    activeFlashSale {
+      id
+      name
+      startTime
+      endTime
+      bgColor
+      products
+      maxProducts
+    }
+  }
+`
+
+const GET_PRODUCTS = gql`
+  query GetProducts($take: Int) {
+    products(take: $take) {
+      id
+      name
+      slug
+      price
+      originalPrice
+      images
+      stock
+      soldCount
+      averageRating
+      reviewCount
+      category {
+        id
+        name
+      }
+    }
+  }
+`
+
 export default function FlashSalePage() {
   const [sortBy, setSortBy] = useState('popular')
   const [priceRange, setPriceRange] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 30, seconds: 45 })
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
   const [showFilters, setShowFilters] = useState(false)
+
+  // 查詢限時搶購設定
+  const { data: flashSaleData } = useQuery(GET_FLASH_SALE, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const flashSaleConfig = flashSaleData?.activeFlashSale
+
+  // 解析 products JSON
+  const productsConfig = React.useMemo(() => {
+    if (!flashSaleConfig?.products) return null
+    try {
+      return typeof flashSaleConfig.products === 'string'
+        ? JSON.parse(flashSaleConfig.products)
+        : flashSaleConfig.products
+    } catch {
+      return null
+    }
+  }, [flashSaleConfig])
+
+  // 查詢產品資料
+  const { data: productsData, loading, error } = useQuery(GET_PRODUCTS, {
+    variables: {
+      take: 50, // 獲取足夠多的產品以便篩選
+    },
+  })
 
   // 倒計時邏輯
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 }
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
-        } else if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 }
-        }
-        return prev
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  // 模擬產品數據
-  const products = [
-    {
-      id: 1,
-      name: 'Nike Air Max 270 React',
-      originalPrice: 4990,
-      salePrice: 1990,
-      image: '/api/placeholder/300/300',
-      sold: 856,
-      stock: 20,
-      rating: 4.8,
-      reviews: 1256,
-      tag: '爆款',
-      discount: 60
-    },
-    {
-      id: 2,
-      name: 'Adidas Ultraboost 21',
-      originalPrice: 5990,
-      salePrice: 2490,
-      image: '/api/placeholder/300/300',
-      sold: 623,
-      stock: 15,
-      rating: 4.9,
-      reviews: 892,
-      tag: '熱銷',
-      discount: 58
-    },
-    {
-      id: 3,
-      name: 'New Balance 574',
-      originalPrice: 3290,
-      salePrice: 1290,
-      image: '/api/placeholder/300/300',
-      sold: 1203,
-      stock: 8,
-      rating: 4.7,
-      reviews: 2031,
-      tag: '即將售罄',
-      discount: 61
-    },
-    {
-      id: 4,
-      name: 'Puma RS-X³',
-      originalPrice: 3590,
-      salePrice: 1490,
-      image: '/api/placeholder/300/300',
-      sold: 432,
-      stock: 35,
-      rating: 4.6,
-      reviews: 567,
-      tag: '新品',
-      discount: 59
-    },
-    {
-      id: 5,
-      name: 'Converse Chuck 70',
-      originalPrice: 2990,
-      salePrice: 990,
-      image: '/api/placeholder/300/300',
-      sold: 2156,
-      stock: 5,
-      rating: 4.8,
-      reviews: 3421,
-      tag: '僅剩5雙',
-      discount: 67
-    },
-    {
-      id: 6,
-      name: 'Vans Old Skool',
-      originalPrice: 2490,
-      salePrice: 890,
-      image: '/api/placeholder/300/300',
-      sold: 1823,
-      stock: 12,
-      rating: 4.7,
-      reviews: 1923,
-      tag: '超值',
-      discount: 64
+    if (!flashSaleConfig?.endTime) {
+      setTimeLeft({ hours: 2, minutes: 30, seconds: 45 })
+      return
     }
-  ]
+
+    const updateTimeLeft = () => {
+      const now = new Date().getTime()
+      const endTime = new Date(flashSaleConfig.endTime).getTime()
+      const difference = endTime - now
+
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60))
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000)
+        setTimeLeft({ hours, minutes, seconds })
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+      }
+    }
+
+    updateTimeLeft()
+    const timer = setInterval(updateTimeLeft, 1000)
+    return () => clearInterval(timer)
+  }, [flashSaleConfig])
+
+  // 處理產品資料
+  const products = React.useMemo(() => {
+    if (!productsData?.products) return []
+
+    let productsToShow = []
+    const productIds = productsConfig?.productIds || []
+    const globalDiscount = productsConfig?.discountPercentage
+
+    // 如果後台指定了產品ID，只顯示這些產品
+    if (productIds && productIds.length > 0) {
+      productsToShow = productsData.products.filter((p: any) => productIds.includes(p.id))
+    } else {
+      // 如果沒有指定產品，顯示所有有折扣的產品
+      productsToShow = productsData.products
+        .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
+    }
+
+    return productsToShow.map((product: any) => {
+      const price = parseFloat(product.price)
+      const originalPrice = parseFloat(product.originalPrice) || price
+
+      // 如果有全局折扣設定，使用它；否則計算實際折扣
+      let discount = globalDiscount
+      if (!discount) {
+        discount = originalPrice > price
+          ? Math.round(((originalPrice - price) / originalPrice) * 100)
+          : 0
+      }
+
+      const images = Array.isArray(product.images) ? product.images : []
+      const image = images.length > 0 ? images[0] : '/api/placeholder/300/300'
+
+      // 根據庫存決定標籤
+      let tag = ''
+      if (product.stock <= 5) {
+        tag = `僅剩${product.stock}雙`
+      } else if (product.stock <= 10) {
+        tag = '即將售罄'
+      } else if (product.soldCount > 500) {
+        tag = '爆款'
+      } else if (product.soldCount > 200) {
+        tag = '熱銷'
+      }
+
+      return {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        originalPrice,
+        salePrice: price,
+        image,
+        sold: product.soldCount || 0,
+        stock: product.stock || 0,
+        rating: product.averageRating || 4.5,
+        reviews: product.reviewCount || 0,
+        tag,
+        discount,
+        category: product.category?.name || '運動鞋'
+      }
+    })
+  }, [productsData, productsConfig])
 
   const categories = [
     { value: 'all', label: '全部商品' },
@@ -139,8 +192,12 @@ export default function FlashSalePage() {
             <div className="flex items-center gap-3">
               <Flame className="text-yellow-300 animate-pulse" size={28} />
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold">限時搶購</h1>
-                <p className="text-xs sm:text-sm opacity-90">全場最低3折起，售完為止</p>
+                <h1 className="text-xl sm:text-2xl font-bold">
+                  {flashSaleConfig?.name || '限時搶購'}
+                </h1>
+                <p className="text-xs sm:text-sm opacity-90">
+                  {productsConfig?.description || '全場最低3折起，售完為止'}
+                </p>
               </div>
             </div>
 
@@ -239,14 +296,41 @@ export default function FlashSalePage() {
           </div>
         </div>
 
+        {/* Loading 狀態 */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">載入中...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error 狀態 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600">載入失敗：{error.message}</p>
+          </div>
+        )}
+
+        {/* 沒有產品 */}
+        {!loading && !error && products.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+            <Flame className="text-gray-400 mx-auto mb-4" size={48} />
+            <p className="text-gray-600 text-lg">目前沒有限時搶購商品</p>
+            <p className="text-gray-500 text-sm mt-2">請稍後再回來查看</p>
+          </div>
+        )}
+
         {/* 產品網格 */}
+        {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
           {products.map((product) => (
             <div
               key={product.id}
               className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
             >
-              <Link href={`/products/${product.id}`}>
+              <Link href={`/products/${product.slug}`}>
                 <div className="relative aspect-square bg-gray-100">
                   <Image
                     src={product.image}
@@ -326,14 +410,17 @@ export default function FlashSalePage() {
             </div>
           ))}
         </div>
+        )}
 
         {/* 查看更多 */}
+        {!loading && !error && products.length > 0 && (
         <div className="flex justify-center mt-8">
           <button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
             查看更多商品
             <ChevronDown size={18} />
           </button>
         </div>
+        )}
       </div>
     </div>
   )

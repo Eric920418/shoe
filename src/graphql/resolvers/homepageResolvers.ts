@@ -73,7 +73,7 @@ export const homepageResolvers = {
       })
     },
 
-    // 獲取限時搶購設定
+    // 獲取限時搶購設定（僅返回進行中的活動）
     activeFlashSale: async () => {
       const now = new Date()
       return prisma.flashSaleConfig.findFirst({
@@ -85,20 +85,28 @@ export const homepageResolvers = {
       })
     },
 
+    // 獲取最新的限時搶購設定（不檢查時間，用於後台管理）
+    latestFlashSale: async () => {
+      return prisma.flashSaleConfig.findFirst({
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+    },
+
     // 獲取今日特價
     todaysDeal: async () => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-
+      // 查詢最新的啟用記錄，不嚴格檢查日期
+      // 這樣即使忘記更新日期，仍然會顯示最新設定的產品
       return prisma.dailyDealConfig.findFirst({
         where: {
           isActive: true,
-          date: {
-            gte: today,
-            lt: tomorrow,
-          },
+        },
+        orderBy: {
+          date: 'desc', // 按日期降序，取最新的
         },
       })
     },
@@ -333,9 +341,20 @@ export const homepageResolvers = {
         data: { isActive: false },
       })
 
+      // 確保 endTime 是完整的 ISO-8601 格式
+      const endTime = input.endTime.includes(':') && !input.endTime.includes('T')
+        ? new Date(input.endTime).toISOString()
+        : input.endTime.length === 16 // "YYYY-MM-DDTHH:MM" 格式
+        ? new Date(input.endTime + ':00').toISOString()
+        : new Date(input.endTime).toISOString()
+
       // 創建新的倒計時
       return prisma.saleCountdown.create({
-        data: { ...input, isActive: true },
+        data: {
+          ...input,
+          endTime,
+          isActive: true
+        },
       })
     },
 

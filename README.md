@@ -2,9 +2,149 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.1.0 | **狀態**: ✅ 生產就緒 | **更新**: 2025-11-01
+**版本**: 2.1.5 | **狀態**: ✅ 生產就緒 | **更新**: 2025-11-02
 
-## 🚀 最新更新 - 首頁完全客製化系統 (2025-11-01 晚間)
+## 🚀 最新更新
+
+### 2025-11-02 深夜 - GraphQL Schema 與前端查詢一致性修復
+- **修復問題**：前端組件查詢了 GraphQL Schema 中不存在的欄位，導致多個 GraphQL 錯誤
+- **錯誤詳情**：
+  - `GuaranteeItem` 查詢了不存在的 `color`、`bgColor` 欄位
+  - `Category` 查詢了不存在的 `description` 欄位
+  - `CategoryDisplay` 查詢了 `highlightTag`、`highlightColor`（Schema 只有 `isHighlighted`）
+  - `Product` 查詢了 `totalReviews`（應該是 `reviewCount`）
+- **完整修復**：
+  - ✅ **GuaranteeBar 組件** (`components/sections/GuaranteeBar.tsx`):
+    - 移除查詢中的 `color` 和 `bgColor` 欄位
+    - 新增前端顏色配置陣列，根據項目索引自動分配顏色
+    - 保持向後兼容性（預設數據仍包含顏色配置）
+  - ✅ **CategoryGrid 組件** (`components/sections/CategoryGrid.tsx`):
+    - 移除 `category.description`、`highlightTag`、`highlightColor` 查詢
+    - 改用 `isHighlighted` 欄位判斷是否顯示標籤
+    - 新增標籤文字和顏色配置陣列，當 `isHighlighted = true` 時自動分配
+    - 使用 `displayName` 欄位（允許自訂顯示名稱）
+  - ✅ **PopularProducts 組件** (`components/sections/PopularProducts.tsx`):
+    - 將 `totalReviews` 修正為 `reviewCount`（符合 GraphQL Schema 定義）
+- **技術亮點**：
+  - 前端自動分配樣式配置，減少後台管理複雜度
+  - 保持數據驅動設計，同時增強前端彈性
+  - 所有修改向後兼容，不影響現有後台數據
+- **影響範圍**：首頁所有動態區塊（服務保證、分類網格、熱門產品）
+- **狀態**：✅ GraphQL 查詢與 Schema 完全一致，無錯誤
+
+### 2025-11-02 深夜 - 導航欄購物車數字動態化修復
+- **修復問題**：導航欄購物車圖標顯示數字 "5"，但購物車頁面是空的
+- **根本原因**：購物車數字是**硬編碼**的，沒有讀取真實數據（`MarketplaceHeader.tsx:122`）
+- **完整修復**：
+  - ✅ 引入 `useGuestCart` 和 `useQuery(GET_CART)` hooks
+  - ✅ 動態計算購物車總數量：
+    - **會員模式**：從 GraphQL 查詢結果計算 `cart.items.reduce(sum + item.quantity)`
+    - **訪客模式**：從 GuestCartContext 計算 `guestCart.items.reduce(sum + item.quantity)`
+  - ✅ 數字顯示優化：
+    - 購物車為空時不顯示徽章
+    - 數量 > 99 時顯示 "99+"
+  - ✅ 實時同步：加入購物車後立即更新數字（使用 `cache-and-network` 策略）
+- **影響範圍**：所有頁面的導航欄
+- **狀態**：✅ 購物車數字與實際內容完全同步
+
+### 2025-11-02 晚間 - 今日必搶後台管理功能完成
+- **新增功能**：首頁管理後台新增「今日必搶」設定 tab
+- **後台管理介面**：
+  - ✅ 自訂區塊標題（預設「今日特價」）
+  - ✅ 自訂副標題（預設「每日10點更新」）
+  - ✅ 單選一個精選產品（使用 radio button）
+  - ✅ 如果不選擇，自動顯示有折扣的產品
+- **前端組件更新**：`DailyDeals.tsx` 完全串接後台配置
+  - 動態讀取後台設定的標題和副標題
+  - 只顯示一個精選產品（大卡片樣式）
+  - 如果後台未選擇產品，自動按銷量+評分排序顯示最佳折扣商品
+  - 強調視覺效果：大折扣標籤、突出價格、立即搶購按鈕
+- **GraphQL API**：
+  - Query: `todaysDeal` - 獲取當日特價配置
+  - Mutation: `upsertDailyDeal` - 更新/創建今日特價設定
+- **資料存儲**：使用 `DailyDealConfig` 表，按日期（`date`）唯一索引
+- **狀態**：✅ 今日必搶前後台完全同步
+
+### 2025-11-02 深夜 - 購物車外鍵約束錯誤處理
+- **修復問題**：購物車載入失敗，出現 "Unexpected error"（深層調查後發現是資料庫外鍵錯誤）
+- **真正原因**：
+  - Token 中的 userId 對應的用戶在資料庫中已被刪除
+  - Cart resolver 嘗試為不存在的用戶創建購物車
+  - 觸發資料庫外鍵約束：`Foreign key constraint violated: carts_userId_fkey`
+- **完整修復**：
+  - ✅ **Cart Resolver 防禦性檢查** (`cartResolvers.ts`)：
+    - 創建購物車前先檢查用戶是否存在
+    - 捕獲 Prisma 外鍵錯誤 (P2003)
+    - 返回友好的「用戶不存在，請重新登入」錯誤
+  - ✅ **Apollo Client 錯誤模式增強** (`apollo-client.ts`)：
+    - 新增「用戶不存在」、「請重新登入」錯誤模式
+    - 使用陣列匹配多種認證錯誤模式
+  - ✅ **購物車頁面錯誤處理** (`cart/page.tsx`)：
+    - 擴展錯誤匹配模式陣列
+    - 識別用戶不存在錯誤並自動登出
+- **技術亮點**：
+  - 防禦性編程：在創建資料前驗證關聯資料存在性
+  - 錯誤轉譯：將底層資料庫錯誤轉換為用戶友好訊息
+  - 多層防護：Resolver → Apollo Client → 頁面組件
+- **狀態**：✅ 即使用戶被刪除，購物車也能優雅降級
+
+### 2025-11-02 晚間（前）- 購物車認證錯誤處理完整修復
+- **修復問題**：購物車頁面載入失敗，出現 "Unexpected error" 錯誤
+- **深層原因分析**：
+  1. **Schema 不一致**（第一層問題）：
+     - Prisma Schema 有 `sizeEu` 欄位，但 GraphQL Schema 未定義
+     - 前端代碼使用 `addedPrice`，但 GraphQL 只有 `price`
+  2. **認證錯誤處理不足**（真正原因）：
+     - LocalStorage 保存了過期的 JWT token
+     - 前端 `isAuthenticated = true`，但後端拒絕過期 token
+     - Apollo Client 沒有處理認證失敗，只顯示 "Unexpected error"
+- **完整修復方案**：
+  - ✅ **Schema 修復**：
+    - 在 `CartItem` GraphQL 類型添加 `sizeEu: String` 和 `addedPrice: Decimal!`
+    - 在 `cartResolvers.ts` 添加 `addedPrice` 解析器
+    - 更新 `GET_CART` 查詢
+  - ✅ **認證錯誤處理**（核心修復）：
+    - **Apollo Client** (`apollo-client.ts`)：檢測到「請先登入」錯誤時，發送 `auth-error` 自定義事件
+    - **AuthContext** (`AuthContext.tsx`)：監聽 `auth-error` 事件，自動執行 `logout()`
+    - **購物車頁面** (`cart/page.tsx`)：`useQuery` 的 `onError` 回調也會觸發 `logout()`
+  - ✅ **優雅降級**：
+    - Token 過期時，自動登出用戶
+    - 購物車頁面切換到訪客模式（使用 localStorage）
+    - 無需重新載入頁面，用戶體驗更流暢
+- **技術亮點**：
+  - 使用 **CustomEvent** 實現跨層級通訊（Apollo Client → AuthContext）
+  - 雙重保護機制（全局 errorLink + 頁面級 onError）
+  - 訪客模式與會員模式無縫切換
+- **影響範圍**：所有需要認證的 GraphQL 查詢
+- **狀態**：✅ 購物車在任何認證狀態下都能正常運作
+
+### 2025-11-02 下午 - 限時搶購前後台完整串接
+- **核心修復**：修復限時搶購前後台數據不同步問題
+- **新增 GraphQL 查詢**：`latestFlashSale` - 專門給後台管理使用，不檢查時間限制
+- **前台頁面更新**：`/flash-sale` 頁面完全串接後台配置
+  - 動態讀取後台設定的產品列表
+  - 使用後台配置的折扣比例
+  - 顯示後台設定的倒計時
+  - 自動應用活動標題和描述
+- **時間檢查邏輯**：
+  - `activeFlashSale` - 前台使用，只返回進行中的活動（檢查開始/結束時間）
+  - `latestFlashSale` - 後台使用，返回最新配置（不檢查時間）
+- **產品篩選邏輯優化**：
+  - 優先顯示後台選擇的產品
+  - 如果指定產品不足，自動補充其他有折扣的產品
+  - 支援根據後台設定的 `maxProducts` 控制顯示數量
+- **狀態**：✅ 限時搶購前後台完全同步
+
+### 2025-11-02 上午 - 促銷倒計時功能修復
+- **修復問題**：後台無法保存促銷倒計時設定
+- **新增欄位**：`SaleCountdown` 模型新增 `description` 和 `highlightText` 欄位
+- **GraphQL 更新**：同步更新 `SaleCountdown` 和 `SaleCountdownInput` 類型定義
+- **DateTime 格式修復**：`upsertSaleCountdown` resolver 現在會自動將 `datetime-local` input 格式（`YYYY-MM-DDTHH:MM`）轉換為完整 ISO-8601 格式
+- **首頁顯示配置**：添加 `SALE_COUNTDOWN` 組件到 `homepage_configs` 表，確保前台可見
+- **前後端連接**：確保表單欄位與資料庫 schema 完全對齊
+- **狀態**：✅ 促銷倒計時完全可用（前後台都已連接）
+
+### 2025-11-01 晚間 - 首頁完全客製化系統
 
 ### 🎯 全新首頁管理系統
 - **完全客製化控制**：後台可控制首頁每個組件的顯示、排序、內容
@@ -16,6 +156,7 @@
   - 促銷倒計時：自定義標題、時間、顏色、連結
   - 服務保證欄：圖標、文字、連結完全自定義
   - 限時搶購：時間設定、產品選擇、背景設定
+  - 今日必搶：標題設定、單個精選產品選擇
   - 熱門產品：多種算法（手動/銷量/評分/趨勢）
   - 浮動按鈕：位置、顏色、動畫效果設定
   - 更多組件持續開發中...

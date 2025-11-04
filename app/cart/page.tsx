@@ -29,7 +29,7 @@ const parseImages = (images: string[] | string): string[] => {
 
 export default function CartPage() {
   const router = useRouter()
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuth()
   const guestCart = useGuestCart()
 
   // ✅ 不再強制跳轉登入，允許訪客查看購物車
@@ -44,6 +44,20 @@ export default function CartPage() {
   const { data, loading, error, refetch } = useQuery(GET_CART, {
     skip: !isAuthenticated,
     fetchPolicy: 'network-only',
+    onError: (error) => {
+      console.error('❌ 購物車載入失敗:', error)
+
+      // ✅ 處理認證錯誤（包含用戶不存在的情況）
+      const authErrorPatterns = ['請先登入', '用戶不存在', '請重新登入', '認證']
+      const isAuthError = authErrorPatterns.some(pattern =>
+        error.message.includes(pattern)
+      )
+
+      if (isAuthError) {
+        console.warn('🔒 檢測到認證錯誤，自動登出:', error.message)
+        logout()
+      }
+    },
   })
 
   // 判斷是否為訪客模式

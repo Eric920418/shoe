@@ -75,6 +75,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [])
 
+  // ✅ 監聽認證錯誤事件（從 apollo-client 觸發）
+  useEffect(() => {
+    const handleAuthError = (event: CustomEvent) => {
+      console.warn('🔒 收到認證錯誤事件，執行登出:', event.detail)
+      logout()
+    }
+
+    window.addEventListener('auth-error', handleAuthError as EventListener)
+    return () => {
+      window.removeEventListener('auth-error', handleAuthError as EventListener)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // 登入
   const login = (newToken: string, newUser: User) => {
     setToken(newToken)

@@ -4,84 +4,183 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Flame, Gift, Star } from 'lucide-react'
-import { useQuery } from '@apollo/client'
+import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
+
+// GraphQL 查詢：獲取輪播圖設定
+const GET_HERO_SLIDES = gql`
+  query GetHeroSlides {
+    activeHeroSlides {
+      id
+      title
+      subtitle
+      description
+      link
+      cta
+      bgColor
+      sortOrder
+    }
+  }
+`
+
+// GraphQL 查詢：獲取今日必搶設定
+const GET_TODAYS_DEAL = gql`
+  query GetTodaysDeal {
+    todaysDeal {
+      id
+      title
+      subtitle
+      products
+    }
+  }
+`
 
 const MarketplaceHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0)
 
-  // 查詢產品資料（用於「今日必搶」）
-  const { data } = useQuery(GET_HOMEPAGE_PRODUCTS, {
-    variables: {
-      take: 10,
-    }
+  // 查詢輪播圖資料
+  const { data: slidesData, loading: slidesLoading, error: slidesError } = useQuery(GET_HERO_SLIDES, {
+    fetchPolicy: 'cache-and-network',
   })
 
-  // 獲取今日必搶產品（選擇折扣最大的產品）
+  // 如果查詢出錯，打印錯誤信息
+  if (slidesError) {
+    console.error('輪播圖查詢錯誤:', slidesError)
+  }
+
+  // 查詢今日必搶設定
+  const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const dealConfig = dealConfigData?.todaysDeal
+
+  // 查詢產品資料
+  const { data } = useQuery(GET_HOMEPAGE_PRODUCTS, {
+    variables: {
+      take: 20,
+    },
+    skip: !dealConfig && !dealConfigData,
+  })
+
+  // 解析 products JSON
+  const productsConfig = React.useMemo(() => {
+    if (!dealConfig?.products) return null
+    try {
+      return typeof dealConfig.products === 'string'
+        ? JSON.parse(dealConfig.products)
+        : dealConfig.products
+    } catch (e) {
+      console.error('MarketplaceHero: productsConfig 解析失敗', e)
+      return null
+    }
+  }, [dealConfig])
+
+  // 獲取今日必搶產品（從後台配置讀取）
   const todayDeal = React.useMemo(() => {
     if (!data?.products) return null
 
-    const productsWithDiscount = data.products
-      .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
-      .map((p: any) => {
-        const price = parseFloat(p.price)
-        const originalPrice = parseFloat(p.originalPrice)
-        const discount = ((originalPrice - price) / originalPrice) * 100
-        const soldCount = p.soldCount || 0
-        const stock = p.stock || 100
+    const productIds = productsConfig?.productIds || []
+    let selectedProduct = null
 
-        return {
-          slug: p.slug,
-          name: p.name,
-          price,
-          originalPrice,
-          discount,
-          soldPercentage: stock > 0 ? Math.min((soldCount / (soldCount + stock)) * 100, 100) : 0
-        }
-      })
-      .sort((a: any, b: any) => b.discount - a.discount)
+    if (productIds && productIds.length > 0) {
+      // 如果後台指定了產品ID，顯示第一個
+      selectedProduct = data.products.find((p: any) => p.id === productIds[0])
+    } else {
+      // 如果沒有指定產品，自動選擇折扣最大的產品
+      const productsWithDiscount = data.products
+        .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
+        .map((p: any) => {
+          const price = parseFloat(p.price)
+          const originalPrice = parseFloat(p.originalPrice)
+          const discount = ((originalPrice - price) / originalPrice) * 100
+          return { ...p, price, originalPrice, discount }
+        })
+        .sort((a: any, b: any) => b.discount - a.discount)
 
-    return productsWithDiscount[0] || null
-  }, [data])
+      selectedProduct = productsWithDiscount[0]
+    }
 
-  const banners = [
+    if (!selectedProduct) return null
+
+    const price = parseFloat(selectedProduct.price)
+    const originalPrice = parseFloat(selectedProduct.originalPrice) || price
+    const discount = ((originalPrice - price) / originalPrice) * 100
+    const soldCount = selectedProduct.soldCount || 0
+    const stock = selectedProduct.stock || 100
+
+    return {
+      slug: selectedProduct.slug,
+      name: selectedProduct.name,
+      price,
+      originalPrice,
+      discount,
+      soldPercentage: stock > 0 ? Math.min((soldCount / (soldCount + stock)) * 100, 100) : 0
+    }
+  }, [data, productsConfig])
+
+  // 預設輪播圖（當後台沒有設定時使用）
+  const defaultBanners = [
     {
-      id: 1,
+      id: '1',
       title: '雙11限時特賣',
       subtitle: '全場5折起',
       description: '買2送1，滿999免運',
       bgColor: 'from-red-500 to-orange-500',
-      link: '/flash-sale',
-      tag: '限時搶購'
+      linkUrl: '/flash-sale',
+      tag: '限時搶購',
+      buttonText: '立即搶購'
     },
     {
-      id: 2,
+      id: '2',
       title: '新品上市',
       subtitle: '2024秋冬新款',
       description: '首購享85折優惠',
       bgColor: 'from-purple-500 to-pink-500',
-      link: '/new-arrivals',
-      tag: 'NEW'
+      linkUrl: '/new-arrivals',
+      tag: 'NEW',
+      buttonText: '立即搶購'
     },
     {
-      id: 3,
+      id: '3',
       title: '品牌特賣',
       subtitle: 'Nike/Adidas',
       description: '正品保證，假一賠十',
       bgColor: 'from-blue-500 to-cyan-500',
-      link: '/brands',
-      tag: '品牌日'
+      linkUrl: '/brands',
+      tag: '品牌日',
+      buttonText: '立即搶購'
     },
     {
-      id: 4,
+      id: '4',
       title: '清倉大特價',
       subtitle: '換季出清',
       description: '最低3折起',
       bgColor: 'from-green-500 to-teal-500',
-      link: '/clearance',
-      tag: '清倉價'
+      linkUrl: '/clearance',
+      tag: '清倉價',
+      buttonText: '立即搶購'
     }
   ]
+
+  // 使用後台數據或預設數據
+  const banners = React.useMemo(() => {
+    if (slidesData?.activeHeroSlides && slidesData.activeHeroSlides.length > 0) {
+      return [...slidesData.activeHeroSlides]
+        .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+        .map((slide: any) => ({
+          id: slide.id,
+          title: slide.title,
+          subtitle: slide.subtitle,
+          description: slide.description,
+          bgColor: slide.bgColor || 'from-red-500 to-orange-500',
+          linkUrl: slide.link,
+          tag: slide.subtitle || '限時搶購', // 使用 subtitle 作為 tag
+          buttonText: slide.cta || '立即搶購'
+        }))
+    }
+    return defaultBanners
+  }, [slidesData])
 
   const sidePromos = [
     {
@@ -174,10 +273,10 @@ const MarketplaceHero = () => {
                     {banner.description}
                   </p>
                   <Link
-                    href={banner.link}
+                    href={banner.linkUrl}
                     className="inline-block bg-white text-gray-900 px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full text-sm sm:text-base font-bold hover:scale-105 transition-transform shadow-lg"
                   >
-                    立即搶購
+                    {banner.buttonText || '立即搶購'}
                   </Link>
                 </div>
 

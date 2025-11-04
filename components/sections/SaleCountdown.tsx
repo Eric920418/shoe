@@ -2,30 +2,78 @@
 
 import React, { useState, useEffect } from 'react'
 import { Clock, Flame, Gift, TrendingUp } from 'lucide-react'
+import { useQuery, gql } from '@apollo/client'
+
+// GraphQL 查詢：獲取促銷倒計時
+const GET_SALE_COUNTDOWN = gql`
+  query GetSaleCountdown {
+    activeSaleCountdown {
+      id
+      title
+      description
+      endTime
+      highlightText
+      link
+    }
+  }
+`
 
 const SaleCountdown = () => {
   const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 59,
-    seconds: 59
+    hours: 0,
+    minutes: 0,
+    seconds: 0
   })
 
+  // 查詢促銷倒計時數據
+  const { data } = useQuery(GET_SALE_COUNTDOWN, {
+    fetchPolicy: 'cache-and-network',
+    pollInterval: 60000, // 每分鐘更新一次
+  })
+
+  const countdown = data?.activeSaleCountdown
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 }
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 }
-        }
-        return { hours: 23, minutes: 59, seconds: 59 }
-      })
-    }, 1000)
+    if (!countdown?.endTime) {
+      // 如果沒有後台數據，使用預設倒計時（24小時）
+      setTimeLeft({ hours: 23, minutes: 59, seconds: 59 })
+      return
+    }
+
+    const updateTimeLeft = () => {
+      const now = new Date().getTime()
+      const endTime = new Date(countdown.endTime).getTime()
+      const difference = endTime - now
+
+      if (difference > 0) {
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000)
+
+        setTimeLeft({ hours, minutes, seconds })
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+      }
+    }
+
+    // 立即更新一次
+    updateTimeLeft()
+
+    // 然後每秒更新
+    const timer = setInterval(updateTimeLeft, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [countdown])
+
+  // 如果沒有活躍的促銷倒計時，不顯示組件
+  if (!countdown && data !== undefined) {
+    return null
+  }
+
+  // 使用後台數據或預設數據
+  const title = countdown?.title || '限時特賣'
+  const description = countdown?.description || '全場5折起！買越多省越多！'
+  const highlightText = countdown?.highlightText || '限時特賣 • SALE'
 
   return (
     <div className="bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white py-1.5 sm:py-2 overflow-hidden relative">
@@ -33,11 +81,11 @@ const SaleCountdown = () => {
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-1 sm:gap-2 animate-pulse">
             <Flame size={16} className="sm:w-[18px] sm:h-[18px]" />
-            <span className="font-bold text-xs sm:text-sm">限時特賣</span>
+            <span className="font-bold text-xs sm:text-sm">{title}</span>
           </div>
           <div className="hidden md:flex items-center gap-2 text-sm">
             <Gift size={16} />
-            <span>全場5折起！買越多省越多！</span>
+            <span>{description}</span>
           </div>
         </div>
 
@@ -53,18 +101,13 @@ const SaleCountdown = () => {
               <span className="bg-black/30 px-1 sm:px-2 py-0.5 rounded">{String(timeLeft.seconds).padStart(2, '0')}</span>
             </div>
           </div>
-
-          <div className="hidden xl:flex items-center gap-2 ml-4">
-            <TrendingUp size={16} />
-            <span className="text-sm">已售出 12,345 件</span>
-          </div>
         </div>
       </div>
 
       {/* 滾動文字效果 */}
       <div className="absolute inset-0 flex items-center pointer-events-none">
         <div className="animate-marquee whitespace-nowrap text-white/10 text-6xl font-bold">
-          限時特賣 • SALE • 限時特賣 • SALE • 限時特賣 • SALE •
+          {highlightText} • {highlightText} • {highlightText} •
         </div>
       </div>
     </div>

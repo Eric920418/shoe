@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const folder = (formData.get('folder') as string) || 'products' // 預設為 products
 
     if (!file) {
       return NextResponse.json(
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
     const randomStr = Math.random().toString(36).substring(2, 15)
     const fileName = `${timestamp}_${randomStr}${ext}`
 
-    // 確保上傳目錄存在
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products')
+    // 確保上傳目錄存在（根據 folder 參數動態創建）
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder)
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true })
     }
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer)
 
     // 返回可訪問的 URL 路徑
-    const fileUrl = `/uploads/products/${fileName}`
+    const fileUrl = `/uploads/${folder}/${fileName}`
 
     return NextResponse.json({
       success: true,

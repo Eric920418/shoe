@@ -4,8 +4,40 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award } from 'lucide-react'
-import { useQuery } from '@apollo/client'
+import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
+
+// GraphQL 查詢：獲取熱門產品設定和產品
+const GET_POPULAR_PRODUCTS = gql`
+  query GetPopularProducts {
+    popularProductsConfig {
+      id
+      title
+      subtitle
+      algorithm
+      maxProducts
+      isActive
+      timeRange
+    }
+    popularProducts {
+      id
+      slug
+      name
+      price
+      originalPrice
+      images
+      soldCount
+      viewCount
+      averageRating
+      reviewCount
+      stock
+      category {
+        name
+        slug
+      }
+    }
+  }
+`
 
 const PopularProducts = () => {
   const [activeTab, setActiveTab] = useState('trending')
@@ -17,7 +49,12 @@ const PopularProducts = () => {
     { id: 'discount', label: '折扣榜', icon: Flame, color: 'text-orange-500' }
   ]
 
-  // 查詢產品資料
+  // 查詢熱門產品配置和數據
+  const { data: popularData } = useQuery(GET_POPULAR_PRODUCTS, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 查詢所有產品資料（用於生成各種榜單）
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
       take: 25, // 多取一些產品以便分類
@@ -26,7 +63,46 @@ const PopularProducts = () => {
 
   // 處理產品資料
   const products = React.useMemo(() => {
-    if (!data?.products) return { trending: [], rated: [], viewed: [], discount: [] }
+    // 如果有後台配置的熱門產品，優先使用
+    let trendingProducts = []
+    if (popularData?.popularProducts && popularData.popularProducts.length > 0) {
+      trendingProducts = popularData.popularProducts.map((product: any, idx: number) => {
+        const price = parseFloat(product.price)
+        const originalPrice = parseFloat(product.originalPrice) || price
+        const soldCount = product.soldCount || 0
+        const viewCount = product.viewCount || 0
+        const averageRating = product.averageRating ? parseFloat(product.averageRating) : 0
+        const images = Array.isArray(product.images) ? product.images : []
+        const image = images.length > 0 ? images[0] : '/api/placeholder/200/200'
+        const discount = originalPrice > price ? ((originalPrice - price) / originalPrice) * 100 : 0
+
+        return {
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price,
+          originalPrice,
+          sales: soldCount > 1000 ? `${(soldCount / 1000).toFixed(1)}k` : soldCount.toString(),
+          rating: averageRating,
+          image,
+          soldCount,
+          viewCount,
+          averageRating,
+          discount,
+          rank: idx + 1
+        }
+      })
+    }
+
+    if (!data?.products) {
+      // 如果只有後台數據，返回熱銷榜使用後台數據，其他榜單為空
+      return {
+        trending: trendingProducts,
+        rated: [],
+        viewed: [],
+        discount: []
+      }
+    }
 
     const allProducts = data.products.map((product: any) => {
       const price = parseFloat(product.price)
@@ -54,11 +130,13 @@ const PopularProducts = () => {
       }
     })
 
-    // 熱銷榜：按銷量排序
-    const trending = [...allProducts]
-      .sort((a, b) => b.soldCount - a.soldCount)
-      .slice(0, 8)
-      .map((p, idx) => ({ ...p, rank: idx + 1 }))
+    // 熱銷榜：優先使用後台數據，否則按銷量排序
+    const trending = trendingProducts.length > 0
+      ? trendingProducts
+      : [...allProducts]
+        .sort((a, b) => b.soldCount - a.soldCount)
+        .slice(0, 8)
+        .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     // 好評榜：按評分排序（至少有評分的）
     const rated = [...allProducts]
@@ -81,9 +159,19 @@ const PopularProducts = () => {
       .map((p, idx) => ({ ...p, rank: idx + 1 }))
 
     return { trending, rated, viewed, discount }
-  }, [data])
+  }, [data, popularData])
 
   const currentProducts = products[activeTab] || products.trending
+
+  // 使用後台配置或預設值
+  const config = popularData?.popularProductsConfig
+  const title = config?.title || '人氣精選'
+  const subtitle = config?.subtitle || '大家都在買'
+
+  // 如果後台配置停用了該組件，不顯示
+  if (config && !config.isActive) {
+    return null
+  }
 
   if (error) {
     console.error('載入人氣精選產品失敗:', error)
@@ -107,8 +195,8 @@ const PopularProducts = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
         <h2 className="text-base sm:text-xl font-bold text-gray-800 flex items-center gap-2">
           <Award className="text-purple-500" size={20} />
-          人氣精選
-          <span className="text-xs sm:text-sm font-normal text-gray-500 ml-1 sm:ml-2 hidden sm:inline">大家都在買</span>
+          {title}
+          <span className="text-xs sm:text-sm font-normal text-gray-500 ml-1 sm:ml-2 hidden sm:inline">{subtitle}</span>
         </h2>
 
         {/* Tab 切換 */}
@@ -135,7 +223,7 @@ const PopularProducts = () => {
 
       {/* 商品網格 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
-        {currentProducts.slice(0, 8).map((product) => (
+        {currentProducts.slice(0, config?.maxProducts || 8).map((product) => (
           <div
             key={product.id}
             className="group border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 bg-white"
@@ -185,21 +273,27 @@ const PopularProducts = () => {
                 {/* 銷量和評分 */}
                 <div className="flex items-center justify-between mb-1 sm:mb-2 text-[10px] sm:text-xs">
                   <span className="text-gray-500 truncate">已售 {product.sales}</span>
-                  <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                    <Star className="text-yellow-400 fill-current" size={10} />
-                    <span className="text-gray-600">{product.rating}</span>
-                  </div>
+                  {product.rating > 0 && (
+                    <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+                      <Star className="text-yellow-400 fill-current" size={10} />
+                      <span className="text-gray-600">{product.rating.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 價格 */}
                 <div className="flex items-end justify-between gap-1">
                   <div className="flex flex-col sm:flex-row sm:items-end sm:gap-2">
                     <span className="text-red-500 font-bold text-sm sm:text-lg">${product.price}</span>
-                    <span className="text-gray-400 text-[10px] sm:text-sm line-through">${product.originalPrice}</span>
+                    {product.originalPrice > product.price && (
+                      <span className="text-gray-400 text-[10px] sm:text-sm line-through">${product.originalPrice}</span>
+                    )}
                   </div>
-                  <span className="bg-red-100 text-red-600 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
-                    {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                  </span>
+                  {product.discount > 0 && (
+                    <span className="bg-red-100 text-red-600 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+                      {Math.round(product.discount)}% OFF
+                    </span>
+                  )}
                 </div>
               </div>
             </Link>

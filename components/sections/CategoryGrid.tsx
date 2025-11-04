@@ -3,13 +3,43 @@
 import React from 'react'
 import Link from 'next/link'
 import { TrendingUp, Star, Percent, Truck, Gift, Award } from 'lucide-react'
+import { useQuery, gql } from '@apollo/client'
+
+// GraphQL 查詢：獲取分類展示設定
+const GET_CATEGORY_DISPLAYS = gql`
+  query GetCategoryDisplays {
+    categoryDisplays {
+      categoryId
+      category {
+        id
+        name
+        slug
+        productCount
+      }
+      icon
+      displayName
+      showOnHomepage
+      sortOrder
+      isHighlighted
+      bgColor
+      textColor
+    }
+  }
+`
 
 const CategoryGrid = () => {
-  const categories = [
+  // 查詢分類展示設定
+  const { data } = useQuery(GET_CATEGORY_DISPLAYS, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 預設分類
+  const defaultCategories = [
     {
       icon: '👟',
       name: '運動鞋',
-      count: '3,456',
+      slug: 'sports-shoes',
+      count: 3456,
       color: 'bg-gradient-to-br from-blue-100 to-cyan-100',
       tag: 'HOT',
       tagColor: 'bg-red-500'
@@ -17,14 +47,16 @@ const CategoryGrid = () => {
     {
       icon: '👞',
       name: '休閒鞋',
-      count: '2,789',
+      slug: 'casual-shoes',
+      count: 2789,
       color: 'bg-gradient-to-br from-green-100 to-emerald-100',
       tag: null
     },
     {
       icon: '👠',
       name: '高跟鞋',
-      count: '1,567',
+      slug: 'high-heels',
+      count: 1567,
       color: 'bg-gradient-to-br from-pink-100 to-rose-100',
       tag: 'NEW',
       tagColor: 'bg-purple-500'
@@ -32,14 +64,16 @@ const CategoryGrid = () => {
     {
       icon: '🥾',
       name: '靴子',
-      count: '987',
+      slug: 'boots',
+      count: 987,
       color: 'bg-gradient-to-br from-yellow-100 to-amber-100',
       tag: null
     },
     {
       icon: '👡',
       name: '涼鞋拖鞋',
-      count: '2,345',
+      slug: 'sandals',
+      count: 2345,
       color: 'bg-gradient-to-br from-purple-100 to-indigo-100',
       tag: '特價',
       tagColor: 'bg-orange-500'
@@ -47,26 +81,78 @@ const CategoryGrid = () => {
     {
       icon: '👶',
       name: '童鞋',
-      count: '1,234',
+      slug: 'kids-shoes',
+      count: 1234,
       color: 'bg-gradient-to-br from-orange-100 to-red-100',
       tag: null
     },
     {
       icon: '🏃',
       name: '專業運動',
-      count: '678',
+      slug: 'professional-sports',
+      count: 678,
       color: 'bg-gradient-to-br from-teal-100 to-cyan-100',
       tag: null
     },
     {
       icon: '💰',
       name: '特價專區',
-      count: '4,567',
+      slug: 'sale',
+      count: 4567,
       color: 'bg-gradient-to-br from-red-100 to-pink-100',
       tag: '5折起',
       tagColor: 'bg-red-500'
     }
   ]
+
+  // 背景顏色選項
+  const colorOptions = [
+    'bg-gradient-to-br from-blue-100 to-cyan-100',
+    'bg-gradient-to-br from-green-100 to-emerald-100',
+    'bg-gradient-to-br from-pink-100 to-rose-100',
+    'bg-gradient-to-br from-yellow-100 to-amber-100',
+    'bg-gradient-to-br from-purple-100 to-indigo-100',
+    'bg-gradient-to-br from-orange-100 to-red-100',
+    'bg-gradient-to-br from-teal-100 to-cyan-100',
+    'bg-gradient-to-br from-red-100 to-pink-100'
+  ]
+
+  // 標籤配置（當分類被突出顯示時使用）
+  const highlightTags = ['HOT', 'NEW', '特價', '熱銷', '推薦', '限時', '精選', '獨家']
+  const highlightColors = ['bg-red-500', 'bg-purple-500', 'bg-orange-500', 'bg-blue-500', 'bg-green-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500']
+
+  // 使用後台數據或預設數據
+  const categories = React.useMemo(() => {
+    if (data?.categoryDisplays && data.categoryDisplays.length > 0) {
+      let highlightIndex = 0
+      return data.categoryDisplays
+        .filter((item: any) => item.showOnHomepage)
+        .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+        .slice(0, 8) // 最多顯示8個分類
+        .map((item: any, index: number) => {
+          // 如果分類被標記為突出顯示，分配一個標籤
+          let tag = null
+          let tagColor = 'bg-red-500'
+          if (item.isHighlighted) {
+            tag = highlightTags[highlightIndex % highlightTags.length]
+            tagColor = highlightColors[highlightIndex % highlightColors.length]
+            highlightIndex++
+          }
+
+          return {
+            id: item.category.id,
+            icon: item.icon || '📦',
+            name: item.displayName || item.category.name,
+            slug: item.category.slug,
+            count: item.category.productCount || 0,
+            color: colorOptions[index % colorOptions.length],
+            tag,
+            tagColor
+          }
+        })
+    }
+    return defaultCategories
+  }, [data])
 
   const quickLinks = [
     { icon: TrendingUp, text: '熱銷排行', link: '/popular', color: 'text-orange-600' },
@@ -95,8 +181,8 @@ const CategoryGrid = () => {
       <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {categories.map((category, index) => (
           <Link
-            key={index}
-            href={`/category/${category.name}`}
+            key={category.id || index}
+            href={`/category/${category.slug}`}
             className={`${category.color} relative group rounded-lg p-2 sm:p-4 flex flex-col items-center justify-center hover:shadow-md transition-all duration-300 cursor-pointer`}
           >
             {category.tag && (
@@ -108,7 +194,7 @@ const CategoryGrid = () => {
               {category.icon}
             </div>
             <span className="text-xs sm:text-sm font-medium text-gray-700">{category.name}</span>
-            <span className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{category.count}件</span>
+            <span className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{category.count.toLocaleString()}件</span>
           </Link>
         ))}
       </div>

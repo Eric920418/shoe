@@ -8,11 +8,27 @@ import {
   User, Star, TrendingUp, Clock, Flame
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGuestCart } from '@/contexts/GuestCartContext'
+import { useQuery } from '@apollo/client'
+import { GET_CART } from '@/graphql/queries'
 
 const MarketplaceHeader = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showCategories, setShowCategories] = useState(false)
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
+  const guestCart = useGuestCart()
+
+  // 會員購物車
+  const { data: cartData } = useQuery(GET_CART, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 計算購物車總數量
+  const cartItemCount = isAuthenticated
+    ? (cartData?.cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0)
+    : guestCart.items.reduce((sum, item) => sum + item.quantity, 0)
+
 
   const hotSearches = ['運動鞋', 'Nike', 'Adidas', '限時特價', '新品上市']
 
@@ -115,11 +131,16 @@ const MarketplaceHeader = () => {
             <div className="flex items-center gap-1 sm:gap-3">
               <Link href="/wishlist" className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Heart size={20} className="sm:w-6 sm:h-6 text-gray-600" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold">2</span>
+                {/* TODO: 實作願望清單數量 */}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold">0</span>
               </Link>
               <Link href="/cart" className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <ShoppingCart size={20} className="sm:w-6 sm:h-6 text-gray-600" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold">5</span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>

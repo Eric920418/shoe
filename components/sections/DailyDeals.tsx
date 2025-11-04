@@ -4,26 +4,71 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Calendar, Tag, Flame, Star } from 'lucide-react'
-import { useQuery } from '@apollo/client'
+import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 
+// GraphQL 查詢：獲取今日必搶配置
+const GET_TODAYS_DEAL = gql`
+  query GetTodaysDeal {
+    todaysDeal {
+      id
+      title
+      subtitle
+      products
+    }
+  }
+`
+
 const DailyDeals = () => {
+  // 查詢今日必搶配置
+  const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const dealConfig = dealConfigData?.todaysDeal
+
   // 查詢產品資料
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
-      take: 15,
-    }
+      take: 20,
+    },
+    skip: !dealConfig && !dealConfigData, // 如果沒有配置且數據還在載入，跳過查詢
   })
 
-  // 處理產品資料
+  // 解析 products JSON
+  const productsConfig = React.useMemo(() => {
+    if (!dealConfig?.products) return null
+    try {
+      return typeof dealConfig.products === 'string'
+        ? JSON.parse(dealConfig.products)
+        : dealConfig.products
+    } catch (e) {
+      console.error('DailyDeals: productsConfig 解析失敗', e)
+      return null
+    }
+  }, [dealConfig])
+
+  // 處理產品資料 - 顯示多個產品
   const deals = React.useMemo(() => {
     if (!data?.products) return []
 
-    const products = data.products
-      .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
+    let productsToShow = []
+    const productIds = productsConfig?.productIds || []
+    const maxProducts = productsConfig?.maxProducts || 4
+
+    if (productIds && productIds.length > 0) {
+      // 如果後台指定了產品ID，只顯示這些產品
+      productsToShow = data.products.filter((p: any) => productIds.includes(p.id))
+    } else {
+      // 如果沒有指定產品，顯示所有有折扣的產品
+      productsToShow = data.products
+        .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
+    }
+
+    return productsToShow
       .map((product: any) => {
         const price = parseFloat(product.price)
-        const originalPrice = parseFloat(product.originalPrice)
+        const originalPrice = parseFloat(product.originalPrice) || price
         const soldCount = product.soldCount || 0
         const averageRating = product.averageRating ? parseFloat(product.averageRating) : 0
         const reviewCount = product.reviewCount || 0
@@ -53,16 +98,15 @@ const DailyDeals = () => {
           averageRating
         }
       })
-
-    // 取 4 個產品：按銷量和評分綜合排序
-    return products
+      // 按銷量和評分綜合排序
       .sort((a: any, b: any) => {
         const scoreA = a.soldCount + (a.averageRating * 10)
         const scoreB = b.soldCount + (b.averageRating * 10)
         return scoreB - scoreA
       })
-      .slice(0, 4)
-  }, [data])
+      // 限制數量
+      .slice(0, maxProducts)
+  }, [data, productsConfig])
 
   if (error) {
     console.error('載入今日特價產品失敗:', error)
@@ -73,6 +117,10 @@ const DailyDeals = () => {
     return null
   }
 
+  // 使用後台設定或預設值
+  const title = dealConfig?.title || '今日特價'
+  const subtitle = dealConfig?.subtitle || '每日10點更新'
+
   return (
     <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg p-3 sm:p-6 my-4 sm:my-6">
       {/* 標題區 */}
@@ -80,11 +128,11 @@ const DailyDeals = () => {
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <div className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 w-fit">
             <Calendar size={16} className="sm:w-5 sm:h-5" />
-            <span className="font-bold text-sm sm:text-lg">今日特價</span>
+            <span className="font-bold text-sm sm:text-lg">{title}</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Tag className="text-orange-600" size={14} />
-            <span className="text-gray-700 font-medium text-xs sm:text-sm">每日10點更新</span>
+            <span className="text-gray-700 font-medium text-xs sm:text-sm">{subtitle}</span>
           </div>
         </div>
         <Link href="/daily-deals" className="text-orange-600 hover:text-orange-700 font-medium text-sm sm:text-base">

@@ -377,8 +377,10 @@ export const typeDefs = gql`
     productId: String!
     variantId: String
     sizeChartId: String!
+    sizeEu: String
     quantity: Int!
     price: Decimal!
+    addedPrice: Decimal!
     subtotal: Float!
     cart: Cart!
     product: Product!
@@ -702,8 +704,6 @@ export const typeDefs = gql`
     title: String!
     subtitle: String
     description: String
-    image: String!
-    mobileImage: String
     cta: String!
     ctaSecondary: String
     link: String!
@@ -724,8 +724,6 @@ export const typeDefs = gql`
     title: String!
     subtitle: String
     description: String
-    image: String!
-    mobileImage: String
     cta: String!
     ctaSecondary: String
     link: String!
@@ -744,8 +742,6 @@ export const typeDefs = gql`
     title: String
     subtitle: String
     description: String
-    image: String
-    mobileImage: String
     cta: String
     ctaSecondary: String
     link: String
@@ -780,6 +776,8 @@ export const typeDefs = gql`
     id: ID!
     title: String!
     subtitle: String
+    description: String
+    highlightText: String
     endTime: DateTime!
     bgColor: String!
     textColor: String!
@@ -976,6 +974,8 @@ export const typeDefs = gql`
   input SaleCountdownInput {
     title: String!
     subtitle: String
+    description: String
+    highlightText: String
     endTime: DateTime!
     bgColor: String
     textColor: String
@@ -1423,6 +1423,7 @@ export const typeDefs = gql`
     guaranteeItems: [GuaranteeItem!]!
     categoryDisplays: [CategoryDisplay!]!
     activeFlashSale: FlashSaleConfig
+    latestFlashSale: FlashSaleConfig
     todaysDeal: DailyDealConfig
     activeFloatingPromos: [FloatingPromo!]!
     activeSuperDealSection: SuperDealSection

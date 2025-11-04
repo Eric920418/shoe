@@ -1159,8 +1159,6 @@ model HeroSlide {
   title          String        // 主標題
   subtitle       String?       // 副標題
   description    String?       // 描述文字
-  image          String        // 圖片 URL
-  mobileImage    String?       // 手機版圖片 URL
   cta            String        // 按鈕文字
   ctaSecondary   String?       // 次要按鈕文字
   link           String        // 主按鈕連結
@@ -1258,16 +1256,18 @@ model HomepageConfig {
 
 // 促銷倒計時設定
 model SaleCountdown {
-  id          String   @id @default(cuid())
-  title       String   // 標題（如：限時特賣）
-  subtitle    String?  // 副標題
-  endTime     DateTime // 結束時間
-  bgColor     String   @default("#FF0000") // 背景顏色
-  textColor   String   @default("#FFFFFF") // 文字顏色
-  link        String?  // 點擊連結
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  title         String   // 標題（如：限時特賣）
+  subtitle      String?  // 副標題
+  description   String?  // 描述文字（如：全場5折起！）
+  highlightText String?  // 滾動高亮文字（如：限時特賣 • SALE）
+  endTime       DateTime // 結束時間
+  bgColor       String   @default("#FF0000") // 背景顏色
+  textColor     String   @default("#FFFFFF") // 文字顏色
+  link          String?  // 點擊連結
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([isActive, endTime])
   @@map("sale_countdowns")

@@ -2,11 +2,48 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowUp, MessageCircle, ShoppingCart } from 'lucide-react'
+import { ArrowUp, MessageCircle, ShoppingCart, Gift, Star, Zap, Heart, Bell } from 'lucide-react'
+import { useQuery, gql } from '@apollo/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { useGuestCart } from '@/contexts/GuestCartContext'
+import { GET_CART } from '@/graphql/queries'
+
+// GraphQL 查詢：獲取浮動促銷按鈕
+const GET_FLOATING_PROMOS = gql`
+  query GetActiveFloatingPromos {
+    activeFloatingPromos {
+      id
+      type
+      text
+      link
+      icon
+      bgColor
+      textColor
+      position
+    }
+  }
+`
 
 const FloatingPromo = () => {
   const [showBackToTop, setShowBackToTop] = useState(false)
-  const [cartCount] = useState(5) // 這裡應該從全局狀態獲取
+  const { isAuthenticated } = useAuth()
+  const guestCart = useGuestCart()
+
+  // 會員購物車
+  const { data: cartData } = useQuery(GET_CART, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 動態計算購物車總數量
+  const cartCount = isAuthenticated
+    ? (cartData?.cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0)
+    : guestCart.items.reduce((sum, item) => sum + item.quantity, 0)
+
+  // 查詢浮動促銷按鈕配置
+  const { data } = useQuery(GET_FLOATING_PROMOS, {
+    fetchPolicy: 'cache-and-network',
+  })
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +56,82 @@ const FloatingPromo = () => {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // 圖標映射表
+  const iconMap: { [key: string]: any } = {
+    ShoppingCart,
+    MessageCircle,
+    Gift,
+    Star,
+    Zap,
+    Heart,
+    Bell
+  }
+
+  // 處理浮動促銷按鈕
+  const floatingPromos = React.useMemo(() => {
+    if (data?.activeFloatingPromos && data.activeFloatingPromos.length > 0) {
+      return data.activeFloatingPromos
+        .filter((promo: any) => promo.position === 'LEFT')
+    }
+    return []
+  }, [data])
+
+  // 渲染促銷按鈕
+  const renderPromoButton = (promo: any) => {
+    const Icon = iconMap[promo.icon] || Gift
+
+    if (promo.type === 'REFERRAL') {
+      return (
+        <Link key={promo.id} href={promo.link}>
+          <div className={`${promo.bgColor || 'bg-gradient-to-br from-purple-500 to-pink-600'} ${promo.textColor || 'text-white'} p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer`}>
+            {promo.icon === 'emoji' ? (
+              <div className="text-3xl mb-2">🎁</div>
+            ) : (
+              <Icon size={30} className="mx-auto mb-2" />
+            )}
+            <p className="text-xs font-bold mb-1">{promo.text || '邀請好友'}</p>
+            <p className="text-[10px]">賺購物金</p>
+            <div className="mt-2 bg-yellow-400 text-purple-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-300 transition-colors">
+              立即邀請
+            </div>
+          </div>
+        </Link>
+      )
+    }
+
+    if (promo.type === 'PROMOTION') {
+      return (
+        <Link key={promo.id} href={promo.link}>
+          <div className={`${promo.bgColor || 'bg-gradient-to-br from-red-500 to-orange-600'} ${promo.textColor || 'text-white'} p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer`}>
+            <Icon size={30} className="mx-auto mb-2" />
+            <p className="text-xs font-bold">{promo.text}</p>
+          </div>
+        </Link>
+      )
+    }
+
+    if (promo.type === 'REWARD') {
+      return (
+        <Link key={promo.id} href={promo.link}>
+          <div className={`${promo.bgColor || 'bg-gradient-to-br from-yellow-500 to-orange-600'} ${promo.textColor || 'text-white'} p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer`}>
+            <Icon size={30} className="mx-auto mb-2" />
+            <p className="text-xs font-bold">{promo.text}</p>
+          </div>
+        </Link>
+      )
+    }
+
+    // 預設樣式
+    return (
+      <Link key={promo.id} href={promo.link}>
+        <div className={`${promo.bgColor || 'bg-blue-500'} ${promo.textColor || 'text-white'} p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer`}>
+          <Icon size={30} className="mx-auto mb-2" />
+          <p className="text-xs font-bold">{promo.text}</p>
+        </div>
+      </Link>
+    )
   }
 
   return (
@@ -51,19 +164,26 @@ const FloatingPromo = () => {
         )}
       </div>
 
-      {/* 左側邀請獎勵 - 手機版和平板隱藏 */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
-        <Link href="/account/referral">
-          <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer">
-            <div className="text-3xl mb-2">🎁</div>
-            <p className="text-xs font-bold mb-1">邀請好友</p>
-            <p className="text-[10px]">賺購物金</p>
-            <div className="mt-2 bg-yellow-400 text-purple-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-300 transition-colors">
-              立即邀請
+      {/* 左側促銷按鈕 - 手機版和平板隱藏 */}
+      {floatingPromos.length > 0 ? (
+        <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden xl:flex flex-col gap-3">
+          {floatingPromos.map((promo: any) => renderPromoButton(promo))}
+        </div>
+      ) : (
+        // 預設的邀請獎勵按鈕
+        <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
+          <Link href="/account/referral">
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-4 rounded-lg shadow-lg max-w-[120px] text-center hover:scale-105 transition-transform cursor-pointer">
+              <div className="text-3xl mb-2">🎁</div>
+              <p className="text-xs font-bold mb-1">邀請好友</p>
+              <p className="text-[10px]">賺購物金</p>
+              <div className="mt-2 bg-yellow-400 text-purple-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-yellow-300 transition-colors">
+                立即邀請
+              </div>
             </div>
-          </div>
-        </Link>
-      </div>
+          </Link>
+        </div>
+      )}
     </>
   )
 }

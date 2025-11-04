@@ -44,23 +44,50 @@ export const cartResolvers = {
         throw new Error('請先登入')
       }
 
-      // ✅ 使用共用函數
-      let cart = await prisma.cart.findUnique({
-        where: { userId: context.user.userId },
-        include: CART_INCLUDE,
-      })
-
-      if (!cart) {
-        // 如果購物車不存在，創建一個新的
-        const newCart = await prisma.cart.create({
-          data: {
-            userId: context.user.userId,
-          },
+      try {
+        // ✅ 使用共用函數
+        let cart = await prisma.cart.findUnique({
+          where: { userId: context.user.userId },
+          include: CART_INCLUDE,
         })
-        cart = await getCartWithItems(newCart.id)
-      }
 
-      return cart
+        if (!cart) {
+          // ✅ 檢查用戶是否存在（避免外鍵約束錯誤）
+          const userExists = await prisma.user.findUnique({
+            where: { id: context.user.userId },
+            select: { id: true },
+          })
+
+          if (!userExists) {
+            throw new Error('用戶不存在，請重新登入')
+          }
+
+          // 如果購物車不存在，創建一個新的
+          const newCart = await prisma.cart.create({
+            data: {
+              userId: context.user.userId,
+            },
+          })
+          cart = await getCartWithItems(newCart.id)
+        }
+
+        return cart
+      } catch (error: any) {
+        console.error('❌ 購物車查詢失敗:', error)
+
+        // ✅ 處理外鍵約束錯誤
+        if (error.code === 'P2003' || error.message?.includes('Foreign key constraint')) {
+          throw new Error('用戶不存在，請重新登入')
+        }
+
+        // ✅ 處理用戶不存在錯誤
+        if (error.message?.includes('用戶不存在')) {
+          throw error
+        }
+
+        // 其他錯誤
+        throw new Error(`購物車載入失敗: ${error.message}`)
+      }
     },
   },
 
@@ -281,6 +308,10 @@ export const cartResolvers = {
     // 計算購物車項目小計
     subtotal: (parent: any) => {
       return parent.price.toNumber() * parent.quantity
+    },
+    // addedPrice 欄位（等同於 price，但前端代碼期望這個欄位名稱）
+    addedPrice: (parent: any) => {
+      return parent.price
     },
   },
 }

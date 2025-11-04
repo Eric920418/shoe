@@ -120,30 +120,14 @@ export default function HomePage() {
 
       {/* 主要內容區 */}
       <main className="max-w-[1400px] mx-auto px-2 sm:px-4">
-        {/* 動態渲染所有啟用的組件 */}
-        {componentsConfig.map(config => {
-          // 跳過已經單獨處理的組件
-          if (config.componentType === 'SALE_COUNTDOWN') return null
-
-          return (
-            <div key={config.componentId} className="homepage-component">
-              {renderComponent(config)}
-            </div>
-          )
-        })}
-
-        {/* 如果沒有配置或載入失敗，顯示預設佈局 */}
-        {componentsConfig.length === 0 && !loading && (
-          <>
-            <MarketplaceHero />
-            <GuaranteeBar />
-            <FlashSale />
-            <CategoryGrid />
-            <DailyDeals />
-            <SuperDeals />
-            <PopularProducts />
-          </>
-        )}
+        {/* 固定顯示所有組件 */}
+        <MarketplaceHero />
+        <GuaranteeBar />
+        <FlashSale />
+        <DailyDeals />
+        <CategoryGrid />
+        <SuperDeals />
+        <PopularProducts />
       </main>
 
       {/* 頁尾 - 始終顯示 */}

@@ -226,7 +226,9 @@ export const GET_CART = gql`
         id
         quantity
         price
+        addedPrice
         subtotal
+        sizeEu
         product {
           id
           name
