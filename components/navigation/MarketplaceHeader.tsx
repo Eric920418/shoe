@@ -95,9 +95,6 @@ const MarketplaceHeader = () => {
               <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-sm sm:text-xl px-2 sm:px-3 py-1 rounded-lg shadow-md whitespace-nowrap group-hover:shadow-lg transition-shadow">
                 財神賣鞋
               </div>
-              <span className="hidden md:inline text-xs text-gray-500 group-hover:text-orange-600 transition-colors">
-                ← 首頁
-              </span>
             </Link>
 
             {/* 搜索框 */}
