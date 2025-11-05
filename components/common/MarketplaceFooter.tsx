@@ -31,7 +31,8 @@ const MarketplaceFooter = () => {
                 </li>
                 <li>
                   <Link
-                    href="/payment-info"
+                    href="/help#payment"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     付款方式
@@ -39,7 +40,8 @@ const MarketplaceFooter = () => {
                 </li>
                 <li>
                   <Link
-                    href="/shipping"
+                    href="/help#shipping"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     運送方式
@@ -47,7 +49,8 @@ const MarketplaceFooter = () => {
                 </li>
                 <li>
                   <Link
-                    href="/returns"
+                    href="/help#returns"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     退貨退款
@@ -55,7 +58,8 @@ const MarketplaceFooter = () => {
                 </li>
                 <li>
                   <Link
-                    href="/contact"
+                    href="/account/support"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     聯絡我們
@@ -70,7 +74,8 @@ const MarketplaceFooter = () => {
               <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <li>
                   <Link
-                    href="/about"
+                    href="/help#about"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     關於我們
@@ -78,7 +83,8 @@ const MarketplaceFooter = () => {
                 </li>
                 <li>
                   <Link
-                    href="/news"
+                    href="/help#news"
+                    prefetch={false}
                     className="text-gray-600 hover:text-orange-600 transition-colors"
                   >
                     最新消息

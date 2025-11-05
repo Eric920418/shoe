@@ -333,29 +333,45 @@ export const homepageResolvers = {
 
     // 創建或更新促銷倒計時
     upsertSaleCountdown: async (_: any, { input }: { input: any }, context: Context) => {
-      await requireAdmin(context)
+      try {
+        await requireAdmin(context)
 
-      // 先停用其他活躍的倒計時
-      await prisma.saleCountdown.updateMany({
-        where: { isActive: true },
-        data: { isActive: false },
-      })
+        // 先停用其他活躍的倒計時
+        await prisma.saleCountdown.updateMany({
+          where: { isActive: true },
+          data: { isActive: false },
+        })
 
-      // 確保 endTime 是完整的 ISO-8601 格式
-      const endTime = input.endTime.includes(':') && !input.endTime.includes('T')
-        ? new Date(input.endTime).toISOString()
-        : input.endTime.length === 16 // "YYYY-MM-DDTHH:MM" 格式
-        ? new Date(input.endTime + ':00').toISOString()
-        : new Date(input.endTime).toISOString()
+        // 確保 endTime 是完整的 ISO-8601 格式
+        const endTime = input.endTime.includes(':') && !input.endTime.includes('T')
+          ? new Date(input.endTime).toISOString()
+          : input.endTime.length === 16 // "YYYY-MM-DDTHH:MM" 格式
+          ? new Date(input.endTime + ':00').toISOString()
+          : new Date(input.endTime).toISOString()
 
-      // 創建新的倒計時
-      return prisma.saleCountdown.create({
-        data: {
-          ...input,
-          endTime,
-          isActive: true
-        },
-      })
+        // 創建新的倒計時，明確設置所有必填字段
+        return prisma.saleCountdown.create({
+          data: {
+            title: input.title,
+            subtitle: input.subtitle || null,
+            description: input.description || null,
+            highlightText: input.highlightText || null,
+            endTime,
+            bgColor: input.bgColor || '#FF0000',
+            textColor: input.textColor || '#FFFFFF',
+            link: input.link || null,
+            isActive: true,
+          },
+        })
+      } catch (error: any) {
+        console.error('upsertSaleCountdown 錯誤:', error)
+        throw new GraphQLError(error.message || '保存促銷倒計時失敗', {
+          extensions: {
+            code: 'UPSERT_SALE_COUNTDOWN_ERROR',
+            originalError: error,
+          },
+        })
+      }
     },
 
     // 更新服務保證項目

@@ -36,6 +36,15 @@ const { handleRequest } = createYoga({
     createRequestLoggerPlugin(), // 請求日誌
   ],
 
+  // 錯誤格式化：根據用戶全局設定，始終顯示完整錯誤信息
+  maskedErrors: false,
+  logging: {
+    debug: console.debug,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+  },
+
   // 傳遞認證上下文
   context: async ({ request }) => {
     // 1. 優先從 Authorization header 讀取 token
