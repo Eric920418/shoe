@@ -8,35 +8,27 @@ import {
   User, Star, TrendingUp, Clock, Flame
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useGuestCart } from '@/contexts/GuestCartContext'
-import { useQuery } from '@apollo/client'
-import { GET_CART, GET_MY_WISHLIST } from '@/graphql/queries'
+import { useCart } from '@/contexts/CartContext'
+
+/**
+ * 市場導航欄組件
+ *
+ * 優化說明：
+ * ✅ 移除重複的 GET_CART 和 GET_MY_WISHLIST 查詢
+ * ✅ 改用統一的 useCart hook（由 CartProvider 管理）
+ * ✅ 避免與 FloatingPromo 組件重複查詢，減少網路請求
+ */
 
 const MarketplaceHeader = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showCategories, setShowCategories] = useState(false)
-  const { user, isAuthenticated } = useAuth()
-  const guestCart = useGuestCart()
+  const { user } = useAuth()
 
-  // 會員購物車
-  const { data: cartData } = useQuery(GET_CART, {
-    skip: !isAuthenticated,
-    fetchPolicy: 'cache-and-network',
-  })
+  // 使用統一的 Cart Context（避免重複查詢）
+  const { cartCount, wishlistCount } = useCart()
 
-  // 願望清單
-  const { data: wishlistData } = useQuery(GET_MY_WISHLIST, {
-    skip: !isAuthenticated,
-    fetchPolicy: 'cache-and-network',
-  })
-
-  // 計算購物車總數量
-  const cartItemCount = isAuthenticated
-    ? (cartData?.cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0)
-    : guestCart.items.reduce((sum, item) => sum + item.quantity, 0)
-
-  // 計算願望清單數量
-  const wishlistItemCount = wishlistData?.myWishlist?.length || 0
+  const cartItemCount = cartCount
+  const wishlistItemCount = wishlistCount
 
 
   const hotSearches = ['運動鞋', 'Nike', 'Adidas', '限時特價', '新品上市']
@@ -98,12 +90,14 @@ const MarketplaceHeader = () => {
       <div className="bg-white border-b">
         <div className="max-w-[1400px] mx-auto px-2 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-sm sm:text-xl px-2 sm:px-3 py-1 rounded-lg shadow-md whitespace-nowrap">
+            {/* Logo - 增強返回首頁提示 */}
+            <Link href="/" className="flex items-center gap-1 sm:gap-2 flex-shrink-0 group" title="返回首頁">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-sm sm:text-xl px-2 sm:px-3 py-1 rounded-lg shadow-md whitespace-nowrap group-hover:shadow-lg transition-shadow">
                 財神賣鞋
               </div>
-          
+              <span className="hidden md:inline text-xs text-gray-500 group-hover:text-orange-600 transition-colors">
+                ← 首頁
+              </span>
             </Link>
 
             {/* 搜索框 */}

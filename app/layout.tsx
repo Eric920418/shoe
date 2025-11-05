@@ -3,6 +3,7 @@ import './globals.css'
 import { ApolloProvider } from '@/components/providers/ApolloProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { GuestCartProvider } from '@/contexts/GuestCartContext'
+import { CartProvider } from '@/contexts/CartContext'
 import { Toaster } from 'react-hot-toast'
 import { Suspense } from 'react'
 import ReferralTracker from '@/components/common/ReferralTracker'
@@ -28,34 +29,36 @@ export default function RootLayout({
         <ApolloProvider>
           <AuthProvider>
             <GuestCartProvider>
-              <Suspense fallback={null}>
-                <ReferralTracker />
-              </Suspense>
-              <main>
-                {children}
-              </main>
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#363636',
-                    color: '#fff',
-                  },
-                  success: {
-                    iconTheme: {
-                      primary: '#10b981',
-                      secondary: '#fff',
+              <CartProvider>
+                <Suspense fallback={null}>
+                  <ReferralTracker />
+                </Suspense>
+                <main>
+                  {children}
+                </main>
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: '#363636',
+                      color: '#fff',
                     },
-                  },
-                  error: {
-                    iconTheme: {
-                      primary: '#ef4444',
-                      secondary: '#fff',
+                    success: {
+                      iconTheme: {
+                        primary: '#10b981',
+                        secondary: '#fff',
+                      },
                     },
-                  },
-                }}
-              />
+                    error: {
+                      iconTheme: {
+                        primary: '#ef4444',
+                        secondary: '#fff',
+                      },
+                    },
+                  }}
+                />
+              </CartProvider>
             </GuestCartProvider>
           </AuthProvider>
         </ApolloProvider>

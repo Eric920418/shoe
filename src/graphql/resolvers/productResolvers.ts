@@ -6,6 +6,7 @@ import { GraphQLError } from 'graphql'
 import { prisma } from '@/lib/prisma'
 import { ProductCache, CategoryCache, BrandCache, SizeChartCache } from '@/lib/cache'
 import { generateUniqueBrandSlug, generateUniqueCategorySlug, generateUniqueProductSlug } from '@/lib/slugify'
+import { incrementViewCount } from '@/lib/redis'
 
 interface GraphQLContext {
   userId: string | null
@@ -54,11 +55,11 @@ export const productResolvers = {
         })
       }
 
-      // 異步增加瀏覽次數（不阻塞響應）
-      prisma.product.update({
-        where: { id: product.id },
-        data: { viewCount: { increment: 1 } },
-      }).catch(err => console.error('更新瀏覽次數失敗:', err))
+      // ✅ 性能優化：使用 Redis 緩衝瀏覽次數，避免高頻資料庫寫入
+      // 實際寫入會由定時任務批次處理（見 /api/cron/flush-view-counts）
+      incrementViewCount(product.id).catch(err =>
+        console.error('Redis 緩衝瀏覽次數失敗，降級為直接寫入:', err)
+      )
 
       return product
     },
@@ -141,21 +142,33 @@ export const productResolvers = {
             category: true,
             brand: true,
             variants: { where: { isActive: true }, take: 1 },
-            sizeCharts: {
-              where: { isActive: true },
-              select: { stock: true }, // ✅ 載入尺碼庫存
-            },
+            // ✅ 性能優化：不預先載入 sizeCharts，改用 aggregation 計算 totalStock
           },
         })
 
-        // ✅ 預先計算 totalStock，避免在 resolver 中重複查詢
-        return products.map(product => {
-          const totalStock = product.sizeCharts?.reduce(
-            (sum, chart) => sum + chart.stock,
-            0
-          ) || 0
-          return { ...product, totalStock }
+        // ✅ 批次查詢所有產品的庫存總和（使用 groupBy 提升效能）
+        const productIds = products.map(p => p.id)
+        const stockAggregations = await prisma.sizeChart.groupBy({
+          by: ['productId'],
+          where: {
+            productId: { in: productIds },
+            isActive: true,
+          },
+          _sum: {
+            stock: true,
+          },
         })
+
+        // 建立 productId -> totalStock 的映射表
+        const stockMap = new Map(
+          stockAggregations.map(agg => [agg.productId, agg._sum.stock || 0])
+        )
+
+        // 將 totalStock 附加到產品物件上
+        return products.map(product => ({
+          ...product,
+          totalStock: stockMap.get(product.id) || 0,
+        }))
       }
 
       // 如果需要跳過快取（例如：後台管理頁面）

@@ -21,15 +21,17 @@ const GET_TODAYS_DEAL = gql`
 
 interface DailyDealsProps {
   serverProducts?: any[]
+  serverDealConfig?: any
 }
 
-const DailyDeals = ({ serverProducts }: DailyDealsProps) => {
-  // 查詢今日必搶配置
+const DailyDeals = ({ serverProducts, serverDealConfig }: DailyDealsProps) => {
+  // ✅ 性能優化：只在沒有伺服器配置時才查詢
   const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first',
+    skip: !!serverDealConfig, // 如果有伺服器資料，跳過查詢
   })
 
-  const dealConfig = dealConfigData?.todaysDeal
+  const dealConfig = serverDealConfig || dealConfigData?.todaysDeal
 
   // 查詢產品資料（僅當沒有伺服器資料時）
   const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {

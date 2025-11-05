@@ -71,14 +71,17 @@ export default function AdminChatsPage() {
   const limit = 20
   const skip = page * limit
 
+  // ✅ 優化：條件輪詢 + 使用快取策略，避免後端資源被拖垮
   const { data, loading, refetch } = useQuery(GET_ALL_CONVERSATIONS, {
     variables: {
       skip,
       take: limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
     },
-    pollInterval: 5000, // 每5秒自動刷新
-    fetchPolicy: 'network-only',
+    // 只在選中對話時才輪詢，未選中時不浪費後端資源
+    pollInterval: selectedConversation ? 10000 : 0, // 提高到 10 秒
+    fetchPolicy: 'cache-first', // ❌ 移除 network-only，優先使用快取
+    nextFetchPolicy: 'cache-first',
   })
 
   const [sendMessage, { loading: sending }] = useMutation(SEND_MESSAGE, {

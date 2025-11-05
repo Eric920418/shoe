@@ -105,3 +105,74 @@ export async function cacheFlush() {
     console.error('Redis flush error:', error)
   }
 }
+
+/**
+ * 增加產品瀏覽次數（緩衝到 Redis）
+ * ✅ 性能優化：避免每次查詢都寫入資料庫
+ */
+export async function incrementViewCount(productId: string): Promise<void> {
+  try {
+    const client = await getRedisClient()
+    const key = `viewcount:${productId}`
+    await client.incr(key)
+    // 設定 TTL 為 1 小時，確保即使批次寫入失敗也不會無限累積
+    await client.expire(key, 3600)
+  } catch (error) {
+    console.error('Redis increment viewCount error:', error)
+  }
+}
+
+/**
+ * 批次寫回所有緩衝的瀏覽次數到資料庫
+ * ✅ 應該由定時任務調用（例如每 5 分鐘或每 100 次瀏覽）
+ */
+export async function flushViewCounts(prisma: any): Promise<number> {
+  try {
+    const client = await getRedisClient()
+    const keysToFlush: string[] = []
+    let cursor = 0
+
+    // 使用 SCAN 找出所有 viewcount:* 的鍵
+    do {
+      const result = await client.scan(cursor, {
+        MATCH: 'viewcount:*',
+        COUNT: 100,
+      })
+      cursor = result.cursor
+      keysToFlush.push(...result.keys)
+    } while (cursor !== 0)
+
+    if (keysToFlush.length === 0) {
+      return 0
+    }
+
+    // 批次取得所有值
+    const pipeline = client.multi()
+    keysToFlush.forEach(key => pipeline.get(key))
+    const values = await pipeline.exec()
+
+    // 更新資料庫
+    let updateCount = 0
+    for (let i = 0; i < keysToFlush.length; i++) {
+      const productId = keysToFlush[i].replace('viewcount:', '')
+      const count = parseInt(values[i] as string, 10) || 0
+
+      if (count > 0) {
+        await prisma.product.update({
+          where: { id: productId },
+          data: { viewCount: { increment: count } },
+        })
+        updateCount++
+      }
+    }
+
+    // 刪除已處理的鍵
+    await client.del(keysToFlush)
+
+    console.log(`✅ 批次寫回 ${updateCount} 個產品的瀏覽次數`)
+    return updateCount
+  } catch (error) {
+    console.error('Redis flushViewCounts error:', error)
+    return 0
+  }
+}

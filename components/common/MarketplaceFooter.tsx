@@ -192,10 +192,6 @@ const MarketplaceFooter = () => {
               <span>100%正品保證</span>
             </div>
             <div className="flex items-center gap-2">
-              <Truck size={20} />
-              <span>全台免運費</span>
-            </div>
-            <div className="flex items-center gap-2">
               <CreditCard size={20} />
               <span>安全交易</span>
             </div>

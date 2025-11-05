@@ -8,6 +8,7 @@ import {
   Calendar, ChevronDown, Filter, Award, Zap
 } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 export default function NewArrivalsPage() {
   const [sortBy, setSortBy] = useState('newest')
@@ -102,6 +103,13 @@ export default function NewArrivalsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 麵包屑導航 */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb items={[{ label: '新品上市' }]} />
+        </div>
+      </div>
+
       {/* 頂部橫幅 */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">

@@ -55,9 +55,13 @@ export default function SupportPage() {
   const [messageInput, setMessageInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // ✅ 優化：只在選中對話時才輪詢，避免無意義的資源消耗
   const { data, loading, refetch } = useQuery(GET_MY_CONVERSATIONS, {
     skip: !user,
-    pollInterval: 5000, // 每5秒自動刷新
+    // 只在有選中對話時才啟用輪詢（避免閒置時持續請求）
+    pollInterval: selectedConversation ? 10000 : 0, // 提高到 10 秒
+    fetchPolicy: 'cache-first', // 優先使用快取
+    nextFetchPolicy: 'cache-first', // 後續請求也優先快取
   })
 
   const [createConversation, { loading: creating }] = useMutation(CREATE_CONVERSATION, {

@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Truck, Package, Star, ShoppingCart } from 'lucide-react'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 export default function FreeShippingPage() {
   const products = Array.from({ length: 20 }, (_, i) => ({
@@ -19,6 +20,13 @@ export default function FreeShippingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 麵包屑導航 */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb items={[{ label: '免運專區' }]} />
+        </div>
+      </div>
+
       {/* 頂部橫幅 */}
       <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white">
         <div className="container mx-auto px-4 py-8">

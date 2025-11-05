@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 後台訂單管理頁面
+ * 後台訂單管理頁面 - 手機優先設計
  */
 
 import { useState } from 'react'
@@ -96,13 +96,13 @@ const mockOrders: Order[] = [
   },
 ]
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  PENDING: { label: '待處理', color: 'bg-yellow-100 text-yellow-700' },
-  PAID: { label: '已付款', color: 'bg-blue-100 text-blue-700' },
-  SHIPPED: { label: '已發貨', color: 'bg-purple-100 text-purple-700' },
-  DELIVERED: { label: '已送達', color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消', color: 'bg-red-100 text-red-700' },
-  REFUNDED: { label: '已退款', color: 'bg-gray-100 text-gray-700' },
+const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
+  PENDING: { label: '待處理', color: 'bg-yellow-100 text-yellow-700', icon: '⏳' },
+  PAID: { label: '已付款', color: 'bg-blue-100 text-blue-700', icon: '💳' },
+  SHIPPED: { label: '已發貨', color: 'bg-purple-100 text-purple-700', icon: '🚚' },
+  DELIVERED: { label: '已送達', color: 'bg-green-100 text-green-700', icon: '✅' },
+  CANCELLED: { label: '已取消', color: 'bg-red-100 text-red-700', icon: '❌' },
+  REFUNDED: { label: '已退款', color: 'bg-gray-100 text-gray-700', icon: '💸' },
 }
 
 const paymentStatusLabels: Record<string, { label: string; color: string }> = {
@@ -116,6 +116,8 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedOrders, setSelectedOrders] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(false)
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
   // 篩選訂單
   const filteredOrders = mockOrders.filter((order) => {
@@ -143,267 +145,318 @@ export default function OrdersPage() {
     }
   }
 
-  // 更新訂單狀態
-  const handleUpdateStatus = (orderId: string, orderNumber: string) => {
-    // TODO: 實現狀態更新對話框
-    alert(`更新訂單 ${orderNumber} 的狀態`)
-  }
-
-  // 查看訂單詳情
-  const handleViewDetails = (orderId: string) => {
-    // TODO: 實現訂單詳情頁面或彈窗
-    alert(`查看訂單詳情: ${orderId}`)
+  // 批量操作
+  const handleBatchAction = (action: string) => {
+    if (selectedOrders.length === 0) {
+      alert('請先選擇訂單')
+      return
+    }
+    alert(`對 ${selectedOrders.length} 個訂單執行: ${action}`)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">訂單管理</h1>
-          <p className="text-gray-600 mt-1">管理所有訂單和配送狀態</p>
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">訂單管理</h1>
+        <p className="text-sm lg:text-base text-gray-600 mt-1">
+          共 <span className="font-semibold">{filteredOrders.length}</span> 筆訂單
+        </p>
+      </div>
+
+      {/* 手機版 - 統計摘要 */}
+      <div className="lg:hidden grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-2xl font-bold text-yellow-600">8</p>
+          <p className="text-xs text-gray-600 mt-1">待處理</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-2xl font-bold text-blue-600">12</p>
+          <p className="text-xs text-gray-600 mt-1">處理中</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-2xl font-bold text-green-600">35</p>
+          <p className="text-xs text-gray-600 mt-1">已完成</p>
         </div>
       </div>
 
-      {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">全部訂單</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
-            {mockOrders.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">待處理</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">
-            {mockOrders.filter((o) => o.status === 'PENDING').length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">已付款</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">
-            {mockOrders.filter((o) => o.status === 'PAID').length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">已發貨</p>
-          <p className="text-2xl font-bold text-purple-600 mt-1">
-            {mockOrders.filter((o) => o.status === 'SHIPPED').length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">已完成</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {mockOrders.filter((o) => o.status === 'DELIVERED').length}
-          </p>
-        </div>
-      </div>
-
-      {/* 搜尋和篩選 */}
+      {/* 搜尋和篩選區 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 搜尋框 */}
-          <div>
+        {/* 搜尋框 */}
+        <div className="flex gap-2 mb-3">
+          <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="搜尋訂單號、客戶名稱或郵箱..."
+              placeholder="搜尋訂單編號、客戶名稱..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
+            <svg
+              className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          {/* 手機版篩選按鈕 */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden px-4 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center gap-2"
+          >
+            <span>篩選</span>
+            {filterStatus !== 'all' && (
+              <span className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full">1</span>
+            )}
+          </button>
+        </div>
+
+        {/* 篩選選項 - 手機版可摺疊 */}
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block space-y-3`}>
+          {/* 狀態篩選 */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filterStatus === 'all'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              全部
+            </button>
+            {Object.entries(statusLabels).map(([key, value]) => (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+                  filterStatus === key
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span>{value.icon}</span>
+                <span>{value.label}</span>
+              </button>
+            ))}
           </div>
 
-          {/* 狀態篩選 */}
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">全部狀態</option>
-              <option value="PENDING">待處理</option>
-              <option value="PAID">已付款</option>
-              <option value="SHIPPED">已發貨</option>
-              <option value="DELIVERED">已送達</option>
-              <option value="CANCELLED">已取消</option>
-            </select>
+          {/* 批量操作 - 桌面版顯示 */}
+          <div className="hidden lg:flex items-center justify-between pt-3 border-t">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 text-primary-600 rounded"
+              />
+              <span className="text-sm text-gray-600">
+                {selectedOrders.length > 0
+                  ? `已選擇 ${selectedOrders.length} 個訂單`
+                  : '全選'}
+              </span>
+            </div>
+            {selectedOrders.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleBatchAction('export')}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                >
+                  匯出
+                </button>
+                <button
+                  onClick={() => handleBatchAction('print')}
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                >
+                  列印
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 批量操作 */}
-      {selectedOrders.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-          <span className="text-blue-900 font-medium">
-            已選擇 {selectedOrders.length} 個訂單
-          </span>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              批量導出
-            </button>
-            <button
-              onClick={() => setSelectedOrders([])}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              取消選擇
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 訂單列表 - 手機版卡片式 */}
+      <div className="lg:hidden space-y-3">
+        {filteredOrders.map((order) => (
+          <div
+            key={order.id}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+          >
+            {/* 訂單標題區 */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-gray-900">{order.orderNumber}</p>
+                  <p className="text-xs text-gray-500 mt-1">{order.createdAt}</p>
+                </div>
+                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusLabels[order.status].color}`}>
+                  {statusLabels[order.status].icon} {statusLabels[order.status].label}
+                </span>
+              </div>
+            </div>
 
-      {/* 訂單表格 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* 訂單詳情 */}
+            <div className="p-4 space-y-3">
+              {/* 客戶資訊 */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{order.customer.name}</p>
+                  <p className="text-xs text-gray-500">{order.customer.email}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-gray-900">${order.total.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">{order.items} 件商品</p>
+                </div>
+              </div>
+
+              {/* 狀態指示器 */}
+              <div className="flex gap-2 text-xs">
+                <span className={`${paymentStatusLabels[order.paymentStatus].color}`}>
+                  {paymentStatusLabels[order.paymentStatus].label}
+                </span>
+                <span className="text-gray-400">•</span>
+                <span className="text-gray-600">
+                  {order.shippingStatus === 'NOT_SHIPPED' ? '未發貨' :
+                   order.shippingStatus === 'PREPARING' ? '準備中' :
+                   order.shippingStatus === 'SHIPPED' ? '已發貨' :
+                   order.shippingStatus === 'DELIVERED' ? '已送達' : '已取消'}
+                </span>
+              </div>
+
+              {/* 操作按鈕 */}
+              <div className="flex gap-2 pt-2">
+                <button className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium">
+                  查看詳情
+                </button>
+                <button className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                  更新狀態
+                </button>
+                <button className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                  ⋮
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 桌面版表格 */}
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">
+                <th className="w-12 px-4 py-3">
                   <input
                     type="checkbox"
-                    checked={
-                      filteredOrders.length > 0 &&
-                      selectedOrders.length === filteredOrders.length
-                    }
+                    checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    className="w-4 h-4 text-primary-600 rounded"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  訂單號
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  客戶
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  商品數
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  金額
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  付款狀態
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  訂單狀態
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  建立時間
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  操作
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品數</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">付款狀態</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單狀態</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">建立時間</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                    {searchQuery || filterStatus !== 'all'
-                      ? '沒有符合條件的訂單'
-                      : '暫無訂單數據'}
+              {filteredOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrders.includes(order.id)}
+                      onChange={() => toggleOrderSelection(order.id)}
+                      className="w-4 h-4 text-primary-600 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{order.customer.name}</p>
+                      <p className="text-xs text-gray-500">{order.customer.email}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{order.items} 件</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                    ${order.total.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-sm ${paymentStatusLabels[order.paymentStatus].color}`}>
+                      {paymentStatusLabels[order.paymentStatus].label}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusLabels[order.status].color}`}>
+                      {statusLabels[order.status].label}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{order.createdAt}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                        查看
+                      </button>
+                      <button className="text-gray-600 hover:text-gray-700 text-sm">
+                        編輯
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.includes(order.id)}
-                        onChange={() => toggleOrderSelection(order.id)}
-                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-mono text-sm font-medium text-gray-900">
-                        {order.orderNumber}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{order.customer.name}</p>
-                        <p className="text-sm text-gray-500">{order.customer.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      {order.items} 件
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-semibold text-gray-900">
-                        NT$ {order.total.toLocaleString()}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`text-sm font-medium ${
-                          paymentStatusLabels[order.paymentStatus].color
-                        }`}
-                      >
-                        {paymentStatusLabels[order.paymentStatus].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                          statusLabels[order.status].color
-                        }`}
-                      >
-                        {statusLabels[order.status].label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-600">
-                      {order.createdAt}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleViewDetails(order.id)}
-                          className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          查看
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleUpdateStatus(order.id, order.orderNumber)
-                          }
-                          className="px-3 py-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
-                        >
-                          更新
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
 
-        {/* 分頁 */}
-        {filteredOrders.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              顯示 {filteredOrders.length} 個訂單中的 1-{filteredOrders.length}
-            </div>
-            <div className="flex gap-2">
-              <button
-                disabled
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-400 cursor-not-allowed"
-              >
-                上一頁
-              </button>
-              <button className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm">
-                1
-              </button>
-              <button
-                disabled
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-400 cursor-not-allowed"
-              >
-                下一頁
-              </button>
-            </div>
+        {/* 分頁控制 */}
+        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            顯示第 1 到 {filteredOrders.length} 筆，共 {filteredOrders.length} 筆
+          </p>
+          <div className="flex gap-2">
+            <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              上一頁
+            </button>
+            <button className="px-3 py-1 bg-primary-600 text-white rounded-lg text-sm">
+              1
+            </button>
+            <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              2
+            </button>
+            <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              下一頁
+            </button>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* 手機版載入更多 */}
+      <div className="lg:hidden flex justify-center py-4">
+        <button className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
+          載入更多訂單
+        </button>
+      </div>
+
+      {/* 手機版浮動操作按鈕 */}
+      <div className="lg:hidden fixed bottom-20 right-4 z-30">
+        <button className="w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center">
+          <span className="text-2xl">➕</span>
+        </button>
       </div>
     </div>
   )

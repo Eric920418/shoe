@@ -3,6 +3,7 @@ import {
   getHomepageConfig,
   getHomepageProducts,
   getActiveFlashSale,
+  getTodaysDeal,
   getCategoryDisplays
 } from '@/lib/server-queries'
 import HomePageClient from '@/components/home/HomePageClient'
@@ -10,11 +11,13 @@ import HomePageClient from '@/components/home/HomePageClient'
 export const revalidate = 300 // 5分鐘重新驗證一次
 
 export default async function HomePage() {
-  // 在伺服器端並行查詢所有資料
-  const [configs, products, flashSale, categoryDisplays] = await Promise.all([
+  // ✅ 性能優化：減少查詢數量，從 30 筆降為 15 筆
+  // FlashSale 最多顯示 6 筆，DailyDeals 最多 4 筆，其他區塊共用剩餘的
+  const [configs, products, flashSale, todaysDeal, categoryDisplays] = await Promise.all([
     getHomepageConfig(),
-    getHomepageProducts(30), // 查詢30個產品用於所有區塊
+    getHomepageProducts(15), // 降低為 15 筆，減少資料傳輸
     getActiveFlashSale(),
+    getTodaysDeal(), // ✅ 新增：預先載入今日必搶配置
     getCategoryDisplays(),
   ])
 
@@ -35,6 +38,7 @@ export default async function HomePage() {
       componentsConfig={componentsConfig}
       products={products}
       flashSale={flashSale}
+      todaysDeal={todaysDeal}
       categoryDisplays={categoryDisplays}
     />
   )

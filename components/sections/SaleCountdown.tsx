@@ -26,10 +26,22 @@ const SaleCountdown = () => {
   })
 
   // 查詢促銷倒計時數據
-  const { data } = useQuery(GET_SALE_COUNTDOWN, {
-    fetchPolicy: 'cache-and-network',
-    pollInterval: 60000, // 每分鐘更新一次
+  // 優化：改用 cache-first 減少請求，延長輪詢間隔
+  const { data, startPolling, stopPolling } = useQuery(GET_SALE_COUNTDOWN, {
+    fetchPolicy: 'cache-first', // 👈 優化：優先使用快取
+    nextFetchPolicy: 'cache-first',
   })
+
+  // 動態控制輪詢：有活動才輪詢
+  useEffect(() => {
+    if (data?.activeSaleCountdown) {
+      startPolling(60000) // 有活動才每分鐘輪詢
+    } else {
+      stopPolling() // 沒有活動停止輪詢
+    }
+
+    return () => stopPolling()
+  }, [data?.activeSaleCountdown, startPolling, stopPolling])
 
   const countdown = data?.activeSaleCountdown
 

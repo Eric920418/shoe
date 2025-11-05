@@ -73,8 +73,9 @@ export const apolloClient = new ApolloClient({
       Query: {
         fields: {
           // 產品列表使用 merge 策略，支援分頁
+          // ✅ 修復：補全所有影響查詢結果的參數，避免快取衝突
           products: {
-            keyArgs: ['categoryId', 'brandId', 'search'],
+            keyArgs: ['categoryId', 'brandId', 'search', 'gender', 'minPrice', 'maxPrice', 'skip', 'take', 'orderBy'],
             merge(existing = [], incoming) {
               return incoming
             },

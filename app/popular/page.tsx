@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award, Trophy } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 export default function PopularPage() {
   const [activeTab, setActiveTab] = useState('trending')
@@ -71,6 +72,13 @@ export default function PopularPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 麵包屑導航 */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb items={[{ label: '熱銷排行' }]} />
+        </div>
+      </div>
+
       {/* 頂部橫幅 */}
       <div className={`bg-gradient-to-r ${currentTab?.bgColor || 'from-red-500 to-orange-500'} text-white`}>
         <div className="container mx-auto px-4 py-8">

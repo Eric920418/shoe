@@ -61,7 +61,7 @@ export default function AdminNav() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-4rem)] sticky top-16">
+    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen sticky top-0">
       <nav className="p-4 space-y-6">
         {navItems.map((section) => (
           <div key={section.title}>

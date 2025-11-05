@@ -18,10 +18,23 @@ const GET_GUARANTEE_ITEMS = gql`
   }
 `
 
+/**
+ * 服務保證欄組件
+ *
+ * 優化說明：
+ * ✅ 保留 GraphQL 查詢（支援後台動態管理）
+ * ✅ fetchPolicy 改為 cache-first（優先使用快取）
+ * ✅ 減少網路請求：首次載入後會快取結果，換頁返回時直接用快取
+ *
+ * 原 cache-and-network：每次都發請求 + 用快取
+ * 新 cache-first：優先用快取，沒快取才發請求
+ */
+
 const GuaranteeBar = () => {
-  // 查詢服務保證項目
+  // 查詢服務保證項目（優化：改用 cache-first）
   const { data } = useQuery(GET_GUARANTEE_ITEMS, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first', // 👈 優化重點：優先使用快取
+    nextFetchPolicy: 'cache-first',
   })
 
   // 圖標映射表
@@ -40,7 +53,7 @@ const GuaranteeBar = () => {
     Clock
   }
 
-  // 預設服務保證項目
+  // 預設服務保證項目（後台未設定時使用）
   const defaultGuarantees = [
     {
       icon: 'Shield',

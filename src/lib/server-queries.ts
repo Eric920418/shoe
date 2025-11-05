@@ -527,6 +527,27 @@ export const getActiveFlashSale = cache(async () => {
 })
 
 /**
+ * 獲取今日必搶配置
+ */
+export const getTodaysDeal = cache(async () => {
+  try {
+    const deal = await prisma.todaysDeal.findFirst({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    })
+
+    return deal
+  } catch (error) {
+    console.error('Failed to fetch todays deal:', error)
+    return null
+  }
+})
+
+/**
  * 獲取分類展示配置
  */
 export const getCategoryDisplays = cache(async () => {

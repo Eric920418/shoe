@@ -188,9 +188,10 @@ export default function AnnouncementModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedRecords, setDismissedRecords] = useState<Map<string, string>>(new Map())
 
+  // 優化：改用 cache-first 減少網路請求
   const { data, loading, refetch } = useQuery(GET_ACTIVE_ANNOUNCEMENTS, {
-    fetchPolicy: 'network-only', // 改為每次都從網路獲取最新數據
-    nextFetchPolicy: 'cache-first', // 後續查詢使用快取
+    fetchPolicy: 'cache-first', // 👈 優化：優先使用快取，減少重複請求
+    nextFetchPolicy: 'cache-first',
   })
 
   // 統一使用 localStorage（不再使用 sessionStorage，確保關閉記錄持久保存）

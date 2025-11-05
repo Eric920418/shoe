@@ -9,6 +9,7 @@ import {
   ChevronDown, ShoppingCart, Heart, Zap, Timer
 } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 // GraphQL 查詢
 const GET_FLASH_SALE = gql`
@@ -186,6 +187,13 @@ export default function FlashSalePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 麵包屑導航 */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb items={[{ label: '限時搶購' }]} />
+        </div>
+      </div>
+
       {/* 頂部橫幅 */}
       <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">

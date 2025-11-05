@@ -39,6 +39,7 @@ interface HomePageClientProps {
   }>
   products?: any[]
   flashSale?: any
+  todaysDeal?: any
   categoryDisplays?: any[]
 }
 
@@ -46,6 +47,7 @@ export default function HomePageClient({
   componentsConfig,
   products,
   flashSale,
+  todaysDeal,
   categoryDisplays
 }: HomePageClientProps) {
   // 渲染動態組件
@@ -78,6 +80,7 @@ export default function HomePageClient({
 
     if (config.componentType === 'DAILY_DEALS' && products) {
       componentProps.serverProducts = products
+      componentProps.serverDealConfig = todaysDeal // ✅ 傳遞今日必搶配置
     }
 
     if (config.componentType === 'HERO_SLIDER' && products) {
@@ -117,7 +120,7 @@ export default function HomePageClient({
             <MarketplaceHero serverProducts={products} />
             <GuaranteeBar />
             <FlashSale serverProducts={products} serverFlashSale={flashSale} />
-            <DailyDeals serverProducts={products} />
+            <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
             <CategoryGrid serverCategoryDisplays={categoryDisplays} />
             <SuperDeals />
             <PopularProducts serverProducts={products} />

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Sparkles, Gift, Package, Users, ShoppingBag, Zap, Heart, TrendingUp } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 // GraphQL 查詢：獲取正在進行中的組合套裝
 const GET_ACTIVE_BUNDLES = gql`
@@ -54,6 +55,13 @@ export default function SuperDealsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 麵包屑導航 */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb items={[{ label: '超值優惠' }]} />
+        </div>
+      </div>
+
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="container mx-auto px-4 py-8 text-center">
           <Sparkles className="mx-auto mb-3 animate-pulse" size={40} />

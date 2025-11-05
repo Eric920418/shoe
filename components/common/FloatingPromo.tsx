@@ -4,9 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowUp, MessageCircle, ShoppingCart, Gift, Star, Zap, Heart, Bell } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useGuestCart } from '@/contexts/GuestCartContext'
-import { GET_CART } from '@/graphql/queries'
+import { useCart } from '@/contexts/CartContext'
 
 // GraphQL 查詢：獲取浮動促銷按鈕
 const GET_FLOATING_PROMOS = gql`
@@ -24,25 +22,26 @@ const GET_FLOATING_PROMOS = gql`
   }
 `
 
+/**
+ * 浮動促銷組件
+ *
+ * 優化說明：
+ * ✅ 移除重複的 GET_CART 查詢
+ * ✅ 改用統一的 useCart hook（由 CartProvider 管理）
+ * ✅ 避免與 MarketplaceHeader 組件重複查詢，減少網路請求
+ * ✅ 浮動促銷按鈕改用 cache-first 策略
+ */
+
 const FloatingPromo = () => {
   const [showBackToTop, setShowBackToTop] = useState(false)
-  const { isAuthenticated } = useAuth()
-  const guestCart = useGuestCart()
 
-  // 會員購物車
-  const { data: cartData } = useQuery(GET_CART, {
-    skip: !isAuthenticated,
-    fetchPolicy: 'cache-and-network',
-  })
-
-  // 動態計算購物車總數量
-  const cartCount = isAuthenticated
-    ? (cartData?.cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0)
-    : guestCart.items.reduce((sum, item) => sum + item.quantity, 0)
+  // 使用統一的 Cart Context（避免重複查詢）
+  const { cartCount } = useCart()
 
   // 查詢浮動促銷按鈕配置
   const { data } = useQuery(GET_FLOATING_PROMOS, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first', // 👈 優化：改用 cache-first
+    nextFetchPolicy: 'cache-first',
   })
 
   useEffect(() => {

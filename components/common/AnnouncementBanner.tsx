@@ -60,8 +60,10 @@ const TYPE_STYLES = {
 export default function AnnouncementBanner() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
 
+  // ✅ 優化：與 AnnouncementModal 共用快取，避免重複請求
   const { data, loading } = useQuery(GET_ACTIVE_ANNOUNCEMENTS, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first', // 優先使用快取（與 Modal 共用）
+    nextFetchPolicy: 'cache-first',
   })
 
   if (loading || !data?.activeAnnouncements?.length) {

@@ -32,12 +32,40 @@ export default function WishlistButton({
 
   const isInWishlist = wishlistData?.isInWishlist || false
 
-  // Toggle wishlist mutation
+  // ✅ 優化：使用樂觀更新和快取修改，避免 refetch 重複請求
   const [toggleWishlist, { loading: toggling }] = useMutation(TOGGLE_WISHLIST, {
-    refetchQueries: [
-      { query: IS_IN_WISHLIST, variables: { productId } },
-      { query: GET_MY_WISHLIST },
-    ],
+    // 樂觀更新：立即更新 UI，不等待伺服器回應
+    optimisticResponse: {
+      toggleWishlist: {
+        __typename: 'ToggleWishlistResponse',
+        isInWishlist: !isInWishlist,
+        message: isInWishlist ? '已從願望清單移除' : '已添加到願望清單',
+      },
+    },
+    // 手動更新快取，不需要 refetchQueries
+    update: (cache, { data }) => {
+      if (!data) return
+
+      // 更新單個產品的願望清單狀態
+      cache.writeQuery({
+        query: IS_IN_WISHLIST,
+        variables: { productId },
+        data: { isInWishlist: data.toggleWishlist.isInWishlist },
+      })
+
+      // 如果是移除，從 GET_MY_WISHLIST 快取中移除該產品
+      if (!data.toggleWishlist.isInWishlist) {
+        cache.modify({
+          fields: {
+            myWishlist(existingWishlist = [], { readField }) {
+              return existingWishlist.filter(
+                (ref: any) => productId !== readField('productId', ref)
+              )
+            },
+          },
+        })
+      }
+    },
     onCompleted: (data) => {
       if (data.toggleWishlist.isInWishlist) {
         toast.success(data.toggleWishlist.message || '已添加到願望清單')
