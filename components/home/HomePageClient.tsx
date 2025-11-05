@@ -101,6 +101,14 @@ export default function HomePageClient({
     )
   }
 
+  // 分離 SaleCountdown 和其他組件
+  const saleCountdownConfig = componentsConfig.find(
+    config => config.componentType === 'SALE_COUNTDOWN' && config.isActive
+  )
+  const otherComponentsConfig = componentsConfig.filter(
+    config => config.componentType !== 'SALE_COUNTDOWN'
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 導航欄 - 始終顯示 */}
@@ -109,11 +117,14 @@ export default function HomePageClient({
       {/* 系統公告 - 始終顯示 */}
       <AnnouncementWrapper />
 
+      {/* 限時特賣跑馬燈 - 在 header 正下方 */}
+      {saleCountdownConfig && renderComponent(saleCountdownConfig)}
+
       {/* 主要內容區 */}
       <main className="max-w-[1400px] mx-auto px-2 sm:px-4">
-        {/* 根據後台配置動態渲染組件 */}
-        {componentsConfig.length > 0 ? (
-          componentsConfig.map(config => renderComponent(config))
+        {/* 根據後台配置動態渲染組件（排除 SaleCountdown） */}
+        {otherComponentsConfig.length > 0 ? (
+          otherComponentsConfig.map(config => renderComponent(config))
         ) : (
           // 如果沒有配置或配置載入失敗，顯示預設佈局
           <>
