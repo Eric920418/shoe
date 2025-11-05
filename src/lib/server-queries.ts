@@ -504,7 +504,7 @@ export const getHomepageProducts = cache(async (limit: number = 25) => {
 export const getActiveFlashSale = cache(async () => {
   try {
     const now = new Date()
-    const flashSale = await prisma.flashSale.findFirst({
+    const flashSale = await prisma.flashSaleConfig.findFirst({
       where: {
         isActive: true,
         startTime: {
@@ -531,7 +531,7 @@ export const getActiveFlashSale = cache(async () => {
  */
 export const getTodaysDeal = cache(async () => {
   try {
-    const deal = await prisma.todaysDeal.findFirst({
+    const deal = await prisma.dailyDealConfig.findFirst({
       where: {
         isActive: true,
       },
