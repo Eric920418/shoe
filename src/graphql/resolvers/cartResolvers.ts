@@ -95,9 +95,25 @@ export const cartResolvers = {
     // 加入購物車
     addToCart: async (_: any, args: any, context: Context) => {
       try {
-        const { productId, variantId, sizeChartId, quantity } = args
+        const {
+          productId,
+          variantId,
+          sizeChartId,
+          quantity,
+          bundleId,
+          isBundleItem,
+          bundleItemPrice
+        } = args
 
-        console.log('🛒 加入購物車請求:', { productId, variantId, sizeChartId, quantity })
+        console.log('🛒 加入購物車請求:', {
+          productId,
+          variantId,
+          sizeChartId,
+          quantity,
+          bundleId,
+          isBundleItem,
+          bundleItemPrice
+        })
 
         if (!context.user) {
           throw new Error('請先登入')
@@ -169,6 +185,19 @@ export const cartResolvers = {
         } else {
           // 如果不存在，新增購物車項目
           console.log('➕ 新增購物車項目')
+
+          // 決定使用的價格：如果是組合商品且提供了組合價格，使用組合價格；否則使用產品原價
+          const itemPrice = (isBundleItem && bundleItemPrice)
+            ? bundleItemPrice
+            : product.price
+
+          console.log('💰 使用價格:', {
+            isBundleItem,
+            bundleItemPrice,
+            productPrice: product.price,
+            finalPrice: itemPrice
+          })
+
           await prisma.cartItem.create({
             data: {
               cartId: cart.id,
@@ -177,7 +206,10 @@ export const cartResolvers = {
               variantId: variantId || null,
               sizeChartId,
               quantity,
-              price: product.price,
+              price: itemPrice,
+              bundleId: bundleId || null,
+              isBundleItem: isBundleItem || false,
+              bundleItemPrice: bundleItemPrice || null,
             },
           })
         }

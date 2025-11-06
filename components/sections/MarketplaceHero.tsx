@@ -5,7 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Flame, Gift, Star } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
-import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
+import { GET_HOMEPAGE_PRODUCTS, GET_AVAILABLE_CREDIT_AMOUNT, GET_SHIPPED_ORDERS } from '@/graphql/queries'
+import { useAuth } from '@/contexts/AuthContext'
 
 // GraphQL 查詢：獲取輪播圖設定
 const GET_HERO_SLIDES = gql`
@@ -41,11 +42,31 @@ interface MarketplaceHeroProps {
 
 const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const { isAuthenticated, user } = useAuth()
 
   // 查詢輪播圖資料
   const { data: slidesData, loading: slidesLoading, error: slidesError } = useQuery(GET_HERO_SLIDES, {
     fetchPolicy: 'cache-and-network',
   })
+
+  // 查詢購物金餘額（僅在已登入時）
+  const { data: creditData } = useQuery(GET_AVAILABLE_CREDIT_AMOUNT, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 查詢待收貨訂單數量（僅在已登入時）
+  const { data: ordersData } = useQuery(GET_SHIPPED_ORDERS, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 計算購物金餘額和待收貨數量
+  const creditBalance = creditData?.availableCreditAmount || 0
+  const pendingOrdersCount = React.useMemo(() => {
+    if (!ordersData?.myOrders) return 0
+    return ordersData.myOrders.filter((order: any) => order.status === 'SHIPPED').length
+  }, [ordersData])
 
   // 如果查詢出錯，打印錯誤信息
   if (slidesError) {
@@ -332,32 +353,46 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
       <div className="hidden 2xl:block w-64">
         <div className="sticky top-4 space-y-2 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1 custom-scrollbar">
           {/* 用戶資訊卡 */}
-          <div className="bg-white rounded-lg p-3 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                VIP
+          {isAuthenticated ? (
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  VIP
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">歡迎回來</p>
+                  <p className="font-medium text-sm">{user?.name || '親愛的會員'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-600">歡迎回來</p>
-                <p className="font-medium text-sm">親愛的會員</p>
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                <Link href="/account" className="bg-red-50 text-red-600 py-1.5 rounded-lg text-xs hover:bg-red-100 transition-colors text-center">
+                  會員中心
+                </Link>
+              </div>
+              <div className="border-t pt-2 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">購物金餘額</span>
+                  <span className="font-bold text-orange-600">${Math.round(creditBalance).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">待收貨</span>
+                  <span className="font-bold">{pendingOrdersCount}件</span>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 mb-2">
-              <button className="bg-red-50 text-red-600 py-1.5 rounded-lg text-xs hover:bg-red-100 transition-colors">
-                會員中心
-              </button>
-            </div>
-            <div className="border-t pt-2 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600">購物金餘額</span>
-                <span className="font-bold text-orange-600">$500</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600">待收貨</span>
-                <span className="font-bold">3件</span>
+          ) : (
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-600 mb-3">登入享會員專屬優惠</p>
+                <Link
+                  href="/auth/login"
+                  className="block bg-gradient-to-r from-orange-400 to-red-400 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-orange-500 hover:to-red-500 transition-all"
+                >
+                  立即登入
+                </Link>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 底部小型促銷卡片 */}
           <div className="grid grid-cols-2 gap-2">

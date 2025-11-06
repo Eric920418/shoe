@@ -310,22 +310,27 @@ model Cart {
 
 // 购物车项目
 model CartItem {
-  id           String          @id @default(cuid())
-  cartId       String
-  userId       String
-  productId    String
-  quantity     Int             @default(1)
-  price        Decimal         @db.Decimal(10, 2)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  variantId    String?
-  sizeChartId  String?         // 关联到尺码表
-  sizeEu       String?         // 冗余字段：选择的欧码
-  cart         Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product      Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  sizeChart    SizeChart?      @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
+  id              String          @id @default(cuid())
+  cartId          String
+  userId          String
+  productId       String
+  quantity        Int             @default(1)
+  price           Decimal         @db.Decimal(10, 2)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  variantId       String?
+  sizeChartId     String?         // 关联到尺码表
+  sizeEu          String?         // 冗余字段：选择的欧码
+  // 組合套裝相關字段
+  bundleId        String?         // 關聯到組合套裝
+  isBundleItem    Boolean         @default(false) // 是否為組合商品
+  bundleItemPrice Decimal?        @db.Decimal(10, 2) // 組合優惠分配後的價格（若為組合商品）
+  cart            Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  sizeChart       SizeChart?      @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
+  bundle          ProductBundle?  @relation(fields: [bundleId], references: [id], onDelete: SetNull)
 
   @@unique([cartId, productId, variantId, sizeChartId])
 
@@ -333,6 +338,7 @@ model CartItem {
   @@index([cartId])
   @@index([userId])
   @@index([productId])
+  @@index([bundleId])
 
   // ✅ 複合索引（優化查詢）
   @@index([cartId, productId, variantId, sizeChartId])  // 查找重複項目
@@ -1188,6 +1194,7 @@ model ProductBundle {
   updatedAt       DateTime      @updatedAt
 
   items           BundleItem[]  // 包含的產品
+  cartItems       CartItem[]    // 購物車中的組合商品
 
   @@index([isActive, isFeatured])
   @@index([showOnHomepage, sortOrder])

@@ -229,6 +229,9 @@ export const GET_CART = gql`
         addedPrice
         subtotal
         sizeEu
+        bundleId
+        isBundleItem
+        bundleItemPrice
         product {
           id
           name
@@ -247,6 +250,13 @@ export const GET_CART = gql`
           us
           uk
           cm
+        }
+        bundle {
+          id
+          name
+          slug
+          discount
+          discountPercent
         }
       }
       total
@@ -1072,6 +1082,48 @@ export const TOGGLE_WISHLIST = gql`
     toggleWishlist(productId: $productId) {
       isInWishlist
       message
+    }
+  }
+`
+
+// ============================================
+// 購物金相關查詢
+// ============================================
+
+export const GET_AVAILABLE_CREDIT_AMOUNT = gql`
+  query GetAvailableCreditAmount {
+    availableCreditAmount
+  }
+`
+
+export const GET_MY_CREDITS = gql`
+  query GetMyCredits {
+    myCredits {
+      id
+      amount
+      balance
+      source
+      description
+      validFrom
+      validUntil
+      minOrderAmount
+      maxUsagePerOrder
+      isUsed
+      isActive
+      createdAt
+    }
+  }
+`
+
+// ============================================
+// 用戶統計相關查詢
+// ============================================
+
+export const GET_SHIPPED_ORDERS = gql`
+  query GetShippedOrders {
+    myOrders {
+      id
+      status
     }
   }
 `

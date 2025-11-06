@@ -383,10 +383,14 @@ export const typeDefs = gql`
     price: Decimal!
     addedPrice: Decimal!
     subtotal: Float!
+    bundleId: String
+    isBundleItem: Boolean!
+    bundleItemPrice: Decimal
     cart: Cart!
     product: Product!
     variant: ProductVariant
     sizeChart: SizeChart!
+    bundle: ProductBundle
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -1623,7 +1627,15 @@ export const typeDefs = gql`
     setDefaultAddress(id: ID!): Address!
     
     # 購物車
-    addToCart(productId: ID!, variantId: ID, sizeChartId: ID!, quantity: Int!): Cart!
+    addToCart(
+      productId: ID!
+      variantId: ID
+      sizeChartId: ID!
+      quantity: Int!
+      bundleId: ID
+      isBundleItem: Boolean
+      bundleItemPrice: Decimal
+    ): Cart!
     updateCartItem(cartItemId: ID!, quantity: Int!): Cart!
     removeFromCart(cartItemId: ID!): Cart!
     clearCart: Cart!

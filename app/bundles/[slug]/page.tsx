@@ -75,12 +75,18 @@ const ADD_TO_CART = gql`
     $variantId: ID
     $sizeChartId: ID!
     $quantity: Int!
+    $bundleId: ID
+    $isBundleItem: Boolean
+    $bundleItemPrice: Decimal
   ) {
     addToCart(
       productId: $productId
       variantId: $variantId
       sizeChartId: $sizeChartId
       quantity: $quantity
+      bundleId: $bundleId
+      isBundleItem: $isBundleItem
+      bundleItemPrice: $bundleItemPrice
     ) {
       id
       items {
@@ -170,6 +176,17 @@ export default function BundlePage() {
     }
 
     try {
+      // 計算組合優惠比例
+      const originalPrice = parseFloat(bundle.originalPrice)
+      const bundlePrice = parseFloat(bundle.bundlePrice)
+      const discountRatio = bundlePrice / originalPrice
+
+      console.log('💰 組合優惠計算:', {
+        originalPrice,
+        bundlePrice,
+        discountRatio
+      })
+
       // 逐個添加套裝中的產品到購物車
       let addedCount = 0
       for (const item of bundle.items) {
@@ -180,18 +197,33 @@ export default function BundlePage() {
           throw new Error(`請為 ${item.product.name} 選擇尺碼`)
         }
 
+        // 計算此產品的組合優惠價格
+        // 公式：產品原價 × 組合折扣比例，取整數
+        const productOriginalPrice = parseFloat(item.product.price)
+        const bundleItemPrice = Math.round(productOriginalPrice * discountRatio)
+
+        console.log(`💰 ${item.product.name} 價格計算:`, {
+          productOriginalPrice,
+          bundleItemPriceBeforeRound: productOriginalPrice * discountRatio,
+          bundleItemPrice,
+          quantity: item.quantity
+        })
+
         await addToCart({
           variables: {
             productId: item.product.id,
             variantId: selected.variantId || null,
             sizeChartId: selected.sizeId,
-            quantity: item.quantity * quantity
+            quantity: item.quantity * quantity,
+            bundleId: bundle.id,
+            isBundleItem: true,
+            bundleItemPrice: bundleItemPrice
           }
         })
         addedCount++
       }
 
-      toast.success(`已將 ${addedCount} 件商品加入購物車！`)
+      toast.success(`已將組合優惠 ${addedCount} 件商品加入購物車！`)
       router.push('/cart')
     } catch (error) {
       console.error('加入購物車失敗:', error)
