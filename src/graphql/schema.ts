@@ -88,6 +88,27 @@ export const typeDefs = gql`
     LINE_PAY
     CREDIT_CARD
     CASH_ON_DELIVERY
+    NEWEBPAY
+  }
+
+  # 藍新金流支付方式
+  enum NewebPaymentType {
+    CREDIT_CARD
+    VACC
+    CVS
+    BARCODE
+    WEBATM
+  }
+
+  # 藍新金流支付狀態
+  enum NewebPaymentStatus {
+    PENDING
+    PROCESSING
+    SUCCESS
+    FAILED
+    CANCELLED
+    EXPIRED
+    REFUNDED
   }
 
   enum ShippingStatus {
@@ -462,6 +483,47 @@ export const typeDefs = gql`
     product: Product!
     variant: ProductVariant
     createdAt: DateTime!
+  }
+
+  # 支付資訊（藍新金流）
+  type Payment {
+    id: ID!
+    orderId: String!
+    merchantOrderNo: String!
+    tradeNo: String
+    amount: Decimal!
+    paymentType: NewebPaymentType!
+    paymentTypeName: String
+    status: NewebPaymentStatus!
+    # ATM 資訊
+    atmBankCode: String
+    atmVirtualAccount: String
+    atmExpireDate: DateTime
+    # 超商資訊
+    cvsBankCode: String
+    cvsPaymentNo: String
+    cvsExpireDate: DateTime
+    # 信用卡資訊
+    card4No: String
+    card6No: String
+    authBank: String
+    respondCode: String
+    # 時間記錄
+    payTime: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    # 錯誤資訊
+    errorMessage: String
+    errorCode: String
+    # 關聯
+    order: Order!
+  }
+
+  # 支付操作回應
+  type PaymentResponse {
+    success: Boolean!
+    message: String!
+    orderId: String
   }
 
   # 優惠券
@@ -1434,6 +1496,32 @@ export const typeDefs = gql`
     subscribedUsers: Int!
   }
 
+  # ==================== 儀表板統計 ====================
+
+  # 儀表板統計資料
+  type DashboardStats {
+    totalOrders: Int!
+    totalRevenue: Float!
+    totalProducts: Int!
+    totalUsers: Int!
+    ordersToday: Int!
+    revenueToday: Float!
+    pendingOrders: Int!
+    lowStockProducts: Int!
+    revenueGrowth: Float!
+    newUsersThisMonth: Int!
+  }
+
+  # 近期訂單資料
+  type RecentOrder {
+    id: ID!
+    orderNumber: String!
+    customer: String!
+    total: Float!
+    status: OrderStatus!
+    createdAt: DateTime!
+  }
+
   # ==================== Query ====================
 
   type Query {
@@ -1448,6 +1536,10 @@ export const typeDefs = gql`
       page: Int
       limit: Int
     ): UsersResponse!
+
+    # 儀表板統計（管理員專用）
+    dashboardStats: DashboardStats!
+    recentOrders(limit: Int): [RecentOrder!]!
 
     # 地址相关
     myAddresses: [Address!]!
@@ -1483,6 +1575,11 @@ export const typeDefs = gql`
     orders(skip: Int, take: Int, where: JSON): [Order!]!
     # 訪客訂單追蹤（不需要登入）
     trackOrder(orderNumber: String!, phone: String!): Order
+
+    # 支付（藍新金流）
+    payment(orderId: ID!): Payment
+    paymentByMerchantOrderNo(merchantOrderNo: String!): Payment
+    payments(userId: ID, status: NewebPaymentStatus): [Payment!]!
 
     # 優惠券
     coupon(id: ID, code: String): Coupon
@@ -1645,6 +1742,10 @@ export const typeDefs = gql`
     updateOrderStatus(id: ID!, status: OrderStatus!): Order!
     cancelOrder(id: ID!, reason: String, comment: String): Order!
     uploadBankTransferProof(orderId: ID!, image: String!, note: String): Order!
+
+    # 支付（藍新金流）
+    createPayment(orderId: ID!, paymentTypes: [NewebPaymentType!]!): PaymentResponse!
+    cancelPayment(paymentId: ID!): PaymentResponse!
     
     # 產品管理（管理員）
     createProduct(input: CreateProductInput!): Product!

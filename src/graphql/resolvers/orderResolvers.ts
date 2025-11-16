@@ -334,7 +334,7 @@ export const orderResolvers = {
 
         // 會員模式：從購物車獲取商品
         if (!isGuest && user) {
-          cartItems = await prisma.cartItem.findMany({
+          const dbCartItems = await prisma.cartItem.findMany({
             where: { userId: user.userId },
             include: {
               product: {
@@ -346,11 +346,19 @@ export const orderResolvers = {
             },
           })
 
-          if (!cartItems || cartItems.length === 0) {
+          if (!dbCartItems || dbCartItems.length === 0) {
             throw new GraphQLError('購物車是空的', {
               extensions: { code: 'BAD_USER_INPUT' },
             })
           }
+
+          // 將數據庫購物車轉換為統一格式（添加 addedPrice 字段）
+          cartItems = dbCartItems.map((item) => ({
+            ...item,
+            addedPrice: item.variant
+              ? item.product.price.toNumber() + item.variant.priceAdjustment.toNumber()
+              : item.product.price.toNumber(),
+          }))
         }
         // 訪客模式：從 input.items 獲取商品
         else {
@@ -406,7 +414,8 @@ export const orderResolvers = {
 
         // 計算總金額
         const subtotal = cartItems.reduce((sum, item) => {
-          return sum + item.addedPrice.toNumber() * item.quantity
+          const price = typeof item.addedPrice === 'number' ? item.addedPrice : item.addedPrice.toNumber()
+          return sum + price * item.quantity
         }, 0)
 
         const shippingFee = 0 // 免運費
@@ -527,7 +536,7 @@ export const orderResolvers = {
                 color: item.variant?.color || null,
                 quantity: item.quantity,
                 price: item.addedPrice,
-                subtotal: item.addedPrice.toNumber() * item.quantity,
+                subtotal: (typeof item.addedPrice === 'number' ? item.addedPrice : item.addedPrice.toNumber()) * item.quantity,
                 sku: item.variant?.sku || item.product.sku,
               })),
             },

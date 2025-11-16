@@ -1196,3 +1196,37 @@ export const DELETE_SIZE_CHART = gql`
     deleteSizeChart(id: $id)
   }
 `
+
+// ============================================
+// Dashboard 儀表板相關查詢（管理員專用）
+// ============================================
+
+export const GET_DASHBOARD_STATS = gql`
+  query GetDashboardStats {
+    dashboardStats {
+      totalOrders
+      totalRevenue
+      totalProducts
+      totalUsers
+      ordersToday
+      revenueToday
+      pendingOrders
+      lowStockProducts
+      revenueGrowth
+      newUsersThisMonth
+    }
+  }
+`
+
+export const GET_RECENT_ORDERS = gql`
+  query GetRecentOrders($limit: Int) {
+    recentOrders(limit: $limit) {
+      id
+      orderNumber
+      customer
+      total
+      status
+      createdAt
+    }
+  }
+`

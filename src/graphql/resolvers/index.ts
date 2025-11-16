@@ -22,6 +22,8 @@ import { emailCampaignResolvers } from './emailCampaignResolvers'
 import { homepageResolvers } from './homepageResolvers'
 import { wishlistResolvers } from './wishlistResolvers'
 import { bundleResolvers } from './bundleResolvers'
+import { dashboardResolvers } from './dashboardResolvers'
+import { paymentQueries, paymentMutations } from './paymentResolvers'
 import { GraphQLScalarType, Kind } from 'graphql'
 
 // Decimal scalar 定義 - 用於處理精確的十進制數字
@@ -79,6 +81,8 @@ export const resolvers = {
     ...homepageResolvers.Query,
     ...wishlistResolvers.Query,
     ...bundleResolvers.Query,
+    ...dashboardResolvers.Query,
+    ...paymentQueries,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -101,6 +105,7 @@ export const resolvers = {
     ...homepageResolvers.Mutation,
     ...wishlistResolvers.Mutation,
     ...bundleResolvers.Mutation,
+    ...paymentMutations,
   },
   User: authResolvers.User,
   Product: productResolvers.Product,

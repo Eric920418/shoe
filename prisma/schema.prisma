@@ -394,6 +394,7 @@ model Order {
   coupon                 Coupon?         @relation(fields: [couponId], references: [id])
   user                   User?           @relation(fields: [userId], references: [id])
   returns                Return[]
+  payment                Payment?
 
   // ✅ 單一欄位索引
   @@index([userId])
@@ -440,6 +441,60 @@ model OrderItem {
   @@index([productId, orderId])  // 複合查詢
 
   @@map("order_items")
+}
+
+// ============================================
+// 支付系统（藍新金流）
+// ============================================
+
+model Payment {
+  id                    String             @id @default(cuid())
+  orderId               String             @unique // 關聯訂單
+  merchantOrderNo       String             @unique // 商店訂單編號
+  tradeNo               String?            @unique // 藍新金流交易編號
+  amount                Decimal            @db.Decimal(10, 2) // 支付金額
+  paymentType           NewebPaymentType   // 支付方式（信用卡/ATM/超商）
+  status                NewebPaymentStatus @default(PENDING) // 支付狀態
+
+  // 藍新金流回傳資料
+  tradeInfo             String?            @db.Text // 加密的交易資料
+  tradeSha              String?            // 交易驗證碼
+  responseData          Json?              // 解密後的完整回傳資料
+
+  // ATM 專用欄位
+  atmBankCode           String?            // 銀行代碼
+  atmVirtualAccount     String?            // 虛擬帳號
+  atmExpireDate         DateTime?          // 繳費期限
+
+  // 超商代碼專用欄位
+  cvsBankCode           String?            // 超商代碼
+  cvsPaymentNo          String?            // 繳費代碼
+  cvsExpireDate         DateTime?          // 繳費期限
+
+  // 信用卡專用欄位
+  card4No               String?            // 信用卡末四碼
+  card6No               String?            // 信用卡前六碼
+  authBank              String?            // 授權銀行
+  respondCode           String?            // 授權碼
+
+  // 時間記錄
+  payTime               DateTime?          // 實際支付時間
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  // 錯誤記錄
+  errorMessage          String?            // 錯誤訊息
+  errorCode             String?            // 錯誤代碼
+
+  order                 Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([merchantOrderNo])
+  @@index([tradeNo])
+  @@index([status])
+  @@index([paymentType])
+  @@index([createdAt])
+  @@map("payments")
 }
 
 // ============================================
@@ -934,6 +989,27 @@ enum PaymentMethod {
   LINE_PAY
   CREDIT_CARD
   CASH_ON_DELIVERY
+  NEWEBPAY  // 藍新金流
+}
+
+// 藍新金流支付方式
+enum NewebPaymentType {
+  CREDIT_CARD  // 信用卡
+  VACC         // ATM 轉帳
+  CVS          // 超商代碼
+  BARCODE      // 超商條碼
+  WEBATM       // 網路 ATM
+}
+
+// 藍新金流支付狀態
+enum NewebPaymentStatus {
+  PENDING      // 待支付
+  PROCESSING   // 處理中
+  SUCCESS      // 支付成功
+  FAILED       // 支付失敗
+  CANCELLED    // 已取消
+  EXPIRED      // 已過期（ATM/超商逾期未繳）
+  REFUNDED     // 已退款
 }
 
 enum ShippingStatus {
