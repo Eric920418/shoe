@@ -480,7 +480,7 @@ export const typeDefs = gql`
     sizeEu: String
     color: String
     order: Order!
-    product: Product!
+    product: Product  # 產品可能已被刪除，設為可選
     variant: ProductVariant
     createdAt: DateTime!
   }
@@ -1929,7 +1929,7 @@ export const typeDefs = gql`
   }
 
   input CreateOrderInput {
-    items: [OrderItemInput!]!
+    items: [OrderItemInput!]  # 選填：會員模式從購物車獲取，訪客模式必須提供
     shippingName: String!
     shippingPhone: String!
     shippingCountry: String!

@@ -72,7 +72,7 @@ export default function CheckoutPage() {
     shippingStreet: '',
     shippingZipCode: '',
     shippingCountry: '台灣',
-    paymentMethod: 'CASH_ON_DELIVERY', // 預設為貨到付款（最安全）
+    paymentMethod: 'NEWEBPAY', // 所有訂單都使用藍新金流
     notes: '',
   })
 
@@ -103,70 +103,59 @@ export default function CheckoutPage() {
     onCompleted: async (data) => {
       const order = data.createOrder
 
-      // 根據付款方式決定後續流程
-      if (formData.paymentMethod === 'NEWEBPAY') {
-        // 藍新金流線上支付：跳轉到支付頁面
-        setProcessingPayment(true)
+      // 所有訂單都通過藍新金流處理
+      setProcessingPayment(true)
 
-        try {
-          // 呼叫藍新金流 API 創建支付
-          const response = await fetch('/api/newebpay/create-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId: order.id,
-              paymentTypes: ['CREDIT_CARD', 'VACC', 'CVS'], // 啟用信用卡、ATM、超商
-              itemDesc: `訂單 ${order.orderNumber}`,
-            }),
+      try {
+        // 呼叫藍新金流 API 創建支付
+        const response = await fetch('/api/newebpay/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: order.id,
+            // 啟用所有已開通的支付方式
+            paymentTypes: ['CREDIT_CARD', 'VACC', 'CVS', 'BARCODE', 'WEBATM'],
+            itemDesc: `訂單 ${order.orderNumber}`,
+          }),
+        })
+
+        const paymentData = await response.json()
+
+        if (paymentData.success) {
+          // 動態建立表單並提交到藍新金流
+          const { mpgUrl, formData } = paymentData.data
+
+          const form = document.createElement('form')
+          form.method = 'POST'
+          form.action = mpgUrl
+          form.style.display = 'none'
+
+          Object.entries(formData).forEach(([key, value]) => {
+            const input = document.createElement('input')
+            input.type = 'hidden'
+            input.name = key
+            input.value = value as string
+            form.appendChild(input)
           })
 
-          const paymentData = await response.json()
+          document.body.appendChild(form)
 
-          if (paymentData.success) {
-            // 動態建立表單並提交到藍新金流
-            const { mpgUrl, formData } = paymentData.data
-
-            const form = document.createElement('form')
-            form.method = 'POST'
-            form.action = mpgUrl
-            form.style.display = 'none'
-
-            Object.entries(formData).forEach(([key, value]) => {
-              const input = document.createElement('input')
-              input.type = 'hidden'
-              input.name = key
-              input.value = value as string
-              form.appendChild(input)
-            })
-
-            document.body.appendChild(form)
-
-            // 清空購物車（訪客模式）
-            if (!isAuthenticated) {
-              guestCart.clearCart()
-            }
-
-            // 提交表單到藍新金流
-            setTimeout(() => {
-              form.submit()
-            }, 500)
-          } else {
-            throw new Error(paymentData.error || '創建支付失敗')
+          // 清空購物車（訪客模式）
+          if (!isAuthenticated) {
+            guestCart.clearCart()
           }
-        } catch (error) {
-          console.error('創建支付失敗:', error)
-          alert('創建支付失敗，請稍後再試')
-          setProcessingPayment(false)
-        }
-      } else {
-        // 其他支付方式（銀行轉帳、貨到付款）：直接跳轉到訂單完成頁
-        // 清空購物車（訪客模式）
-        if (!isAuthenticated) {
-          guestCart.clearCart()
-        }
 
-        // 跳轉到訂單完成頁
-        router.push(`/orders/success?orderNumber=${order.orderNumber}&phone=${formData.guestPhone || user?.phone}`)
+          // 提交表單到藍新金流
+          setTimeout(() => {
+            form.submit()
+          }, 500)
+        } else {
+          throw new Error(paymentData.error || '創建支付失敗')
+        }
+      } catch (error) {
+        console.error('創建支付失敗:', error)
+        alert('創建支付失敗，請稍後再試')
+        setProcessingPayment(false)
       }
     },
     onError: (error) => {
@@ -191,9 +180,8 @@ export default function CheckoutPage() {
   const totalDiscount = couponDiscount + creditDiscount
   const finalTotal = Math.max(0, cartSubtotal + shippingFee - totalDiscount)
 
-  // 貨到付款手續費
-  const codFee = formData.paymentMethod === 'CASH_ON_DELIVERY' ? 60 : 0
-  const grandTotal = finalTotal + codFee
+  // 所有訂單都通過藍新金流，無需額外手續費
+  const grandTotal = finalTotal
 
   // 表單輸入變更處理
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -544,75 +532,37 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* 付款方式 */}
+              {/* 付款方式說明 - 所有訂單都通過藍新金流 */}
               <div>
                 <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">付款方式</h2>
 
-                <div className="space-y-4">
-                  {/* 貨到付款 */}
-                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'CASH_ON_DELIVERY' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="CASH_ON_DELIVERY"
-                      checked={formData.paymentMethod === 'CASH_ON_DELIVERY'}
-                      onChange={handleChange}
-                      className="w-5 h-5 mr-4"
-                    />
+                <div className="p-6 border-2 border-blue-500 bg-blue-50 rounded-lg">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
                     <div className="flex-1">
-                      <div className="font-medium text-black flex items-center">
-                        貨到付款
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded">安全便利</span>
+                      <h3 className="font-bold text-black text-lg mb-2">藍新金流安全付款</h3>
+                      <p className="text-sm text-gray-700 mb-3">
+                        點擊「前往付款」後，將跳轉至藍新金流安全付款頁面，您可以選擇以下付款方式：
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">💳 信用卡</span>
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">🏦 ATM 轉帳</span>
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">🏪 超商代碼</span>
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">📊 超商條碼</span>
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">💻 網路 ATM</span>
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        收到商品時現金付款（需加收手續費 NT$60）
+                      <div className="mt-4 flex items-center text-xs text-gray-600">
+                        <svg className="w-4 h-4 mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        SSL 加密連線，安全有保障
                       </div>
                     </div>
-                  </label>
-
-                  {/* 銀行轉帳 */}
-                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'BANK_TRANSFER' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="BANK_TRANSFER"
-                      checked={formData.paymentMethod === 'BANK_TRANSFER'}
-                      onChange={handleChange}
-                      className="w-5 h-5 mr-4"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-black">銀行轉帳</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        訂單確認後將提供匯款資訊，請於3天內完成轉帳
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* 藍新金流（線上支付） */}
-                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'NEWEBPAY' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="NEWEBPAY"
-                      checked={formData.paymentMethod === 'NEWEBPAY'}
-                      onChange={handleChange}
-                      className="w-5 h-5 mr-4"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-black flex items-center">
-                        線上支付
-                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">即時到帳</span>
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        支援信用卡、ATM轉帳、超商代碼繳費
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">信用卡</span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">ATM</span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">超商繳費</span>
-                      </div>
-                    </div>
-                  </label>
+                  </div>
                 </div>
               </div>
 
@@ -736,15 +686,6 @@ export default function CheckoutPage() {
                       </span>
                     </div>
 
-                    {formData.paymentMethod === 'CASH_ON_DELIVERY' && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">貨到付款手續費</span>
-                        <span className="text-black font-medium">
-                          NT$ 60
-                        </span>
-                      </div>
-                    )}
-
                     <div className="border-t border-gray-300 pt-4">
                       <div className="flex justify-between items-baseline">
                         <span className="text-base font-bold text-black uppercase">
@@ -773,7 +714,7 @@ export default function CheckoutPage() {
                       disabled={creating || processingPayment}
                       className="w-full py-4 bg-black text-white rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {processingPayment ? '正在處理支付...' : creating ? '處理中...' : formData.paymentMethod === 'NEWEBPAY' ? '前往支付' : '確認訂單'}
+                      {processingPayment ? '正在跳轉藍新金流...' : creating ? '處理中...' : '前往付款'}
                     </button>
 
                     <Link
