@@ -13,6 +13,7 @@ import { GET_CART, UPDATE_CART_ITEM, REMOVE_FROM_CART, CLEAR_CART } from '@/grap
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import MembershipBenefitsBanner from '@/components/common/MembershipBenefitsBanner'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 // ✅ 解析圖片陣列（提取為獨立函數）
 const parseImages = (images: string[] | string): string[] => {
@@ -213,6 +214,17 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* 麵包屑導航 */}
+      <div className="border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Breadcrumb
+            items={[
+              { label: '購物車' }
+            ]}
+          />
+        </div>
+      </div>
+
       {/* 訪客模式：會員好處提示 */}
       {isGuest && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
