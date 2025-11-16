@@ -99,7 +99,7 @@ export default function ProfilePage() {
                 地址管理
               </Link>
               <Link
-                href="/orders"
+                href="/account/orders"
                 className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
               >
                 我的訂單

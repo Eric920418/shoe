@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
+import AccountHeader from '@/components/navigation/AccountHeader'
 
 // GraphQL
 const GET_USER_PROFILE = gql`
@@ -178,8 +179,10 @@ export default function AccountPage() {
   const tierStyles = getMembershipTierStyles(user?.membershipTier)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-6 sm:py-8">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <>
+      <AccountHeader />
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* 側邊欄 */}
           <div className="lg:col-span-1">
@@ -253,7 +256,7 @@ export default function AccountPage() {
                   🎁 購物金 & 優惠券
                 </Link>
                 <Link
-                  href="/orders"
+                  href="/account/orders"
                   className="block w-full px-4 py-3.5 text-center bg-white border-2 border-orange-300 text-orange-600 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all font-medium"
                 >
                   📦 我的訂單
@@ -484,5 +487,6 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

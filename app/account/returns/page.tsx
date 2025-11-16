@@ -15,6 +15,7 @@ import { useQuery, useMutation, gql } from '@apollo/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import AccountHeader from '@/components/navigation/AccountHeader';
 
 const MY_RETURNS_QUERY = gql`
   query MyReturns {
@@ -202,7 +203,9 @@ export default function MyReturnsPage() {
   const returns = returnsData?.myReturns || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <AccountHeader />
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">我的退貨申請</h1>
@@ -499,5 +502,6 @@ export default function MyReturnsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

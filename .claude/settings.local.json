@@ -11,7 +11,8 @@
       "Bash(pnpm db:generate:*)",
       "Bash(curl:*)",
       "Bash(pnpm prisma migrate:*)",
-      "Bash(sudo -u postgres psql:*)"
+      "Bash(sudo -u postgres psql:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

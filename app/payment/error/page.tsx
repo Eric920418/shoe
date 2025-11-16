@@ -49,7 +49,7 @@ function PaymentErrorContent() {
         {/* 操作按鈕 */}
         <div className="space-y-3">
           <Link
-            href="/orders"
+            href="/account/orders"
             className="block w-full bg-blue-600 text-white text-center py-3 rounded-lg font-medium hover:bg-blue-700 transition"
           >
             查看我的訂單

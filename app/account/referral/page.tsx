@@ -4,6 +4,7 @@ import { useQuery, gql } from '@apollo/client'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Users, DollarSign, Clock, Copy, Check, Share2, ChevronRight } from 'lucide-react'
+import AccountHeader from '@/components/navigation/AccountHeader'
 
 const GET_MY_REFERRAL = gql`
   query GetMyReferral {
@@ -78,7 +79,9 @@ export default function ReferralPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <AccountHeader />
+      <div className="min-h-screen bg-white">
       {/* Hero Section - Black Background */}
       <div className="bg-black text-white py-16 px-4 relative overflow-hidden">
         {/* Decorative Slash Lines */}
@@ -296,5 +299,6 @@ export default function ReferralPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

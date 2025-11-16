@@ -12,7 +12,7 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     if (!orderId) {
-      router.push('/orders');
+      router.push('/account/orders');
       return;
     }
 

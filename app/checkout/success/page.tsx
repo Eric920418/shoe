@@ -133,7 +133,7 @@ function OrderSuccessContent() {
       {/* 操作按鈕 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
-          href="/orders"
+          href="/account/orders"
           className="block py-3 bg-primary-600 text-white text-center rounded-lg hover:bg-primary-700 transition-colors font-medium"
         >
           查看我的訂單

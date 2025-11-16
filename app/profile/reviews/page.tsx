@@ -80,7 +80,7 @@ export default function MyReviewsPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">我的評論</h1>
         <Link
-          href="/orders"
+          href="/account/orders"
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
         >
           去評論商品
@@ -92,7 +92,7 @@ export default function MyReviewsPage() {
           <div className="text-center py-12 bg-white rounded-lg border">
             <p className="text-gray-600 mb-4">您還沒有撰寫任何評論</p>
             <Link
-              href="/orders"
+              href="/account/orders"
               className="inline-block px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
               查看我的訂單

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { useAuth } from '@/contexts/AuthContext'
+import AccountHeader from '@/components/navigation/AccountHeader'
 
 const GET_MY_CONVERSATIONS = gql`
   query GetMyConversations {
@@ -136,7 +137,9 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <>
+      <AccountHeader />
+      <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">客服中心</h1>
         <p className="text-gray-600 mt-2">有任何問題嗎？我們隨時為您服務</p>
@@ -348,5 +351,6 @@ export default function SupportPage() {
         </div>
       )}
     </div>
+    </>
   )
 }

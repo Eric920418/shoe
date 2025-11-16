@@ -16,6 +16,7 @@ import { gql, useQuery } from '@apollo/client'
 import { format } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import Link from 'next/link'
+import AccountHeader from '@/components/navigation/AccountHeader'
 
 // GraphQL Queries
 const GET_MY_CREDITS = gql`
@@ -180,8 +181,10 @@ export default function WalletPage() {
   )
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <>
+      <AccountHeader />
+      <div className="min-h-screen bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* 標題 */}
         <div className="mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-black tracking-tight">錢包</h1>
@@ -479,5 +482,6 @@ export default function WalletPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
