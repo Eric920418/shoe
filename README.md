@@ -2,11 +2,34 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.3.5 | **狀態**: ✅ 生產就緒 | **更新**: 2025-11-05
+**版本**: 2.3.6 | **狀態**: ✅ 生產就緒 | **更新**: 2025-11-17
 
 ---
 
 ## 🚀 最新更新
+
+### 2025-11-17 🛒 產品詳情頁體驗優化
+
+**更新時間**: 2025-11-17 | **優先級**: 🟢 用戶體驗改進
+
+#### 優化內容
+
+**1. 麵包屑導航改進** (`components/common/Breadcrumb.tsx`)
+- ✅ 新增 `showCartLink` 屬性，支援在麵包屑右側顯示購物車連結
+- ✅ 購物車連結帶有圖示和 hover 動畫效果
+- ✅ 產品詳情頁統一使用 `Breadcrumb` 組件，不再自行實現
+
+**2. 加入購物車自動跳轉** (`app/products/[slug]/ModernProductDetail.tsx:88-112`)
+- ✅ 加入購物車成功後自動跳轉至購物車頁面（0.5 秒延遲）
+- ✅ 提示訊息改為「已加入購物車，正在前往購物車...」
+- ✅ 同時支援會員模式和訪客模式
+
+**影響範圍**：
+- 📱 所有產品詳情頁 (`/products/[slug]`) 自動套用改進
+- 🎯 提升轉換率，減少用戶跳出
+- 💡 更符合電商直覺操作流程
+
+---
 
 ### 2025-11-05 ⚡ 性能優化 - GraphQL 快取與資料庫查詢優化
 
@@ -371,6 +394,12 @@ import MobileTableCard from '@/components/admin/MobileTableCard'
   { label: '購物車', href: '/cart' },
   { label: '結帳' }
 ]} />
+
+// 產品詳情頁：顯示購物車連結
+<Breadcrumb
+  items={[{ label: product.name }]}
+  showCartLink={true}  // 麵包屑右側顯示購物車連結
+/>
 
 // 使用返回首頁按鈕
 <BackToHomeButton />  // 嵌入式

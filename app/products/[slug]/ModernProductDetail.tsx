@@ -3,11 +3,13 @@
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useMutation } from '@apollo/client'
 import { ADD_TO_CART } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import toast from 'react-hot-toast'
+import Breadcrumb from '@/components/common/Breadcrumb'
 
 // ✅ 解析圖片陣列（提取為獨立函數）
 const parseImages = (images: string[] | string): string[] => {
@@ -36,6 +38,7 @@ const parseFeatures = (features: string[] | string): string[] => {
 }
 
 export default function ModernProductDetail({ product }: { product: any }) {
+  const router = useRouter()
   const { isAuthenticated } = useAuth()
   const guestCart = useGuestCart()
 
@@ -82,7 +85,11 @@ export default function ModernProductDetail({ product }: { product: any }) {
             quantity,
           },
         })
-        toast.success('已加入購物車')
+        toast.success('已加入購物車，正在前往購物車...')
+        // 跳轉到購物車頁面
+        setTimeout(() => {
+          router.push('/cart')
+        }, 500)
       }
       // 訪客模式：使用 localStorage
       else {
@@ -98,12 +105,15 @@ export default function ModernProductDetail({ product }: { product: any }) {
           price: finalPrice,
           stock: selectedSize.stock,
         })
-        toast.success('已加入購物車')
+        toast.success('已加入購物車，正在前往購物車...')
+        // 跳轉到購物車頁面
+        setTimeout(() => {
+          router.push('/cart')
+        }, 500)
       }
     } catch (error: any) {
       console.error('加入購物車失敗:', error)
       toast.error(error.message || '加入購物車失敗')
-    } finally {
       setIsAdding(false)
     }
   }
@@ -113,13 +123,12 @@ export default function ModernProductDetail({ product }: { product: any }) {
       {/* 麵包屑導航 */}
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-2 text-sm">
-            <Link href="/" className="text-gray-500 hover:text-black">
-              首頁
-            </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-black font-medium">{product.name}</span>
-          </div>
+          <Breadcrumb
+            items={[
+              { label: product.name }
+            ]}
+            showCartLink={true}
+          />
         </div>
       </div>
 

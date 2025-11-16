@@ -73,13 +73,6 @@ export default function AccountHeader() {
   return (
     <div className="bg-white border-b border-orange-200 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 標題區 */}
-        <div className="py-4 border-b border-orange-100">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-            我的帳戶
-          </h1>
-        </div>
-
         {/* 導航 Tabs - 桌面版 */}
         <nav className="hidden md:flex gap-1 py-2 overflow-x-auto">
           {navItems.map((item) => {
