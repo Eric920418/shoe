@@ -1,7 +1,13 @@
 'use client'
 
 /**
- * 簡化結帳頁面 - 僅收集聯絡資訊，由藍新金流處理收件地址與付款
+ * 完整結帳頁面 - 整合多種付款方式
+ * 支援功能：
+ * - 多種付款方式選擇（線上支付、銀行轉帳、貨到付款）
+ * - 完整收件地址填寫
+ * - 優惠券使用
+ * - 購物金使用（會員）
+ * - 藍新金流整合（僅線上支付）
  */
 
 import { useState, useEffect } from 'react'
@@ -29,11 +35,23 @@ const parseImages = (images: string[] | string): string[] => {
   }
 }
 
+// 結帳表單資料型別定義
 interface CheckoutFormData {
-  // 聯絡資訊（訪客結帳時必填）
-  contactName: string
-  contactPhone: string
-  contactEmail: string
+  // 訪客資訊（訪客結帳時必填）
+  guestName: string
+  guestPhone: string
+  guestEmail: string
+  // 收件資訊（所有用戶必填）
+  shippingName: string
+  shippingPhone: string
+  shippingCity: string
+  shippingDistrict: string
+  shippingStreet: string
+  shippingZipCode: string
+  shippingCountry: string
+  // 付款方式
+  paymentMethod: string
+  // 訂單備註
   notes: string
 }
 
@@ -42,25 +60,34 @@ export default function CheckoutPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const guestCart = useGuestCart()
 
+  // 表單狀態
   const [formData, setFormData] = useState<CheckoutFormData>({
-    contactName: '',
-    contactPhone: '',
-    contactEmail: '',
+    guestName: '',
+    guestPhone: '',
+    guestEmail: '',
+    shippingName: '',
+    shippingPhone: '',
+    shippingCity: '',
+    shippingDistrict: '',
+    shippingStreet: '',
+    shippingZipCode: '',
+    shippingCountry: '台灣',
+    paymentMethod: 'CASH_ON_DELIVERY', // 預設為貨到付款（最安全）
     notes: '',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [creditsToUse, setCreditsToUse] = useState(0)
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
+  const [processingPayment, setProcessingPayment] = useState(false)
 
-  // 預填用戶資訊
+  // 預填用戶資訊（會員登入時）
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        contactName: user.name || '',
-        contactPhone: user.phone || '',
-        contactEmail: user.email || '',
+        shippingName: user.name || '',
+        shippingPhone: user.phone || '',
       }))
     }
   }, [user])
@@ -71,59 +98,81 @@ export default function CheckoutPage() {
     fetchPolicy: 'network-only',
   })
 
+  // 創建訂單 Mutation
   const [createOrder, { loading: creating }] = useMutation(CREATE_ORDER, {
     onCompleted: async (data) => {
-      const orderId = data.createOrder.id
-      const orderNumber = data.createOrder.orderNumber
+      const order = data.createOrder
 
-      // 訪客模式：清空訪客購物車
-      if (!isAuthenticated) {
-        guestCart.clearCart()
-      }
+      // 根據付款方式決定後續流程
+      if (formData.paymentMethod === 'NEWEBPAY') {
+        // 藍新金流線上支付：跳轉到支付頁面
+        setProcessingPayment(true)
 
-      // 立即跳轉到藍新金流支付
-      try {
-        const paymentResponse = await fetch('/api/newebpay/create-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId,
-            paymentTypes: ['CREDIT_CARD', 'VACC', 'CVS'], // 信用卡、ATM、超商
-            itemDesc: `訂單 ${orderNumber}`,
-          }),
-        })
-
-        const paymentData = await paymentResponse.json()
-
-        if (paymentData.success) {
-          // 自動提交表單到藍新金流
-          const form = document.createElement('form')
-          form.method = 'POST'
-          form.action = paymentData.data.mpgUrl
-
-          Object.entries(paymentData.data.formData).forEach(([key, value]) => {
-            const input = document.createElement('input')
-            input.type = 'hidden'
-            input.name = key
-            input.value = value as string
-            form.appendChild(input)
+        try {
+          // 呼叫藍新金流 API 創建支付
+          const response = await fetch('/api/newebpay/create-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: order.id,
+              paymentTypes: ['CREDIT_CARD', 'VACC', 'CVS'], // 啟用信用卡、ATM、超商
+              itemDesc: `訂單 ${order.orderNumber}`,
+            }),
           })
 
-          document.body.appendChild(form)
-          form.submit()
-        } else {
-          alert('建立付款失敗，請稍後再試')
-          router.push(`/orders/${orderId}`)
+          const paymentData = await response.json()
+
+          if (paymentData.success) {
+            // 動態建立表單並提交到藍新金流
+            const { mpgUrl, formData } = paymentData.data
+
+            const form = document.createElement('form')
+            form.method = 'POST'
+            form.action = mpgUrl
+            form.style.display = 'none'
+
+            Object.entries(formData).forEach(([key, value]) => {
+              const input = document.createElement('input')
+              input.type = 'hidden'
+              input.name = key
+              input.value = value as string
+              form.appendChild(input)
+            })
+
+            document.body.appendChild(form)
+
+            // 清空購物車（訪客模式）
+            if (!isAuthenticated) {
+              guestCart.clearCart()
+            }
+
+            // 提交表單到藍新金流
+            setTimeout(() => {
+              form.submit()
+            }, 500)
+          } else {
+            throw new Error(paymentData.error || '創建支付失敗')
+          }
+        } catch (error) {
+          console.error('創建支付失敗:', error)
+          alert('創建支付失敗，請稍後再試')
+          setProcessingPayment(false)
         }
-      } catch (error) {
-        console.error('付款流程錯誤:', error)
-        alert('付款流程發生錯誤，請稍後再試')
-        router.push(`/orders/${orderId}`)
+      } else {
+        // 其他支付方式（銀行轉帳、貨到付款）：直接跳轉到訂單完成頁
+        // 清空購物車（訪客模式）
+        if (!isAuthenticated) {
+          guestCart.clearCart()
+        }
+
+        // 跳轉到訂單完成頁
+        router.push(`/orders/success?orderNumber=${order.orderNumber}&phone=${formData.guestPhone || user?.phone}`)
       }
     },
     onError: (error) => {
       console.error('創建訂單失敗:', error)
       alert(error.message || '創建訂單失敗，請重試')
+      setProcessingPayment(false)
     },
   })
 
@@ -132,15 +181,21 @@ export default function CheckoutPage() {
 
   // 獲取購物車數據（會員或訪客）
   const cartItems = isGuest ? guestCart.items : (cartData?.cart?.items || [])
-  const cartTotal = isGuest ? guestCart.total : (cartData?.cart?.total || 0)
+  const cartSubtotal = isGuest ? guestCart.total : (cartData?.cart?.total || 0)
   const cartIsEmpty = cartItems.length === 0
 
-  // 計算最終金額（扣除購物金和優惠券）
-  const subtotal = cartTotal
+  // 計算總金額（扣除優惠券和購物金）
+  const shippingFee = 0 // 運費（可根據條件調整）
   const couponDiscount = appliedCoupon?.discount || 0
   const creditDiscount = isGuest ? 0 : creditsToUse
-  const finalTotal = Math.max(0, subtotal - couponDiscount - creditDiscount)
+  const totalDiscount = couponDiscount + creditDiscount
+  const finalTotal = Math.max(0, cartSubtotal + shippingFee - totalDiscount)
 
+  // 貨到付款手續費
+  const codFee = formData.paymentMethod === 'CASH_ON_DELIVERY' ? 60 : 0
+  const grandTotal = finalTotal + codFee
+
+  // 表單輸入變更處理
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -154,6 +209,50 @@ export default function CheckoutPage() {
     }
   }
 
+  // 表單驗證
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    // 訪客模式：驗證訪客資訊
+    if (isGuest) {
+      if (!formData.guestName.trim()) {
+        newErrors.guestName = '請輸入您的姓名'
+      }
+      if (!formData.guestPhone.trim()) {
+        newErrors.guestPhone = '請輸入您的手機號碼'
+      } else if (!/^09\d{8}$/.test(formData.guestPhone.trim())) {
+        newErrors.guestPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
+      }
+      // Email 選填但要驗證格式
+      if (formData.guestEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guestEmail.trim())) {
+        newErrors.guestEmail = '請輸入有效的電子郵件'
+      }
+    }
+
+    // 收件資訊驗證（所有用戶必填）
+    if (!formData.shippingName.trim()) {
+      newErrors.shippingName = '請輸入收件人姓名'
+    }
+    if (!formData.shippingPhone.trim()) {
+      newErrors.shippingPhone = '請輸入收件人手機'
+    } else if (!/^09\d{8}$/.test(formData.shippingPhone.trim())) {
+      newErrors.shippingPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
+    }
+    if (!formData.shippingCity.trim()) {
+      newErrors.shippingCity = '請輸入城市'
+    }
+    if (!formData.shippingDistrict.trim()) {
+      newErrors.shippingDistrict = '請輸入區域'
+    }
+    if (!formData.shippingStreet.trim()) {
+      newErrors.shippingStreet = '請輸入街道地址'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  // 優惠券處理
   const handleApplyCoupon = (code: string, discount: number) => {
     setAppliedCoupon({ code, discount })
   }
@@ -162,27 +261,7 @@ export default function CheckoutPage() {
     setAppliedCoupon(null)
   }
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    // 驗證聯絡資訊
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = '請輸入您的姓名'
-    }
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = '請輸入您的手機號碼'
-    } else if (!/^09\d{8}$/.test(formData.contactPhone.trim())) {
-      newErrors.contactPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
-    }
-    // Email 選填但要驗證格式
-    if (formData.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail.trim())) {
-      newErrors.contactEmail = '請輸入有效的電子郵件'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
+  // 提交訂單
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -192,7 +271,6 @@ export default function CheckoutPage() {
 
     try {
       // 訪客模式：從 guestCart.items 構建訂單項目
-      // 會員模式：傳遞空數組（後端會從購物車獲取）
       const orderItems = isGuest
         ? guestCart.items.map((item) => ({
             productId: item.productId,
@@ -200,33 +278,32 @@ export default function CheckoutPage() {
             sizeEu: item.sizeEu,
             quantity: item.quantity,
           }))
-        : [] // 會員模式：空數組（後端從購物車獲取）
+        : undefined // 會員模式：後端從購物車獲取
 
       await createOrder({
         variables: {
           input: {
             // 訪客資訊
             isGuest,
-            guestName: isGuest ? formData.contactName.trim() : null,
-            guestPhone: isGuest ? formData.contactPhone.trim() : null,
-            guestEmail: isGuest && formData.contactEmail ? formData.contactEmail.trim() : null,
-            // 訂單項目
+            guestName: isGuest ? formData.guestName.trim() : null,
+            guestPhone: isGuest ? formData.guestPhone.trim() : null,
+            guestEmail: isGuest && formData.guestEmail ? formData.guestEmail.trim() : null,
+            // 訂單項目（僅訪客模式需要）
             items: orderItems,
-            // 收件資訊（使用聯絡資訊作為佔位符，實際地址由藍新金流收集）
-            shippingName: formData.contactName.trim(),
-            shippingPhone: formData.contactPhone.trim(),
-            shippingCountry: '台灣',
-            shippingCity: '由藍新金流處理',
-            shippingDistrict: '',
-            shippingStreet: '將於付款時填寫收件地址',
-            shippingZipCode: '',
-            // 付款方式固定為藍新金流
-            paymentMethod: 'NEWEBPAY',
+            // 收件資訊
+            shippingName: formData.shippingName.trim(),
+            shippingPhone: formData.shippingPhone.trim(),
+            shippingCountry: formData.shippingCountry,
+            shippingCity: formData.shippingCity.trim(),
+            shippingDistrict: formData.shippingDistrict.trim(),
+            shippingStreet: formData.shippingStreet.trim(),
+            shippingZipCode: formData.shippingZipCode.trim(),
+            // 付款方式
+            paymentMethod: formData.paymentMethod,
             notes: formData.notes.trim() || null,
-            // 購物金（僅會員可用）
-            creditsToUse: !isGuest && creditsToUse > 0 ? creditsToUse : null,
-            // 優惠券
+            // 優惠券和購物金
             couponCode: appliedCoupon?.code || null,
+            creditsToUse: !isGuest && creditsToUse > 0 ? creditsToUse : null,
           },
         },
       })
@@ -235,7 +312,7 @@ export default function CheckoutPage() {
     }
   }
 
-  // 載入中狀態（訪客模式不需要等待）
+  // 載入中狀態
   if (!isGuest && (authLoading || cartLoading)) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
@@ -270,100 +347,272 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white">
       <form onSubmit={handleSubmit}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+          <h1 className="text-2xl font-bold text-black mb-8">結帳</h1>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-            {/* 左側：聯絡資訊表單 */}
+            {/* 左側：收件資訊表單 */}
             <div className="lg:col-span-2 space-y-8">
               {/* 訪客模式：會員好處提示 */}
               {isGuest && (
                 <MembershipBenefitsBanner variant="prominent" />
               )}
 
-              {/* 藍新金流說明 */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              {/* 訪客模式：訪客資訊表單 */}
+              {isGuest && (
+                <div>
+                  <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-2">
+                    聯絡資訊
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    請提供您的聯絡資訊以便追蹤訂單
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="guestName" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        您的姓名 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="guestName"
+                        name="guestName"
+                        value={formData.guestName}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 ${errors.guestName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                        placeholder="請輸入您的姓名"
+                      />
+                      {errors.guestName && (
+                        <p className="mt-2 text-sm text-red-600">{errors.guestName}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="guestPhone" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        您的手機號碼 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        id="guestPhone"
+                        name="guestPhone"
+                        value={formData.guestPhone}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 ${errors.guestPhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                        placeholder="0912345678"
+                      />
+                      {errors.guestPhone && (
+                        <p className="mt-2 text-sm text-red-600">{errors.guestPhone}</p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label htmlFor="guestEmail" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        電子郵件（選填）
+                      </label>
+                      <input
+                        type="email"
+                        id="guestEmail"
+                        name="guestEmail"
+                        value={formData.guestEmail}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 ${errors.guestEmail ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                        placeholder="your@email.com"
+                      />
+                      {errors.guestEmail && (
+                        <p className="mt-2 text-sm text-red-600">{errors.guestEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 收件人資訊 */}
+              <div>
+                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">
+                  收件人資訊
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="font-semibold text-blue-900 mb-1">付款與物流說明</h3>
-                    <p className="text-sm text-blue-800">
-                      本網站使用<strong>藍新金流</strong>處理付款與物流。提交訂單後，您將跳轉到藍新金流頁面完成：
-                    </p>
-                    <ul className="mt-2 text-sm text-blue-800 space-y-1 list-disc list-inside">
-                      <li>選擇付款方式（信用卡/ATM/超商代碼）</li>
-                      <li>填寫詳細收件地址</li>
-                      <li>完成安全付款流程</li>
-                    </ul>
+                    <label htmlFor="shippingName" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      收件人姓名 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="shippingName"
+                      name="shippingName"
+                      value={formData.shippingName}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border-2 ${errors.shippingName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                      placeholder="請輸入姓名"
+                    />
+                    {errors.shippingName && (
+                      <p className="mt-2 text-sm text-red-600">{errors.shippingName}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="shippingPhone" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      收件人手機 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      id="shippingPhone"
+                      name="shippingPhone"
+                      value={formData.shippingPhone}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border-2 ${errors.shippingPhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                      placeholder="0912345678"
+                    />
+                    {errors.shippingPhone && (
+                      <p className="mt-2 text-sm text-red-600">{errors.shippingPhone}</p>
+                    )}
+                  </div>
+
+                  {/* 收件地址 */}
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="shippingCity" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                          城市 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="shippingCity"
+                          name="shippingCity"
+                          value={formData.shippingCity}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 border-2 ${errors.shippingCity ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                          placeholder="台北市"
+                        />
+                        {errors.shippingCity && (
+                          <p className="mt-2 text-sm text-red-600">{errors.shippingCity}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="shippingDistrict" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                          區域 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="shippingDistrict"
+                          name="shippingDistrict"
+                          value={formData.shippingDistrict}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 border-2 ${errors.shippingDistrict ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                          placeholder="信義區"
+                        />
+                        {errors.shippingDistrict && (
+                          <p className="mt-2 text-sm text-red-600">{errors.shippingDistrict}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="shippingStreet" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        街道地址 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="shippingStreet"
+                        name="shippingStreet"
+                        value={formData.shippingStreet}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border-2 ${errors.shippingStreet ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
+                        placeholder="信義路五段7號"
+                      />
+                      {errors.shippingStreet && (
+                        <p className="mt-2 text-sm text-red-600">{errors.shippingStreet}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="shippingZipCode" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        郵遞區號（選填）
+                      </label>
+                      <input
+                        type="text"
+                        id="shippingZipCode"
+                        name="shippingZipCode"
+                        value={formData.shippingZipCode}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors bg-white"
+                        placeholder="110"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* 聯絡資訊 */}
+              {/* 付款方式 */}
               <div>
-                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-2">
-                  聯絡資訊
-                </h2>
-                <p className="text-sm text-gray-600 mb-6">
-                  請提供您的聯絡資訊以便訂單追蹤
-                </p>
+                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">付款方式</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="contactName" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                      姓名 <span className="text-red-500">*</span>
-                    </label>
+                <div className="space-y-4">
+                  {/* 貨到付款 */}
+                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'CASH_ON_DELIVERY' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
                     <input
-                      type="text"
-                      id="contactName"
-                      name="contactName"
-                      value={formData.contactName}
+                      type="radio"
+                      name="paymentMethod"
+                      value="CASH_ON_DELIVERY"
+                      checked={formData.paymentMethod === 'CASH_ON_DELIVERY'}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border-2 ${errors.contactName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                      placeholder="請輸入您的姓名"
+                      className="w-5 h-5 mr-4"
                     />
-                    {errors.contactName && (
-                      <p className="mt-2 text-sm text-red-600">{errors.contactName}</p>
-                    )}
-                  </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-black flex items-center">
+                        貨到付款
+                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded">安全便利</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        收到商品時現金付款（需加收手續費 NT$60）
+                      </div>
+                    </div>
+                  </label>
 
-                  <div>
-                    <label htmlFor="contactPhone" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                      手機號碼 <span className="text-red-500">*</span>
-                    </label>
+                  {/* 銀行轉帳 */}
+                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'BANK_TRANSFER' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
                     <input
-                      type="tel"
-                      id="contactPhone"
-                      name="contactPhone"
-                      value={formData.contactPhone}
+                      type="radio"
+                      name="paymentMethod"
+                      value="BANK_TRANSFER"
+                      checked={formData.paymentMethod === 'BANK_TRANSFER'}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border-2 ${errors.contactPhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                      placeholder="0912345678"
+                      className="w-5 h-5 mr-4"
                     />
-                    {errors.contactPhone && (
-                      <p className="mt-2 text-sm text-red-600">{errors.contactPhone}</p>
-                    )}
-                    <p className="mt-2 text-xs text-gray-500">
-                      用於訂單追蹤和聯繫
-                    </p>
-                  </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-black">銀行轉帳</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        訂單確認後將提供匯款資訊，請於3天內完成轉帳
+                      </div>
+                    </div>
+                  </label>
 
-                  <div className="md:col-span-2">
-                    <label htmlFor="contactEmail" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                      電子郵件（選填）
-                    </label>
+                  {/* 藍新金流（線上支付） */}
+                  <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'NEWEBPAY' ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'}`}>
                     <input
-                      type="email"
-                      id="contactEmail"
-                      name="contactEmail"
-                      value={formData.contactEmail}
+                      type="radio"
+                      name="paymentMethod"
+                      value="NEWEBPAY"
+                      checked={formData.paymentMethod === 'NEWEBPAY'}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border-2 ${errors.contactEmail ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                      placeholder="your@email.com"
+                      className="w-5 h-5 mr-4"
                     />
-                    {errors.contactEmail && (
-                      <p className="mt-2 text-sm text-red-600">{errors.contactEmail}</p>
-                    )}
-                  </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-black flex items-center">
+                        線上支付
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">即時到帳</span>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        支援信用卡、ATM轉帳、超商代碼繳費
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">信用卡</span>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">ATM</span>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">超商繳費</span>
+                      </div>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -422,7 +671,7 @@ export default function CheckoutPage() {
                               {productName}
                             </p>
                             <p className="text-xs text-gray-600 mt-1">
-                              數量: {quantity}
+                              尺寸: {item.sizeEu} EU | 數量: {quantity}
                             </p>
                             <p className="text-sm font-medium text-black mt-1">
                               NT$ {subtotal.toLocaleString()}
@@ -433,10 +682,10 @@ export default function CheckoutPage() {
                     })}
                   </div>
 
-                  {/* 優惠券輸入（會員和訪客都可用） */}
+                  {/* 優惠券輸入（所有用戶都可使用） */}
                   <div className="mb-6">
                     <CouponInput
-                      orderAmount={subtotal}
+                      orderAmount={cartSubtotal}
                       onApplyCoupon={handleApplyCoupon}
                       appliedCoupon={appliedCoupon}
                       onRemoveCoupon={handleRemoveCoupon}
@@ -447,7 +696,7 @@ export default function CheckoutPage() {
                   {!isGuest && (
                     <div className="mb-6">
                       <CreditSelector
-                        subtotal={subtotal - couponDiscount}
+                        subtotal={cartSubtotal - couponDiscount}
                         onChange={setCreditsToUse}
                       />
                     </div>
@@ -458,9 +707,10 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">小計</span>
                       <span className="text-black font-medium">
-                        NT$ {subtotal.toLocaleString()}
+                        NT$ {cartSubtotal.toLocaleString()}
                       </span>
                     </div>
+
                     {appliedCoupon && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">優惠券折扣</span>
@@ -469,6 +719,7 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                     )}
+
                     {!isGuest && creditsToUse > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">購物金折抵</span>
@@ -477,30 +728,52 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                     )}
+
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">運費</span>
-                      <span className="text-green-600 font-medium">免運費</span>
+                      <span className="text-green-600 font-medium">
+                        {shippingFee === 0 ? '免運費' : `NT$ ${shippingFee.toLocaleString()}`}
+                      </span>
                     </div>
+
+                    {formData.paymentMethod === 'CASH_ON_DELIVERY' && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">貨到付款手續費</span>
+                        <span className="text-black font-medium">
+                          NT$ 60
+                        </span>
+                      </div>
+                    )}
+
                     <div className="border-t border-gray-300 pt-4">
                       <div className="flex justify-between items-baseline">
                         <span className="text-base font-bold text-black uppercase">
                           總計
                         </span>
                         <span className="text-2xl font-black text-black">
-                          NT$ {finalTotal.toLocaleString()}
+                          NT$ {grandTotal.toLocaleString()}
                         </span>
                       </div>
                     </div>
                   </div>
 
+                  {/* 積分提示（僅會員顯示） */}
+                  {!isGuest && (
+                    <div className="mb-6 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        此訂單將獲得 <span className="font-bold">{Math.floor(finalTotal * 0.01)}</span> 點會員積分
+                      </p>
+                    </div>
+                  )}
+
                   {/* 提交按鈕 */}
                   <div className="space-y-3">
                     <button
                       type="submit"
-                      disabled={creating}
+                      disabled={creating || processingPayment}
                       className="w-full py-4 bg-black text-white rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {creating ? '處理中...' : '前往藍新金流付款'}
+                      {processingPayment ? '正在處理支付...' : creating ? '處理中...' : formData.paymentMethod === 'NEWEBPAY' ? '前往支付' : '確認訂單'}
                     </button>
 
                     <Link
@@ -510,24 +783,14 @@ export default function CheckoutPage() {
                       返回購物袋
                     </Link>
                   </div>
-                </div>
 
-                {/* 安全提示 */}
-                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  <span>由藍新金流提供安全付款</span>
+                  {/* 安全提示 */}
+                  <div className="mt-4 flex items-center justify-center text-xs text-gray-500">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    安全加密結帳
+                  </div>
                 </div>
               </div>
             </div>
