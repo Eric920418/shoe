@@ -117,11 +117,11 @@ export function aesDecrypt(encryptedData: string): string {
     // 移除可能的空白字符和換行
     const cleanedData = encryptedData.trim();
 
+    // ⚠️ PCI 合規：不記錄完整的加密資料（可能包含卡號資訊）
     console.log('解密前檢查:');
     console.log('- 加密資料長度:', cleanedData.length);
     console.log('- HashKey 長度:', NEWEBPAY_CONFIG.hashKey.length);
     console.log('- HashIV 長度:', NEWEBPAY_CONFIG.hashIV.length);
-    console.log('- 前50字:', cleanedData.substring(0, 50));
 
     const decipher = crypto.createDecipheriv(
       'aes-256-cbc',
@@ -136,15 +136,10 @@ export function aesDecrypt(encryptedData: string): string {
     let decrypted = decipher.update(cleanedData.toLowerCase(), 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 
-    console.log('解密成功，結果長度:', decrypted.length);
+    console.log('✅ 解密成功');
     return decrypted;
   } catch (error) {
-    console.error('AES 解密詳細錯誤:', {
-      error: error instanceof Error ? error.message : '未知錯誤',
-      stack: error instanceof Error ? error.stack : '',
-      dataLength: encryptedData?.length,
-      dataPreview: encryptedData?.substring(0, 100),
-    });
+    console.error('❌ AES 解密失敗:', error instanceof Error ? error.message : '未知錯誤');
     throw new Error(`AES 解密失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
   }
 }
@@ -184,14 +179,18 @@ export function verifyTradeSha(tradeInfo: string, tradeSha: string): boolean {
 // ============================================
 
 /**
- * 將物件轉換為 URL query string 格式
+ * 將物件轉換為 URL query string 格式（符合藍新金流 http_build_query 規範）
  * @param obj 要轉換的物件
- * @returns URL query string (key=value&key=value)
+ * @returns URL query string (key=value&key=value)，值已進行 URL encode
  */
 function objectToQueryString(obj: Record<string, any>): string {
   return Object.entries(obj)
     .filter(([_, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${key}=${value}`)
+    .map(([key, value]) => {
+      // URL encode 每個值，避免 &、= 等特殊字符造成解析問題
+      const encodedValue = encodeURIComponent(String(value));
+      return `${key}=${encodedValue}`;
+    })
     .join('&');
 }
 
@@ -220,6 +219,19 @@ function queryStringToObject(queryString: string): Record<string, string> {
  * @returns 加密後的表單資料
  */
 export function createPaymentFormData(params: CreatePaymentParams): PaymentFormData {
+  // ⚠️ 驗證 Amt：MPG01016 規定必須是整數（Int(10)），範圍 1-99999999
+  const amountInt = Math.floor(Number(params.amount));
+  if (amountInt < 1 || amountInt > 99999999 || isNaN(amountInt)) {
+    throw new Error(`訂單金額無效：${params.amount}，必須是 1-99999999 的整數`);
+  }
+
+  // ⚠️ 驗證 ItemDesc：MPG01018 規定最多 50 字
+  let itemDesc = String(params.itemDesc);
+  if (itemDesc.length > 50) {
+    console.warn(`ItemDesc 超過 50 字，將自動截斷：${itemDesc}`);
+    itemDesc = itemDesc.substring(0, 47) + '...'; // 保留 47 字 + "..."
+  }
+
   // 建立 TradeInfo 內容
   const tradeData: Record<string, any> = {
     MerchantID: NEWEBPAY_CONFIG.merchantId,
@@ -227,8 +239,8 @@ export function createPaymentFormData(params: CreatePaymentParams): PaymentFormD
     TimeStamp: Math.floor(Date.now() / 1000),
     Version: '2.0',
     MerchantOrderNo: params.merchantOrderNo,
-    Amt: params.amount,
-    ItemDesc: params.itemDesc,
+    Amt: amountInt, // 使用整數金額
+    ItemDesc: itemDesc, // 使用長度限制後的描述
     Email: params.email,
     NotifyURL: NEWEBPAY_CONFIG.notifyUrl,
     ReturnURL: NEWEBPAY_CONFIG.returnUrl,
@@ -279,39 +291,38 @@ export function createPaymentFormData(params: CreatePaymentParams): PaymentFormD
 
 /**
  * 解密並驗證藍新金流回傳資料
+ * ⚠️ 安全性：根據藍新金流 MPG 手冊，TradeSha 是完整性驗證機制，必須強制執行
  * @param tradeInfo 加密的 TradeInfo
  * @param tradeSha 回傳的 TradeSha
  * @returns 解密後的交易資料
  * @throws 如果驗證失敗
  */
 export function decryptTradeInfo(tradeInfo: string, tradeSha: string): DecryptedTradeInfo {
-  console.log('=== 開始解密藍新金流資料 ===');
+  console.log('=== 開始驗證藍新金流資料 ===');
   console.log('TradeInfo 長度:', tradeInfo.length);
-  console.log('TradeSha:', tradeSha.substring(0, 50));
 
-  // 先嘗試解密（有些版本的藍新金流 TradeSha 驗證可能有問題）
+  // ⚠️ 第一步：先驗證 TradeSha，防止資料遭竄改（MPG 手冊要求）
+  const calculatedSha = generateTradeSha(tradeInfo);
+  const isValid = calculatedSha === tradeSha.toUpperCase();
+
+  if (!isValid) {
+    console.error('❌ TradeSha 驗證失敗 - 資料可能遭竄改');
+    console.error('預期 SHA (前20字):', calculatedSha.substring(0, 20) + '...');
+    console.error('實際 SHA (前20字):', tradeSha.toUpperCase().substring(0, 20) + '...');
+    throw new Error('藍新金流回傳資料驗證失敗：TradeSha 不符，資料可能遭竄改');
+  }
+
+  console.log('✅ TradeSha 驗證通過');
+
+  // 第二步：驗證通過後才解密
   let decrypted: string;
   try {
     decrypted = aesDecrypt(tradeInfo);
-    console.log('✅ TradeInfo 解密成功');
-    console.log('解密結果前200字:', decrypted.substring(0, 200));
   } catch (error) {
-    console.error('❌ TradeInfo 解密失敗:', error);
     throw new Error(`TradeInfo 解密失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
   }
 
-  // 驗證 TradeSha（在解密之後，因為有時 SHA 驗證會誤報）
-  const calculatedSha = generateTradeSha(tradeInfo);
-  const isValid = calculatedSha === tradeSha.toUpperCase();
-  console.log('TradeSha 驗證:', isValid ? '✅ 通過' : '⚠️  不符 (但已成功解密)');
-
-  if (!isValid) {
-    console.warn('TradeSha 驗證不通過，但解密成功，繼續處理...');
-    console.warn('預期:', calculatedSha);
-    console.warn('實際:', tradeSha.toUpperCase());
-  }
-
-  // 解析 JSON（藍新金流回傳的是 JSON 字串）
+  // 第三步：解析 JSON（藍新金流回傳的是 JSON 字串）
   try {
     const data = JSON.parse(decrypted);
     console.log('✅ JSON 解析成功');
@@ -319,8 +330,7 @@ export function decryptTradeInfo(tradeInfo: string, tradeSha: string): Decrypted
     console.log('Message:', data.Message);
     return data as DecryptedTradeInfo;
   } catch (error) {
-    console.error('❌ JSON 解析失敗:', error);
-    console.error('原始解密內容:', decrypted);
+    console.error('❌ JSON 解析失敗');
     throw new Error(`JSON 解析失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
   }
 }

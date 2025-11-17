@@ -80,12 +80,15 @@ export async function POST(request: NextRequest) {
     console.log('=== 解析後的藍新金流通知資料 ===');
     console.log('Status:', status);
     console.log('TradeInfo 長度:', tradeInfo?.length || 0);
-    console.log('TradeSha (前50字):', tradeSha?.substring(0, 50) || 'null');
+
+    // ⚠️ 重要：根據藍新金流官方文件，NotifyURL 必須始終回傳 HTTP 200
+    // 否則藍新會持續重發通知
 
     // 驗證必要參數
     if (!status || !tradeInfo || !tradeSha) {
-      console.error('藍新金流通知缺少必要參數');
-      return NextResponse.json({ error: '缺少必要參數' }, { status: 400 });
+      console.error('❌ 藍新金流通知缺少必要參數');
+      // 即使缺參數也要回 200 避免重送
+      return NextResponse.json({ success: false, error: '缺少必要參數' }, { status: 200 });
     }
 
     // 解密並驗證資料
@@ -93,30 +96,55 @@ export async function POST(request: NextRequest) {
     try {
       decryptedData = decryptTradeInfo(tradeInfo, tradeSha);
     } catch (error) {
-      console.error('藍新金流資料驗證失敗:', error);
+      console.error('❌ 藍新金流資料驗證失敗:', error instanceof Error ? error.message : '未知錯誤');
+      // TradeSha 驗證失敗，拒絕處理並記錄（可能是偽造通知）
+      // 但仍回 200 避免重送
       return NextResponse.json(
-        { error: `資料驗證失敗：${error instanceof Error ? error.message : '未知錯誤'}` },
-        { status: 400 }
+        { success: false, error: '資料驗證失敗' },
+        { status: 200 }
       );
     }
 
-    console.log('解密後的交易資料:', JSON.stringify(decryptedData, null, 2));
-
     const { Status, Message, Result } = decryptedData;
+
+    // ⚠️ 驗證關鍵欄位（防止偽造通知）
+    if (!Result || !Result.MerchantID || !Result.MerchantOrderNo || !Result.Amt) {
+      console.error('❌ 缺少關鍵欄位:', {
+        hasMerchantID: !!Result?.MerchantID,
+        hasMerchantOrderNo: !!Result?.MerchantOrderNo,
+        hasAmt: !!Result?.Amt
+      });
+      return NextResponse.json({ success: false, error: '缺少關鍵欄位' }, { status: 200 });
+    }
+
+    // 驗證 MerchantID 是否正確
+    const expectedMerchantID = process.env.NEWEBPAY_MERCHANT_ID;
+    if (Result.MerchantID !== expectedMerchantID) {
+      console.error('❌ MerchantID 不符:', {
+        expected: expectedMerchantID,
+        received: Result.MerchantID
+      });
+      return NextResponse.json({ success: false, error: 'MerchantID 不符' }, { status: 200 });
+    }
+
+    console.log('✅ 關鍵欄位驗證通過');
+    console.log('交易狀態:', Status);
+    console.log('訂單編號:', Result.MerchantOrderNo);
+    console.log('交易金額:', Result.Amt);
 
     // 檢查交易狀態
     if (Status !== 'SUCCESS') {
-      console.error('交易失敗:', Message);
+      console.error('⚠️  交易失敗:', Message);
       // 即使失敗也要更新記錄
       await updatePaymentRecord(Result.MerchantOrderNo, 'FAILED', decryptedData, Message);
-      return NextResponse.json({ success: false, message: Message });
+      return NextResponse.json({ success: false, message: Message }, { status: 200 });
     }
 
     // 更新支付記錄
     await updatePaymentRecord(Result.MerchantOrderNo, 'SUCCESS', decryptedData);
 
     // 返回成功（藍新金流需要 200 狀態碼）
-    return NextResponse.json({ success: true, message: '支付通知處理成功' });
+    return NextResponse.json({ success: true, message: '支付通知處理成功' }, { status: 200 });
   } catch (error) {
     console.error('處理支付通知失敗:', error);
     // 即使發生錯誤也返回 200，避免藍新金流重複發送
@@ -150,9 +178,24 @@ async function updatePaymentRecord(
     });
 
     if (!payment) {
-      console.error(`找不到支付記錄: ${merchantOrderNo}`);
+      console.error(`❌ 找不到支付記錄: ${merchantOrderNo}`);
       throw new Error(`找不到支付記錄: ${merchantOrderNo}`);
     }
+
+    // ⚠️ 驗證金額是否與資料庫一致（防止偽造通知）
+    const expectedAmount = Math.floor(Number(payment.amount));
+    const receivedAmount = Number(Result.Amt);
+
+    if (expectedAmount !== receivedAmount) {
+      console.error('❌ 金額不符:', {
+        expected: expectedAmount,
+        received: receivedAmount,
+        orderNo: merchantOrderNo
+      });
+      throw new Error(`金額不符：預期 ${expectedAmount}，實際收到 ${receivedAmount}`);
+    }
+
+    console.log('✅ 金額驗證通過:', expectedAmount);
 
     // 準備更新資料
     const updateData: any = {
