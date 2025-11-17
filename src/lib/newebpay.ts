@@ -123,21 +123,24 @@ export function aesDecrypt(encryptedData: string): string {
     console.log('- HashKey 長度:', NEWEBPAY_CONFIG.hashKey.length);
     console.log('- HashIV 長度:', NEWEBPAY_CONFIG.hashIV.length);
 
+    // ✅ 關鍵修正：先將 hex 字串轉為 Buffer
+    const encrypted = Buffer.from(cleanedData, 'hex');
+
     const decipher = crypto.createDecipheriv(
       'aes-256-cbc',
       Buffer.from(NEWEBPAY_CONFIG.hashKey, 'utf8'),
       Buffer.from(NEWEBPAY_CONFIG.hashIV, 'utf8')
     );
 
-    // 設置自動填充
+    // 設置自動填充 (PKCS7)
     decipher.setAutoPadding(true);
 
-    // 將輸入轉為小寫以相容大小寫
-    let decrypted = decipher.update(cleanedData.toLowerCase(), 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    // ✅ 正確的解密方式：使用 Buffer 輸入
+    let decrypted = decipher.update(encrypted);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
 
     console.log('✅ 解密成功');
-    return decrypted;
+    return decrypted.toString('utf8');
   } catch (error) {
     console.error('❌ AES 解密失敗:', error instanceof Error ? error.message : '未知錯誤');
     throw new Error(`AES 解密失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);

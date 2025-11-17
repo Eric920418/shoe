@@ -354,6 +354,98 @@ export default function AdminOrderDetailPage() {
                     {paymentConfig.label}
                   </span>
                 </div>
+
+                {/* 藍新金流支付詳情 */}
+                {order.payment && (
+                  <>
+                    {order.payment.tradeNo && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">交易編號</span>
+                        <span className="font-mono text-xs text-gray-900">{order.payment.tradeNo}</span>
+                      </div>
+                    )}
+
+                    {/* 支付錯誤訊息 */}
+                    {order.payment.errorMessage && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm font-medium text-red-800 mb-1">支付錯誤</p>
+                        <p className="text-xs text-red-600">{order.payment.errorMessage}</p>
+                        {order.payment.errorCode && (
+                          <p className="text-xs text-red-500 mt-1">錯誤代碼: {order.payment.errorCode}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ATM 轉帳資訊 */}
+                    {order.payment.atmVirtualAccount && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm font-medium text-blue-800 mb-2">ATM 轉帳資訊</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">銀行代碼</span>
+                            <span className="font-mono text-gray-900">{order.payment.atmBankCode}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">虛擬帳號</span>
+                            <span className="font-mono text-gray-900">{order.payment.atmVirtualAccount}</span>
+                          </div>
+                          {order.payment.atmExpireDate && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">繳費期限</span>
+                              <span className="text-gray-900">
+                                {format(new Date(order.payment.atmExpireDate), 'yyyy-MM-dd HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 超商代碼資訊 */}
+                    {order.payment.cvsPaymentNo && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm font-medium text-green-800 mb-2">超商繳費資訊</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">超商代碼</span>
+                            <span className="font-mono text-gray-900">{order.payment.cvsBankCode}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">繳費代碼</span>
+                            <span className="font-mono text-gray-900">{order.payment.cvsPaymentNo}</span>
+                          </div>
+                          {order.payment.cvsExpireDate && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">繳費期限</span>
+                              <span className="text-gray-900">
+                                {format(new Date(order.payment.cvsExpireDate), 'yyyy-MM-dd HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 信用卡資訊 */}
+                    {order.payment.card4No && (
+                      <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <p className="text-sm font-medium text-purple-800 mb-2">信用卡資訊</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">卡號後4碼</span>
+                            <span className="font-mono text-gray-900">****{order.payment.card4No}</span>
+                          </div>
+                          {order.payment.authBank && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">授權銀行</span>
+                              <span className="text-gray-900">{order.payment.authBank}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 

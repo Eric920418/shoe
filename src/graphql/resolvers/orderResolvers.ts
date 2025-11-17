@@ -240,6 +240,7 @@ export const orderResolvers = {
             },
           },
           address: true,
+          payment: true, // 包含支付資訊
         },
       })
 

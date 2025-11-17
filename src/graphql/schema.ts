@@ -460,6 +460,7 @@ export const typeDefs = gql`
     coupon: Coupon
     items: [OrderItem!]!
     notes: String
+    payment: Payment
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -495,6 +496,10 @@ export const typeDefs = gql`
     paymentType: NewebPaymentType!
     paymentTypeName: String
     status: NewebPaymentStatus!
+    # 錯誤資訊
+    errorMessage: String
+    errorCode: String
+    responseData: JSON
     # ATM 資訊
     atmBankCode: String
     atmVirtualAccount: String
@@ -512,9 +517,6 @@ export const typeDefs = gql`
     payTime: DateTime
     createdAt: DateTime!
     updatedAt: DateTime!
-    # 錯誤資訊
-    errorMessage: String
-    errorCode: String
     # 關聯
     order: Order!
   }

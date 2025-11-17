@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { decryptTradeInfo } from '@/lib/newebpay';
+import { decryptTradeInfo, verifyTradeSha } from '@/lib/newebpay';
 
 // ============================================
 // Route Config - 允許處理大型請求體
@@ -81,6 +81,12 @@ export async function POST(request: NextRequest) {
     console.log('Status:', status);
     console.log('TradeInfo 長度:', tradeInfo?.length || 0);
 
+    // 記錄完整的 TradeInfo 供調試（注意：生產環境應移除）
+    if (tradeInfo) {
+      console.log('完整 TradeInfo:', tradeInfo);
+      console.log('完整 TradeSha:', tradeSha);
+    }
+
     // ⚠️ 重要：根據藍新金流官方文件，NotifyURL 必須始終回傳 HTTP 200
     // 否則藍新會持續重發通知
 
@@ -97,6 +103,56 @@ export async function POST(request: NextRequest) {
       decryptedData = decryptTradeInfo(tradeInfo, tradeSha);
     } catch (error) {
       console.error('❌ 藍新金流資料驗證失敗:', error instanceof Error ? error.message : '未知錯誤');
+
+      // ✅ 嘗試從 TradeInfo 中提取商店訂單編號，以便儲存錯誤訊息
+      // 注意：即使解密失敗，我們也嘗試記錄這個錯誤
+      try {
+        // 嘗試找出訂單編號（可能在未解密的 tradeInfo 中仍可解析部分資訊）
+        const errorMessage = `藍新金流解密失敗：${error instanceof Error ? error.message : '未知錯誤'}`;
+
+        // 記錄完整的錯誤資訊到日誌
+        console.error('完整錯誤資訊:', {
+          error: errorMessage,
+          tradeInfoLength: tradeInfo?.length,
+          tradeShaValid: tradeSha ? 'Yes' : 'No',
+          timestamp: new Date().toISOString()
+        });
+
+        // 嘗試找到最近的待處理訂單（可能無法從加密資料中取得訂單號）
+        // 這是最後手段，根據時間推斷
+        const recentPayment = await prisma.payment.findFirst({
+          where: {
+            status: 'PENDING',
+            createdAt: {
+              gte: new Date(Date.now() - 30 * 60 * 1000) // 30分鐘內
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+
+        if (recentPayment) {
+          // 儲存錯誤訊息到資料庫
+          await prisma.payment.update({
+            where: { id: recentPayment.id },
+            data: {
+              errorMessage,
+              errorCode: 'DECRYPT_FAILED',
+              responseData: {
+                rawTradeInfo: tradeInfo?.substring(0, 100), // 只儲存前100字避免太長
+                tradeShaValid: verifyTradeSha(tradeInfo, tradeSha),
+                error: errorMessage,
+                timestamp: new Date().toISOString()
+              }
+            }
+          });
+          console.log(`已將錯誤訊息儲存到支付記錄: ${recentPayment.merchantOrderNo}`);
+        }
+      } catch (logError) {
+        console.error('儲存錯誤訊息失敗:', logError);
+      }
+
       // TradeSha 驗證失敗，拒絕處理並記錄（可能是偽造通知）
       // 但仍回 200 避免重送
       return NextResponse.json(

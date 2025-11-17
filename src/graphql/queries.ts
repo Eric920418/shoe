@@ -474,6 +474,29 @@ export const GET_ORDER = gql`
       shippingStreet
       shippingZipCode
       notes
+      payment {
+        id
+        merchantOrderNo
+        tradeNo
+        amount
+        status
+        paymentType
+        paymentTypeName
+        errorMessage
+        errorCode
+        responseData
+        atmBankCode
+        atmVirtualAccount
+        atmExpireDate
+        cvsBankCode
+        cvsPaymentNo
+        cvsExpireDate
+        card4No
+        card6No
+        authBank
+        payTime
+        createdAt
+      }
       items {
         id
         quantity
