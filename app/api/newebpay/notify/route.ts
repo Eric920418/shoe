@@ -19,18 +19,68 @@ import { prisma } from '@/lib/prisma';
 import { decryptTradeInfo } from '@/lib/newebpay';
 
 // ============================================
+// Route Config - 允許處理大型請求體
+// ============================================
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// ============================================
 // POST /api/newebpay/notify
 // ============================================
 
 export async function POST(request: NextRequest) {
-  try {
-    // 解析表單資料（藍新金流使用 application/x-www-form-urlencoded）
-    const formData = await request.formData();
-    const status = formData.get('Status') as string;
-    const tradeInfo = formData.get('TradeInfo') as string;
-    const tradeSha = formData.get('TradeSha') as string;
+  console.log('=== 藍新金流通知請求開始 ===');
+  console.log('請求方法:', request.method);
+  console.log('Content-Type:', request.headers.get('content-type'));
+  console.log('來源 IP:', request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown');
 
-    console.log('收到藍新金流通知:', { status, tradeInfo: tradeInfo?.substring(0, 50) });
+  try {
+    let status: string | null = null;
+    let tradeInfo: string | null = null;
+    let tradeSha: string | null = null;
+
+    // 嘗試多種方式解析藍新金流的資料
+    const contentType = request.headers.get('content-type') || '';
+
+    console.log('開始解析通知資料...');
+
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      // 方法 1: 使用 formData()
+      try {
+        const formData = await request.formData();
+        status = formData.get('Status') as string;
+        tradeInfo = formData.get('TradeInfo') as string;
+        tradeSha = formData.get('TradeSha') as string;
+        console.log('使用 formData() 解析成功');
+      } catch (error) {
+        console.error('formData() 解析失敗:', error);
+        // 方法 2: 使用 text() 然後手動解析
+        const bodyText = await request.text();
+        console.log('原始請求體 (前200字):', bodyText.substring(0, 200));
+
+        const params = new URLSearchParams(bodyText);
+        status = params.get('Status');
+        tradeInfo = params.get('TradeInfo');
+        tradeSha = params.get('TradeSha');
+        console.log('使用 URLSearchParams 解析成功');
+      }
+    } else {
+      // 方法 3: 備用解析方法
+      const clonedRequest = request.clone();
+      const bodyText = await clonedRequest.text();
+      console.log('原始請求體 (前200字):', bodyText.substring(0, 200));
+
+      const params = new URLSearchParams(bodyText);
+      status = params.get('Status');
+      tradeInfo = params.get('TradeInfo');
+      tradeSha = params.get('TradeSha');
+      console.log('使用備用方法解析');
+    }
+
+    console.log('=== 解析後的藍新金流通知資料 ===');
+    console.log('Status:', status);
+    console.log('TradeInfo 長度:', tradeInfo?.length || 0);
+    console.log('TradeSha (前50字):', tradeSha?.substring(0, 50) || 'null');
 
     // 驗證必要參數
     if (!status || !tradeInfo || !tradeSha) {

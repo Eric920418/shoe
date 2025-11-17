@@ -183,239 +183,240 @@ export default function AccountPage() {
       <AccountHeader />
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            {/* 主內容 */}
-            <div className="lg:col-span-3 space-y-4 sm:space-y-6">
-              {/* 綁定信箱獎勵提示 */}
-              {isTemporaryEmail(user?.email) && (
-                <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl shadow-lg p-6 border-2 border-orange-300">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 text-4xl">🎁</div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                        綁定信箱即送 NT$100 優惠券！
-                      </h3>
-                      <p className="text-white/90 text-sm mb-3">
-                        立即綁定您的 Email，即可獲得一張 100 元優惠券（滿 500
-                        元可使用）
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
-                          ✓ 立即發放
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
-                          ✓ 無使用期限
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
-                          ✓ 全站通用
-                        </span>
-                      </div>
+          <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+            {/* 綁定信箱獎勵提示 */}
+            {isTemporaryEmail(user?.email) && (
+              <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl shadow-lg p-6 border-2 border-orange-300">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 text-4xl">🎁</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                      綁定信箱即送 NT$100 優惠券！
+                    </h3>
+                    <p className="text-white/90 text-sm mb-3">
+                      立即綁定您的 Email，即可獲得一張 100 元優惠券（滿 500
+                      元可使用）
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 立即發放
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 無使用期限
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        ✓ 全站通用
+                      </span>
                     </div>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex-shrink-0 px-6 py-3 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      立即綁定
-                    </button>
+                  </div>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-shrink-0 px-6 py-3 bg-white text-orange-600 rounded-xl hover:bg-orange-50 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    立即綁定
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 基本資料 */}
+            <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8 border border-orange-100">
+              {/* 頂部區域：頭像 + 姓名 + 編輯按鈕 */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  {/* 頭像 */}
+                  <div className="flex-shrink-0">
+                    {user?.lineProfileImage ? (
+                      <img
+                        src={user.lineProfileImage}
+                        alt={user.name}
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-orange-100 shadow-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg border-4 border-orange-100">
+                        {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 姓名和會員等級 */}
+                  <div>
+                    <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-2">
+                      {user?.name}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{tierStyles.icon}</span>
+                      <span className={`text-sm font-bold ${tierStyles.gradient ? `bg-gradient-to-r ${tierStyles.gradient} bg-clip-text text-transparent` : 'text-gray-700'}`}>
+                        {getMembershipTierDisplay(user?.membershipTier)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* 基本資料 */}
-              <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8 border border-orange-100">
-                <div className="flex justify-between items-center mb-6 sm:mb-8">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      {user?.lineProfileImage ? (
-                        <img
-                          src={user.lineProfileImage}
-                          alt={user.name}
-                          className="w-24 h-24 mx-auto rounded-full border-4 border-white shadow-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center text-orange-500 text-3xl font-bold shadow-lg border-4 border-white">
-                          {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent flex items-center gap-2">
-                      基本資料
-                    </h3>
-                  </div>
+                {/* 編輯按鈕 */}
+                {!isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all font-medium shadow-md hover:shadow-lg text-sm sm:text-base flex-shrink-0"
+                  >
+                    ✏️ 編輯
+                  </button>
+                )}
+              </div>
 
-                  <div className="p-5">
-                    {/* 會員等級徽章 */}
-                    <div
-                      className={`bg-gradient-to-r ${tierStyles.gradient} text-center rounded-xl p-4 shadow-md mb-5`}
-                    >
-                      <div className="text-3xl mb-2">{tierStyles.icon}</div>
-                      <div
-                        className={`text-sm font-bold ${tierStyles.textColor}`}
+              {/* 消費統計和 LINE 連接狀態 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {/* 消費統計卡片 */}
+                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-5 border border-orange-200">
+                  <p className="text-sm text-orange-700 font-semibold mb-2 flex items-center gap-2">
+                    💰 累計消費
+                  </p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    NT$ {user?.totalSpent?.toLocaleString() || "0"}
+                  </p>
+                </div>
+
+                {/* LINE 連接狀態 */}
+                {user?.isLineConnected && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
+                    <div className="flex items-center gap-3">
+                      <svg
+                        className="w-8 h-8 text-[#06C755] flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        {getMembershipTierDisplay(user?.membershipTier)}
-                      </div>
-                    </div>
-
-                    {/* 消費統計卡片 */}
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 mb-5 border border-orange-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-orange-700 font-semibold flex items-center gap-1">
-                          💰 累計消費
+                        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold text-sm text-green-700">
+                          已綁定 LINE
+                        </p>
+                        <p className="text-xs text-green-600">
+                          {user.lineDisplayName}
                         </p>
                       </div>
-                      <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                        NT$ {user?.totalSpent?.toLocaleString() || "0"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* LINE 連接狀態 */}
-                  {user?.isLineConnected && (
-                    <div className="mx-5 mb-5 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                      <div className="flex items-center gap-2">
-                        <svg
-                          className="w-5 h-5 text-[#06C755]"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
-                        </svg>
-                        <div>
-                          <span className="font-semibold text-sm text-green-700">
-                            已綁定 LINE
-                          </span>
-                          <p className="text-xs text-green-600">
-                            {user.lineDisplayName}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {!isEditing && (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all font-medium shadow-md hover:shadow-lg text-sm sm:text-base"
-                    >
-                      ✏️ 編輯
-                    </button>
-                  )}
-                </div>
-
-                {isEditing ? (
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-semibold text-orange-700 mb-2">
-                        👤 姓名
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-orange-700 mb-2">
-                        📧 Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
-                        placeholder="設定您的 Email 以便找回帳號"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-orange-700 mb-2">
-                        📱 手機號碼
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
-                        placeholder="0912345678"
-                      />
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                      <button
-                        type="submit"
-                        disabled={updating}
-                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg"
-                      >
-                        {updating ? "儲存中..." : "💾 儲存"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditing(false);
-                          setFormData({
-                            name: user?.name || "",
-                            email: !isTemporaryEmail(user?.email)
-                              ? user?.email || ""
-                              : "",
-                            phone: user?.phone || "",
-                          });
-                        }}
-                        className="px-6 py-3.5 bg-white border-2 border-orange-300 text-orange-600 rounded-xl hover:bg-orange-50 hover:border-orange-500 transition-all font-semibold"
-                      >
-                        ❌ 取消
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-                      <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
-                        👤 姓名
-                      </label>
-                      <p className="text-lg font-bold text-gray-800">
-                        {user?.name}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-                      <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
-                        📧 Email
-                      </label>
-                      <p className="text-lg font-bold text-gray-800">
-                        {!isTemporaryEmail(user?.email) && user?.email ? (
-                          user.email
-                        ) : (
-                          <span className="text-gray-400 text-sm">未設定</span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-                      <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
-                        📱 手機號碼
-                      </label>
-                      <p className="text-lg font-bold text-gray-800">
-                        {user?.phone || (
-                          <span className="text-gray-400 text-sm">未設定</span>
-                        )}
-                      </p>
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* 分隔線 */}
+              <div className="border-t border-orange-100 mb-6"></div>
+
+              {/* 基本資料表單/顯示 */}
+              {isEditing ? (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-orange-700 mb-2">
+                      👤 姓名
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-orange-700 mb-2">
+                      📧 Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
+                      placeholder="設定您的 Email 以便找回帳號"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-orange-700 mb-2">
+                      📱 手機號碼
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-orange-50/30"
+                      placeholder="0912345678"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={updating}
+                      className="flex-1 px-6 py-3.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg"
+                    >
+                      {updating ? "儲存中..." : "💾 儲存"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false)
+                        setFormData({
+                          name: user?.name || '',
+                          email: !isTemporaryEmail(user?.email)
+                            ? user?.email || ''
+                            : '',
+                          phone: user?.phone || '',
+                        })
+                      }}
+                      className="px-6 py-3.5 bg-white border-2 border-orange-300 text-orange-600 rounded-xl hover:bg-orange-50 hover:border-orange-500 transition-all font-semibold"
+                    >
+                      ❌ 取消
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+                    <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
+                      👤 姓名
+                    </label>
+                    <p className="text-lg font-bold text-gray-800">
+                      {user?.name}
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+                    <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
+                      📧 Email
+                    </label>
+                    <p className="text-lg font-bold text-gray-800 break-all">
+                      {!isTemporaryEmail(user?.email) && user?.email ? (
+                        user.email
+                      ) : (
+                        <span className="text-gray-400 text-sm">未設定</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+                    <label className="block text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
+                      📱 手機號碼
+                    </label>
+                    <p className="text-lg font-bold text-gray-800">
+                      {user?.phone || (
+                        <span className="text-gray-400 text-sm">未設定</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </>
-  );
+  )
 }
