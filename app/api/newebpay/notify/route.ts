@@ -183,9 +183,21 @@ async function updatePaymentRecord(
     }
 
     // ⚠️ 驗證金額是否與資料庫一致（防止偽造通知）
-    const expectedAmount = Math.floor(Number(payment.amount));
+    // 重要：直接比對整數金額，不使用 Math.floor 避免「少收錢」問題
+    const expectedAmount = Number(payment.amount);
     const receivedAmount = Number(Result.Amt);
 
+    // 確保資料庫金額是整數（應在建立 Payment 時就保證）
+    if (!Number.isInteger(expectedAmount)) {
+      console.error('❌ 資料庫金額不是整數:', {
+        paymentAmount: payment.amount,
+        expectedAmount,
+        orderNo: merchantOrderNo
+      });
+      throw new Error(`資料庫金額異常：${payment.amount} 不是整數`);
+    }
+
+    // 比對金額（必須完全相符）
     if (expectedAmount !== receivedAmount) {
       console.error('❌ 金額不符:', {
         expected: expectedAmount,

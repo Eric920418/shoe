@@ -100,10 +100,28 @@ export async function POST(request: NextRequest) {
     // 取得用戶 Email（訪客訂單使用訪客 email）
     const email = order.user?.email || order.guestEmail || 'guest@example.com';
 
+    // ⚠️ 驗證訂單金額必須是整數（藍新金流 MPG01016 要求）
+    const orderTotal = Number(order.total);
+    if (!Number.isInteger(orderTotal)) {
+      console.error('訂單金額不是整數:', {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        total: order.total,
+        type: typeof order.total
+      });
+      return NextResponse.json(
+        {
+          error: `訂單金額必須是整數：當前為 ${order.total}。` +
+                 `請檢查訂單計算邏輯，確保 subtotal、shippingFee、discount 等欄位計算後為整數。`
+        },
+        { status: 400 }
+      );
+    }
+
     // 產生支付表單資料
     const paymentFormData = createPaymentFormData({
       merchantOrderNo,
-      amount: Number(order.total),
+      amount: orderTotal,
       itemDesc: description,
       email,
       paymentTypes,

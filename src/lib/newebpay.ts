@@ -220,9 +220,20 @@ function queryStringToObject(queryString: string): Record<string, string> {
  */
 export function createPaymentFormData(params: CreatePaymentParams): PaymentFormData {
   // ⚠️ 驗證 Amt：MPG01016 規定必須是整數（Int(10)），範圍 1-99999999
-  const amountInt = Math.floor(Number(params.amount));
-  if (amountInt < 1 || amountInt > 99999999 || isNaN(amountInt)) {
-    throw new Error(`訂單金額無效：${params.amount}，必須是 1-99999999 的整數`);
+  // 重要：不使用 Math.floor 截斷小數，而是直接拒絕非整數金額
+  const amount = Number(params.amount);
+
+  // 檢查是否為有效的整數
+  if (!Number.isInteger(amount)) {
+    throw new Error(
+      `訂單金額必須是整數：收到 ${params.amount}（${amount}），` +
+      `請檢查訂單金額設定。藍新金流 MPG01016 規定金額必須是整數。`
+    );
+  }
+
+  // 檢查金額範圍
+  if (amount < 1 || amount > 99999999) {
+    throw new Error(`訂單金額超出範圍：${amount}，必須在 1-99999999 之間`);
   }
 
   // ⚠️ 驗證 ItemDesc：MPG01018 規定最多 50 字
@@ -239,7 +250,7 @@ export function createPaymentFormData(params: CreatePaymentParams): PaymentFormD
     TimeStamp: Math.floor(Date.now() / 1000),
     Version: '2.0',
     MerchantOrderNo: params.merchantOrderNo,
-    Amt: amountInt, // 使用整數金額
+    Amt: amount, // 使用驗證過的整數金額
     ItemDesc: itemDesc, // 使用長度限制後的描述
     Email: params.email,
     NotifyURL: NEWEBPAY_CONFIG.notifyUrl,
