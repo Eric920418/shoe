@@ -262,12 +262,6 @@ export default function AccountPage() {
                   📦 我的訂單
                 </Link>
                 <Link
-                  href="/account/addresses"
-                  className="block w-full px-4 py-3.5 text-center bg-white border-2 border-orange-300 text-orange-600 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all font-medium"
-                >
-                  📍 收貨地址
-                </Link>
-                <Link
                   href="/account/referral"
                   className="block w-full px-4 py-3.5 text-center bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg font-medium transform hover:scale-[1.02]"
                 >
