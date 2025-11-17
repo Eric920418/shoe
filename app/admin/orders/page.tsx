@@ -4,103 +4,44 @@
  * 後台訂單管理頁面 - 手機優先設計
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@apollo/client'
+import { GET_ALL_ORDERS } from '@/graphql/queries'
+import { format } from 'date-fns'
 
 interface Order {
   id: string
   orderNumber: string
-  customer: {
-    name: string
-    email: string
-  }
-  items: number
-  total: number
   status: string
   paymentStatus: string
   shippingStatus: string
+  total: number
+  subtotal: number
+  shippingFee: number
+  discount: number
   createdAt: string
+  user?: {
+    id: string
+    name: string
+    email: string
+  } | null
+  guestName?: string | null
+  guestPhone?: string | null
+  guestEmail?: string | null
+  items: {
+    id: string
+    quantity: number
+  }[]
 }
-
-// TODO: 從GraphQL API獲取訂單數據
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    orderNumber: 'ORD-20251020-001',
-    customer: {
-      name: '王小明',
-      email: 'wang@example.com',
-    },
-    items: 2,
-    total: 8900,
-    status: 'PENDING',
-    paymentStatus: 'PENDING',
-    shippingStatus: 'NOT_SHIPPED',
-    createdAt: '2025-10-20 14:30',
-  },
-  {
-    id: '2',
-    orderNumber: 'ORD-20251020-002',
-    customer: {
-      name: '李大華',
-      email: 'li@example.com',
-    },
-    items: 1,
-    total: 4500,
-    status: 'PAID',
-    paymentStatus: 'PAID',
-    shippingStatus: 'PREPARING',
-    createdAt: '2025-10-20 13:15',
-  },
-  {
-    id: '3',
-    orderNumber: 'ORD-20251019-045',
-    customer: {
-      name: '張三',
-      email: 'zhang@example.com',
-    },
-    items: 3,
-    total: 12000,
-    status: 'SHIPPED',
-    paymentStatus: 'PAID',
-    shippingStatus: 'SHIPPED',
-    createdAt: '2025-10-19 16:20',
-  },
-  {
-    id: '4',
-    orderNumber: 'ORD-20251019-032',
-    customer: {
-      name: '陳小姐',
-      email: 'chen@example.com',
-    },
-    items: 1,
-    total: 3200,
-    status: 'DELIVERED',
-    paymentStatus: 'PAID',
-    shippingStatus: 'DELIVERED',
-    createdAt: '2025-10-18 10:45',
-  },
-  {
-    id: '5',
-    orderNumber: 'ORD-20251018-023',
-    customer: {
-      name: '林先生',
-      email: 'lin@example.com',
-    },
-    items: 2,
-    total: 5600,
-    status: 'CANCELLED',
-    paymentStatus: 'REFUNDED',
-    shippingStatus: 'CANCELLED',
-    createdAt: '2025-10-18 09:30',
-  },
-]
 
 const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
   PENDING: { label: '待處理', color: 'bg-yellow-100 text-yellow-700', icon: '⏳' },
-  PAID: { label: '已付款', color: 'bg-blue-100 text-blue-700', icon: '💳' },
+  CONFIRMED: { label: '已確認', color: 'bg-blue-100 text-blue-700', icon: '✓' },
+  PROCESSING: { label: '處理中', color: 'bg-indigo-100 text-indigo-700', icon: '⚙️' },
   SHIPPED: { label: '已發貨', color: 'bg-purple-100 text-purple-700', icon: '🚚' },
   DELIVERED: { label: '已送達', color: 'bg-green-100 text-green-700', icon: '✅' },
+  COMPLETED: { label: '已完成', color: 'bg-green-100 text-green-700', icon: '🎉' },
   CANCELLED: { label: '已取消', color: 'bg-red-100 text-red-700', icon: '❌' },
   REFUNDED: { label: '已退款', color: 'bg-gray-100 text-gray-700', icon: '💸' },
 }
@@ -119,15 +60,39 @@ export default function OrdersPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
-  // 篩選訂單
-  const filteredOrders = mockOrders.filter((order) => {
-    const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || order.status === filterStatus
-    return matchesSearch && matchesStatus
+  // 查詢訂單數據
+  const { data, loading, error } = useQuery(GET_ALL_ORDERS, {
+    variables: {
+      skip: 0,
+      take: 100,
+    },
+    fetchPolicy: 'network-only',
   })
+
+  const orders: Order[] = data?.orders || []
+
+  // 計算統計數據
+  const stats = useMemo(() => {
+    const pending = orders.filter((o) => o.status === 'PENDING' || o.status === 'CONFIRMED').length
+    const processing = orders.filter((o) => o.status === 'PROCESSING' || o.status === 'SHIPPED').length
+    const completed = orders.filter((o) => o.status === 'DELIVERED' || o.status === 'COMPLETED').length
+    return { pending, processing, completed }
+  }, [orders])
+
+  // 篩選訂單
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const customerName = order.user?.name || order.guestName || ''
+      const customerEmail = order.user?.email || order.guestEmail || ''
+
+      const matchesSearch =
+        order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customerEmail.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesStatus = filterStatus === 'all' || order.status === filterStatus
+      return matchesSearch && matchesStatus
+    })
+  }, [orders, searchQuery, filterStatus])
 
   // 切換訂單選擇
   const toggleOrderSelection = (id: string) => {
@@ -154,6 +119,30 @@ export default function OrdersPage() {
     alert(`對 ${selectedOrders.length} 個訂單執行: ${action}`)
   }
 
+  // Loading 狀態
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <p className="mt-4 text-gray-600">載入訂單數據中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error 狀態
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 text-lg font-semibold">載入訂單失敗</p>
+          <p className="mt-2 text-gray-600">{error.message}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
@@ -167,15 +156,15 @@ export default function OrdersPage() {
       {/* 手機版 - 統計摘要 */}
       <div className="lg:hidden grid grid-cols-3 gap-2">
         <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-2xl font-bold text-yellow-600">8</p>
+          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
           <p className="text-xs text-gray-600 mt-1">待處理</p>
         </div>
         <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-2xl font-bold text-blue-600">12</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.processing}</p>
           <p className="text-xs text-gray-600 mt-1">處理中</p>
         </div>
         <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-2xl font-bold text-green-600">35</p>
+          <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
           <p className="text-xs text-gray-600 mt-1">已完成</p>
         </div>
       </div>
@@ -285,67 +274,77 @@ export default function OrdersPage() {
 
       {/* 訂單列表 - 手機版卡片式 */}
       <div className="lg:hidden space-y-3">
-        {filteredOrders.map((order) => (
-          <div
-            key={order.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-          >
-            {/* 訂單標題區 */}
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="font-semibold text-gray-900">{order.orderNumber}</p>
-                  <p className="text-xs text-gray-500 mt-1">{order.createdAt}</p>
-                </div>
-                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusLabels[order.status].color}`}>
-                  {statusLabels[order.status].icon} {statusLabels[order.status].label}
-                </span>
-              </div>
-            </div>
-
-            {/* 訂單詳情 */}
-            <div className="p-4 space-y-3">
-              {/* 客戶資訊 */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{order.customer.name}</p>
-                  <p className="text-xs text-gray-500">{order.customer.email}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900">${order.total.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500">{order.items} 件商品</p>
-                </div>
-              </div>
-
-              {/* 狀態指示器 */}
-              <div className="flex gap-2 text-xs">
-                <span className={`${paymentStatusLabels[order.paymentStatus].color}`}>
-                  {paymentStatusLabels[order.paymentStatus].label}
-                </span>
-                <span className="text-gray-400">•</span>
-                <span className="text-gray-600">
-                  {order.shippingStatus === 'NOT_SHIPPED' ? '未發貨' :
-                   order.shippingStatus === 'PREPARING' ? '準備中' :
-                   order.shippingStatus === 'SHIPPED' ? '已發貨' :
-                   order.shippingStatus === 'DELIVERED' ? '已送達' : '已取消'}
-                </span>
-              </div>
-
-              {/* 操作按鈕 */}
-              <div className="flex gap-2 pt-2">
-                <button className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium">
-                  查看詳情
-                </button>
-                <button className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm">
-                  更新狀態
-                </button>
-                <button className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm">
-                  ⋮
-                </button>
-              </div>
-            </div>
+        {filteredOrders.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">沒有找到符合條件的訂單</p>
           </div>
-        ))}
+        ) : (
+          filteredOrders.map((order) => {
+            const customerName = order.user?.name || order.guestName || '訪客'
+            const customerEmail = order.user?.email || order.guestEmail || ''
+            const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
+            const formattedDate = format(new Date(order.createdAt), 'yyyy-MM-dd HH:mm')
+
+            return (
+              <div
+                key={order.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+              >
+                {/* 訂單標題區 */}
+                <div className="p-4 border-b border-gray-100">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">{order.orderNumber}</p>
+                      <p className="text-xs text-gray-500 mt-1">{formattedDate}</p>
+                    </div>
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusLabels[order.status]?.color || 'bg-gray-100 text-gray-700'}`}>
+                      {statusLabels[order.status]?.icon || '📦'} {statusLabels[order.status]?.label || order.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 訂單詳情 */}
+                <div className="p-4 space-y-3">
+                  {/* 客戶資訊 */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{customerName}</p>
+                      {customerEmail && <p className="text-xs text-gray-500">{customerEmail}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-semibold text-gray-900">${order.total.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">{itemCount} 件商品</p>
+                    </div>
+                  </div>
+
+                  {/* 狀態指示器 */}
+                  <div className="flex gap-2 text-xs">
+                    <span className={`${paymentStatusLabels[order.paymentStatus]?.color || 'text-gray-600'}`}>
+                      {paymentStatusLabels[order.paymentStatus]?.label || order.paymentStatus}
+                    </span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-600">
+                      {order.shippingStatus === 'PENDING' ? '未發貨' :
+                       order.shippingStatus === 'PROCESSING' ? '準備中' :
+                       order.shippingStatus === 'SHIPPED' ? '已發貨' :
+                       order.shippingStatus === 'DELIVERED' ? '已送達' : order.shippingStatus}
+                    </span>
+                  </div>
+
+                  {/* 操作按鈕 */}
+                  <div className="flex gap-2 pt-2">
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium text-center"
+                    >
+                      查看詳情
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
 
       {/* 桌面版表格 */}
@@ -373,52 +372,65 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedOrders.includes(order.id)}
-                      onChange={() => toggleOrderSelection(order.id)}
-                      className="w-4 h-4 text-primary-600 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{order.customer.name}</p>
-                      <p className="text-xs text-gray-500">{order.customer.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{order.items} 件</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                    ${order.total.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-sm ${paymentStatusLabels[order.paymentStatus].color}`}>
-                      {paymentStatusLabels[order.paymentStatus].label}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusLabels[order.status].color}`}>
-                      {statusLabels[order.status].label}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{order.createdAt}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                        查看
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-700 text-sm">
-                        編輯
-                      </button>
-                    </div>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                    沒有找到符合條件的訂單
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredOrders.map((order) => {
+                  const customerName = order.user?.name || order.guestName || '訪客'
+                  const customerEmail = order.user?.email || order.guestEmail || ''
+                  const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
+                  const formattedDate = format(new Date(order.createdAt), 'yyyy-MM-dd HH:mm')
+
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedOrders.includes(order.id)}
+                          onChange={() => toggleOrderSelection(order.id)}
+                          className="w-4 h-4 text-primary-600 rounded"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{customerName}</p>
+                          {customerEmail && <p className="text-xs text-gray-500">{customerEmail}</p>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{itemCount} 件</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                        ${order.total.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`text-sm ${paymentStatusLabels[order.paymentStatus]?.color || 'text-gray-600'}`}>
+                          {paymentStatusLabels[order.paymentStatus]?.label || order.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusLabels[order.status]?.color || 'bg-gray-100 text-gray-700'}`}>
+                          {statusLabels[order.status]?.label || order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{formattedDate}</td>
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                        >
+                          查看詳情
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>

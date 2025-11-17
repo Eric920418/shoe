@@ -526,6 +526,11 @@ export const typeDefs = gql`
     orderId: String
   }
 
+  type DeleteOrderResponse {
+    success: Boolean!
+    message: String!
+  }
+
   # 優惠券
   type Coupon {
     id: ID!
@@ -1741,6 +1746,7 @@ export const typeDefs = gql`
     createOrder(input: CreateOrderInput!): Order!
     updateOrderStatus(id: ID!, status: OrderStatus!): Order!
     cancelOrder(id: ID!, reason: String, comment: String): Order!
+    deleteOrder(id: ID!): DeleteOrderResponse!
     uploadBankTransferProof(orderId: ID!, image: String!, note: String): Order!
 
     # 支付（藍新金流）
@@ -1967,6 +1973,9 @@ export const typeDefs = gql`
     categoryId: ID!
     brandId: ID
     images: JSON
+    isActive: Boolean
+    isFeatured: Boolean
+    isNewArrival: Boolean
     shoeType: String
     gender: ProductGender
     season: String

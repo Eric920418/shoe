@@ -125,7 +125,7 @@ export default function ProductSizesPage() {
       cm: '',
       footLength: 0,
       footWidth: '標準',
-      stock: 0,
+      stock: 10, // 預設庫存為 10
       isActive: true,
     })
     setIsEditing(true)
@@ -212,15 +212,31 @@ export default function ProductSizesPage() {
   const handleBatchImport = async (gender: 'men' | 'women') => {
     const template = gender === 'men' ? defaultMenSizes : defaultWomenSizes
 
+    // ✅ 檢查已存在的尺碼（根據 EU 碼）
+    const existingEuSizes = new Set(sizeCharts.map((chart) => chart.eu))
+    const newSizes = template.filter((size) => !existingEuSizes.has(size.eu))
+
+    if (newSizes.length === 0) {
+      toast.error(`${gender === 'men' ? '男款' : '女款'}尺碼模板中的所有尺碼都已存在，無需重複導入！`)
+      setShowBatchImport(false)
+      return
+    }
+
+    // 顯示將要導入的尺碼資訊
+    const skippedCount = template.length - newSizes.length
+    if (skippedCount > 0) {
+      toast.success(`跳過 ${skippedCount} 個已存在的尺碼，將導入 ${newSizes.length} 個新尺碼`)
+    }
+
     try {
-      const promises = template.map((size) =>
+      const promises = newSizes.map((size) =>
         createSizeChart({
           variables: {
             input: {
               productId,
               variantId: null,
               ...size,
-              stock: 0,
+              stock: 10, // 預設庫存為 10
             },
           },
         })
@@ -228,7 +244,11 @@ export default function ProductSizesPage() {
 
       await Promise.all(promises)
       setShowBatchImport(false)
-      toast.success(`已成功導入 ${template.length} 個${gender === 'men' ? '男款' : '女款'}尺碼模板！`)
+      toast.success(
+        `已成功導入 ${newSizes.length} 個${gender === 'men' ? '男款' : '女款'}尺碼，每個尺碼庫存預設為 10 件！${
+          skippedCount > 0 ? `（已跳過 ${skippedCount} 個重複尺碼）` : ''
+        }`
+      )
       refetch()
     } catch (error: any) {
       console.error('批量導入失敗:', error)
@@ -578,8 +598,14 @@ export default function ProductSizesPage() {
             </div>
 
             <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>提示：</strong>系統會自動跳過已存在的尺碼，只導入新的尺碼。每個尺碼的庫存預設為 10 件。
+                </p>
+              </div>
+
               <p className="text-gray-600">
-                選擇要導入的尺碼模板。將會新增標準尺碼對照表到產品中。
+                選擇要導入的尺碼模板：
               </p>
 
               <div className="space-y-3">
@@ -590,7 +616,7 @@ export default function ProductSizesPage() {
                 >
                   <div className="font-semibold text-blue-700">男款尺碼模板</div>
                   <div className="text-sm text-gray-600 mt-1">
-                    包含 EU 39-46 (US 6.5-12)
+                    包含 EU 39-46 (US 6.5-12)，共 8 個尺碼
                   </div>
                 </button>
 
@@ -601,7 +627,7 @@ export default function ProductSizesPage() {
                 >
                   <div className="font-semibold text-pink-700">女款尺碼模板</div>
                   <div className="text-sm text-gray-600 mt-1">
-                    包含 EU 35-41 (US 5-10)
+                    包含 EU 35-41 (US 5-10)，共 7 個尺碼
                   </div>
                 </button>
               </div>

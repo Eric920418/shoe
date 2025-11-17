@@ -44,10 +44,11 @@ function serializeProduct(product: any) {
  */
 export const getProductBySlug = cache(async (slug: string) => {
   try {
+    // ✅ 修正：findUnique 只能使用唯一字段，不能同時過濾其他條件
+    // 先查詢產品，然後檢查 isActive
     const product = await prisma.product.findUnique({
       where: {
         slug,
-        isActive: true,
       },
       include: {
         brand: {
@@ -99,6 +100,11 @@ export const getProductBySlug = cache(async (slug: string) => {
       },
     })
 
+    // ✅ 檢查產品是否存在且為啟用狀態
+    if (!product || !product.isActive) {
+      return null
+    }
+
     return serializeProduct(product)
   } catch (error) {
     console.error('Failed to fetch product by slug:', slug, error)
@@ -111,10 +117,10 @@ export const getProductBySlug = cache(async (slug: string) => {
  */
 export const getProductById = cache(async (id: string) => {
   try {
+    // ✅ 修正：findUnique 只能使用唯一字段
     const product = await prisma.product.findUnique({
       where: {
         id,
-        isActive: true,
       },
       include: {
         brand: true,
@@ -131,6 +137,11 @@ export const getProductById = cache(async (id: string) => {
         },
       },
     })
+
+    // ✅ 檢查產品是否存在且為啟用狀態
+    if (!product || !product.isActive) {
+      return null
+    }
 
     return product
   } catch (error) {

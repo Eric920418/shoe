@@ -574,7 +574,7 @@ export const orderResolvers = {
       }
     },
 
-    // 取消訂單
+    // 取消訂單（保留原有功能）
     cancelOrder: async (
       _: any,
       { id, reason }: { id: string; reason?: string },
@@ -634,6 +634,65 @@ export const orderResolvers = {
       })
 
       return updatedOrder
+    },
+
+    // 刪除訂單（新增：直接刪除未付款訂單）
+    deleteOrder: async (
+      _: any,
+      { id }: { id: string },
+      { user }: GraphQLContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError('請先登入', {
+          extensions: { code: 'UNAUTHENTICATED' },
+        })
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id },
+        include: { items: true },
+      })
+
+      if (!order) {
+        throw new GraphQLError('訂單不存在', {
+          extensions: { code: 'NOT_FOUND' },
+        })
+      }
+
+      if (order.userId !== user.userId && user.role !== 'ADMIN') {
+        throw new GraphQLError('無權刪除此訂單', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      if (order.status === 'COMPLETED' || order.status === 'SHIPPED') {
+        throw new GraphQLError('訂單已出貨或完成，無法刪除', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        })
+      }
+
+      if (order.paymentStatus === 'PAID') {
+        throw new GraphQLError('已付款訂單無法刪除，請聯繫客服', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        })
+      }
+
+      // 刪除訂單項目
+      await prisma.orderItem.deleteMany({
+        where: { orderId: id },
+      })
+
+      // 刪除相關的支付記錄
+      await prisma.payment.deleteMany({
+        where: { orderId: id },
+      })
+
+      // 刪除訂單
+      await prisma.order.delete({
+        where: { id },
+      })
+
+      return { success: true, message: '訂單已刪除' }
     },
 
     // 更新訂單狀態（管理員）

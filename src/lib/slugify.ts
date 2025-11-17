@@ -4,21 +4,38 @@
  */
 
 import { prisma } from './prisma'
+import pinyin from 'pinyin'
 
 /**
  * 將文字轉換為 slug 格式
+ * ✅ 自動將中文轉換為拼音，避免 URL 編碼問題
  * @param text 原始文字
  * @returns slug 字串
  */
 export function slugify(text: string): string {
-  return text
+  // 檢測是否包含中文字符
+  const hasChinese = /[\u4e00-\u9fa5]/.test(text)
+
+  let processed = text
+
+  if (hasChinese) {
+    // ✅ 將中文轉換為拼音（不帶聲調，用橫線分隔）
+    const pinyinArray = pinyin(text, {
+      style: pinyin.STYLE_NORMAL, // 不帶聲調
+      heteronym: false, // 不使用多音字
+    })
+    // 將二維陣列扁平化並用橫線連接
+    processed = pinyinArray.map(chars => chars.join('')).join('-')
+  }
+
+  return processed
     .toString()
     .toLowerCase()
     .trim()
     // 替換空格和底線為橫線
     .replace(/[\s_]+/g, '-')
-    // 移除特殊字符（保留中文、英文、數字、橫線）
-    .replace(/[^\w\-\u4e00-\u9fa5]+/g, '')
+    // 移除特殊字符（只保留英文、數字、橫線）
+    .replace(/[^\w\-]+/g, '')
     // 合併多個橫線
     .replace(/\-\-+/g, '-')
     // 移除開頭和結尾的橫線

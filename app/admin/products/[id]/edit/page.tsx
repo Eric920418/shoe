@@ -32,8 +32,6 @@ interface ProductFormData {
   brandId: string
   price: number | ''
   originalPrice: number | ''
-  stock: number | ''
-  status: string
   isFeatured: boolean
   isNewArrival: boolean
   shoeType: string
@@ -84,8 +82,6 @@ export default function EditProductPage() {
           brandId: data.product.brand?.id || '',
           price: data.product.price || '',
           originalPrice: data.product.originalPrice || '',
-          stock: data.product.stock || '',
-          status: data.product.isActive ? 'ACTIVE' : 'DRAFT',
           isFeatured: data.product.isFeatured || false,
           isNewArrival: data.product.isNewArrival || false,
           shoeType: data.product.shoeType || '',
@@ -161,8 +157,7 @@ export default function EditProductPage() {
     if (!formData.brandId) newErrors.brandId = '請選擇品牌'
     if (formData.price === '' || formData.price <= 0)
       newErrors.price = '請輸入有效的價格'
-    if (formData.stock === '' || formData.stock < 0)
-      newErrors.stock = '請輸入有效的庫存'
+    // 移除庫存驗證，因為庫存由尺碼獨立管理
 
     setErrors(newErrors)
     return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
@@ -204,8 +199,8 @@ export default function EditProductPage() {
         brandId: formData.brandId || null,
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
-        stock: Number(formData.stock),
-        isActive: formData.status === 'ACTIVE',
+        stock: 0, // 庫存由尺碼管理，此處固定為 0
+        isActive: true, // 產品永遠在售
         isFeatured: formData.isFeatured,
         isNewArrival: formData.isNewArrival,
         shoeType: formData.shoeType || null,
@@ -427,10 +422,13 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* 價格和庫存 */}
+        {/* 價格設定 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">價格和庫存</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">價格設定</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            庫存由各個尺碼獨立管理，請前往「尺碼管理」分頁設定各尺碼的庫存。
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 售價 (NT$) <span className="text-red-500">*</span>
@@ -446,6 +444,9 @@ export default function EditProductPage() {
                 }`}
                 min="0"
               />
+              {errors.price && (
+                <p className="text-sm text-red-600 mt-1">{errors.price}</p>
+              )}
             </div>
 
             <div>
@@ -461,23 +462,7 @@ export default function EditProductPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 min="0"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                總庫存 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={formData.stock}
-                onChange={(e) =>
-                  updateField('stock', e.target.value ? Number(e.target.value) : '')
-                }
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                  errors.stock ? 'border-red-500' : 'border-gray-300'
-                }`}
-                min="0"
-              />
+              <p className="text-xs text-gray-500 mt-1">用於顯示折扣</p>
             </div>
           </div>
         </div>
@@ -610,54 +595,39 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* 狀態 */}
+        {/* 展示設定 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品狀態</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                狀態
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">展示設定</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            產品會自動維持「在售」狀態，並公開顯示在前台。
+          </p>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isFeatured"
+                checked={formData.isFeatured}
+                onChange={(e) => updateField('isFeatured', e.target.checked)}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                <span className="font-medium">精選產品</span>
+                <span className="text-gray-500 ml-2">（在首頁「精選推薦」區塊顯示）</span>
               </label>
-              <select
-                value={formData.status}
-                onChange={(e) => updateField('status', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="DRAFT">草稿</option>
-                <option value="ACTIVE">在售</option>
-                <option value="ARCHIVED">已下架</option>
-              </select>
             </div>
 
-            {/* 精選產品和新品展示 */}
-            <div className="space-y-3 pt-4 border-t border-gray-200">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isFeatured"
-                  checked={formData.isFeatured}
-                  onChange={(e) => updateField('isFeatured', e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
-                  <span className="font-medium">精選產品</span>
-                  <span className="text-gray-500 ml-2">（在首頁「精選推薦」區塊顯示）</span>
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isNewArrival"
-                  checked={formData.isNewArrival}
-                  onChange={(e) => updateField('isNewArrival', e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isNewArrival" className="ml-2 block text-sm text-gray-700">
-                  <span className="font-medium">新品展示</span>
-                  <span className="text-gray-500 ml-2">（在首頁「新品搶先體驗」區塊顯示）</span>
-                </label>
-              </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isNewArrival"
+                checked={formData.isNewArrival}
+                onChange={(e) => updateField('isNewArrival', e.target.checked)}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="isNewArrival" className="ml-2 block text-sm text-gray-700">
+                <span className="font-medium">新品展示</span>
+                <span className="text-gray-500 ml-2">（在首頁「新品搶先體驗」區塊顯示）</span>
+              </label>
             </div>
           </div>
         </div>

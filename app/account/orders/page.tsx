@@ -9,7 +9,7 @@ import { useQuery, useMutation } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { GET_MY_ORDERS, CANCEL_ORDER } from '@/graphql/queries'
+import { GET_MY_ORDERS, DELETE_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import AccountHeader from '@/components/navigation/AccountHeader'
 
@@ -47,30 +47,30 @@ export default function OrdersPage() {
     fetchPolicy: 'network-only',
   })
 
-  const [cancelOrder, { loading: cancelling }] = useMutation(CANCEL_ORDER, {
+  const [deleteOrder, { loading: deleting }] = useMutation(DELETE_ORDER, {
     onCompleted: () => {
-      alert('訂單已取消')
+      alert('訂單已刪除')
       refetch()
     },
     onError: (error) => {
-      console.error('取消訂單失敗:', error)
-      alert(error.message || '取消訂單失敗，請稍後再試')
+      console.error('刪除訂單失敗:', error)
+      alert(error.message || '刪除訂單失敗，請稍後再試')
     },
   })
 
-  const handleCancelOrder = async (orderId: string, orderNumber: string) => {
-    if (!confirm(`確定要取消訂單 ${orderNumber} 嗎？`)) {
+  const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`確定要刪除訂單 ${orderNumber} 嗎？此操作無法復原。`)) {
       return
     }
 
     try {
-      await cancelOrder({
+      await deleteOrder({
         variables: {
           id: orderId,
         },
       })
     } catch (error) {
-      console.error('取消訂單失敗:', error)
+      console.error('刪除訂單失敗:', error)
     }
   }
 
@@ -252,13 +252,14 @@ export default function OrdersPage() {
 
                       {order.status !== 'CANCELLED' &&
                         order.status !== 'COMPLETED' &&
-                        order.status !== 'SHIPPED' && (
+                        order.status !== 'SHIPPED' &&
+                        order.paymentStatus !== 'PAID' && (
                           <button
-                            onClick={() => handleCancelOrder(order.id, order.orderNumber)}
-                            disabled={cancelling}
+                            onClick={() => handleDeleteOrder(order.id, order.orderNumber)}
+                            disabled={deleting}
                             className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium disabled:opacity-50"
                           >
-                            取消訂單
+                            刪除訂單
                           </button>
                         )}
                     </div>

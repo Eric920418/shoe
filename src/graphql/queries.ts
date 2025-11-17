@@ -405,6 +405,54 @@ export const GET_MY_ORDERS = gql`
   }
 `
 
+// 獲取所有訂單（管理員專用）
+export const GET_ALL_ORDERS = gql`
+  query GetAllOrders($skip: Int, $take: Int, $where: JSON) {
+    orders(skip: $skip, take: $take, where: $where) {
+      id
+      orderNumber
+      status
+      paymentStatus
+      paymentMethod
+      shippingStatus
+      total
+      subtotal
+      shippingFee
+      discount
+      createdAt
+      updatedAt
+      paidAt
+      shippedAt
+      deliveredAt
+      shippingName
+      shippingPhone
+      shippingCity
+      shippingDistrict
+      shippingStreet
+      notes
+      guestName
+      guestPhone
+      guestEmail
+      user {
+        id
+        name
+        email
+        phone
+      }
+      items {
+        id
+        quantity
+        price
+        subtotal
+        productName
+        productImage
+        sizeEu
+        color
+      }
+    }
+  }
+`
+
 export const GET_ORDER = gql`
   query GetOrder($id: ID!) {
     order(id: $id) {
@@ -479,6 +527,29 @@ export const CANCEL_ORDER = gql`
       status
       cancelReason
       cancelledAt
+    }
+  }
+`
+
+export const DELETE_ORDER = gql`
+  mutation DeleteOrder($id: ID!) {
+    deleteOrder(id: $id) {
+      success
+      message
+    }
+  }
+`
+
+// 更新訂單狀態（管理員專用）
+export const UPDATE_ORDER_STATUS = gql`
+  mutation UpdateOrderStatus($id: ID!, $status: String!) {
+    updateOrderStatus(id: $id, status: $status) {
+      id
+      orderNumber
+      status
+      paymentStatus
+      shippingStatus
+      updatedAt
     }
   }
 `

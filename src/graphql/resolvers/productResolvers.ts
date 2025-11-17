@@ -259,6 +259,20 @@ export const productResolvers = {
       }
 
       try {
+        // ✅ 前置驗證：檢查必填欄位
+        const missingFields: string[] = []
+        if (!input.name || !input.name.trim()) missingFields.push('產品名稱')
+        if (!input.categoryId || !input.categoryId.trim()) missingFields.push('分類')
+        if (input.price === undefined || input.price === null || input.price <= 0) missingFields.push('售價')
+        // 移除庫存驗證，因為庫存由尺碼獨立管理
+
+        if (missingFields.length > 0) {
+          throw new GraphQLError(
+            `請填寫以下必填欄位：${missingFields.join('、')}`,
+            { extensions: { code: 'BAD_USER_INPUT', missingFields } }
+          )
+        }
+
         // 生成或驗證 slug
         let slug: string
         if (input.slug && input.slug.trim()) {
@@ -314,6 +328,57 @@ export const productResolvers = {
         return product
       } catch (error: any) {
         console.error('創建產品失敗:', error)
+
+        // 如果是我們拋出的 GraphQLError，直接重新拋出
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+
+        // ✅ 處理 Prisma 特定錯誤
+        if (error.code === 'P2002') {
+          const target = error.meta?.target || []
+          const fieldNames: Record<string, string> = {
+            slug: '產品網址 (slug)',
+            name: '產品名稱',
+          }
+          const fields = target.map((t: string) => fieldNames[t] || t).join('、')
+          throw new GraphQLError(`創建失敗：${fields} 已經存在，請使用不同的名稱`, {
+            extensions: { code: 'UNIQUE_CONSTRAINT_VIOLATION', target },
+          })
+        }
+
+        if (error.code === 'P2003') {
+          // 外鍵約束錯誤
+          const field = error.meta?.field_name || ''
+          let message = '創建失敗：'
+          if (field.includes('categoryId')) {
+            message += '所選的分類不存在，請重新選擇分類'
+          } else if (field.includes('brandId')) {
+            message += '所選的品牌不存在，請重新選擇品牌'
+          } else {
+            message += '關聯的資料不存在，請檢查分類或品牌是否有效'
+          }
+          throw new GraphQLError(message, {
+            extensions: { code: 'FOREIGN_KEY_VIOLATION', field },
+          })
+        }
+
+        if (error.code === 'P2000') {
+          // 資料過長錯誤
+          throw new GraphQLError(`創建失敗：某些欄位的資料過長，請縮短內容`, {
+            extensions: { code: 'VALUE_TOO_LONG' },
+          })
+        }
+
+        if (error.code === 'P2011') {
+          // 非空約束錯誤
+          const constraint = error.meta?.constraint || ''
+          throw new GraphQLError(`創建失敗：缺少必填欄位 (${constraint})`, {
+            extensions: { code: 'NULL_CONSTRAINT_VIOLATION' },
+          })
+        }
+
+        // 其他未知錯誤
         throw new GraphQLError(`創建產品失敗: ${error.message}`, {
           extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
         })

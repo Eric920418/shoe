@@ -17,6 +17,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decryptTradeInfo } from '@/lib/newebpay';
 import { prisma } from '@/lib/prisma';
 
+// 取得正確的網站 URL
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://xn--cjzl80byf571b.tw';
+
 // ============================================
 // POST /api/newebpay/return
 // ============================================
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!status || !tradeInfo || !tradeSha) {
       console.error('返回資料缺少必要參數');
       return NextResponse.redirect(
-        new URL('/payment/error?message=資料不完整', request.url)
+        new URL('/payment/error?message=資料不完整', SITE_URL)
       );
     }
 
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(
         new URL(
           `/payment/error?message=${encodeURIComponent('資料驗證失敗')}`,
-          request.url
+          SITE_URL
         )
       );
     }
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (!payment) {
       console.error(`找不到支付記錄: ${Result.MerchantOrderNo}`);
       return NextResponse.redirect(
-        new URL('/payment/error?message=找不到訂單', request.url)
+        new URL('/payment/error?message=找不到訂單', SITE_URL)
       );
     }
 
@@ -84,14 +87,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.redirect(
           new URL(
             `/payment/pending?orderId=${payment.order.id}&paymentType=${paymentType}`,
-            request.url
+            SITE_URL
           )
         );
       }
 
       // 信用卡等即時支付成功
       return NextResponse.redirect(
-        new URL(`/payment/success?orderId=${payment.order.id}`, request.url)
+        new URL(`/payment/success?orderId=${payment.order.id}`, SITE_URL)
       );
     } else {
       // 支付失敗或取消
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(
         new URL(
           `/payment/failed?orderId=${payment.order.id}&message=${encodeURIComponent(Message)}`,
-          request.url
+          SITE_URL
         )
       );
     }
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(
       new URL(
         `/payment/error?message=${encodeURIComponent('系統錯誤，請聯繫客服')}`,
-        request.url
+        SITE_URL
       )
     );
   }
@@ -129,7 +132,7 @@ export async function GET(request: NextRequest) {
 
   if (!status || !tradeInfo || !tradeSha) {
     return NextResponse.redirect(
-      new URL('/payment/error?message=資料不完整', request.url)
+      new URL('/payment/error?message=資料不完整', SITE_URL)
     );
   }
 
@@ -145,7 +148,7 @@ export async function GET(request: NextRequest) {
 
     if (!payment) {
       return NextResponse.redirect(
-        new URL('/payment/error?message=找不到訂單', request.url)
+        new URL('/payment/error?message=找不到訂單', SITE_URL)
       );
     }
 
@@ -155,25 +158,25 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(
           new URL(
             `/payment/pending?orderId=${payment.order.id}&paymentType=${paymentType}`,
-            request.url
+            SITE_URL
           )
         );
       }
       return NextResponse.redirect(
-        new URL(`/payment/success?orderId=${payment.order.id}`, request.url)
+        new URL(`/payment/success?orderId=${payment.order.id}`, SITE_URL)
       );
     } else {
       return NextResponse.redirect(
         new URL(
           `/payment/failed?orderId=${payment.order.id}&message=${encodeURIComponent(Message)}`,
-          request.url
+          SITE_URL
         )
       );
     }
   } catch (error) {
     console.error('處理 GET 返回失敗:', error);
     return NextResponse.redirect(
-      new URL('/payment/error?message=系統錯誤', request.url)
+      new URL('/payment/error?message=系統錯誤', SITE_URL)
     );
   }
 }

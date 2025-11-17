@@ -124,7 +124,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       cm: '',
       footLength: 0,
       footWidth: '標準',
-      stock: 0,
+      stock: 10, // 預設庫存為 10
       isActive: true,
     })
     // 滾動到表單位置
@@ -213,15 +213,31 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
   const handleBatchImport = async (gender: 'men' | 'women') => {
     const template = gender === 'men' ? defaultMenSizes : defaultWomenSizes
 
+    // ✅ 檢查已存在的尺碼（根據 EU 碼）
+    const existingEuSizes = new Set(sizeCharts.map((chart) => chart.eu))
+    const newSizes = template.filter((size) => !existingEuSizes.has(size.eu))
+
+    if (newSizes.length === 0) {
+      toast.error(`${gender === 'men' ? '男款' : '女款'}尺碼模板中的所有尺碼都已存在，無需重複導入！`)
+      setShowBatchImport(false)
+      return
+    }
+
+    // 顯示將要導入的尺碼資訊
+    const skippedCount = template.length - newSizes.length
+    if (skippedCount > 0) {
+      toast.success(`跳過 ${skippedCount} 個已存在的尺碼，將導入 ${newSizes.length} 個新尺碼`)
+    }
+
     try {
-      const promises = template.map((size) =>
+      const promises = newSizes.map((size) =>
         createSizeChart({
           variables: {
             input: {
               productId,
               variantId: null,
               ...size,
-              stock: 0,
+              stock: 10, // 預設庫存為 10
             },
           },
         })
@@ -229,7 +245,11 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
 
       await Promise.all(promises)
       setShowBatchImport(false)
-      toast.success(`已成功導入 ${template.length} 個${gender === 'men' ? '男款' : '女款'}尺碼模板！`)
+      toast.success(
+        `已成功導入 ${newSizes.length} 個${gender === 'men' ? '男款' : '女款'}尺碼，每個尺碼庫存預設為 10 件！${
+          skippedCount > 0 ? `（已跳過 ${skippedCount} 個重複尺碼）` : ''
+        }`
+      )
       refetch()
     } catch (error: any) {
       console.error('批量導入失敗:', error)
@@ -289,6 +309,13 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       {showBatchImport && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">批量導入尺碼模板</h3>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>提示：</strong>系統會自動跳過已存在的尺碼，只導入新的尺碼。每個尺碼的庫存預設為 10 件。
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => handleBatchImport('men')}
@@ -296,7 +323,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
               className="px-4 py-3 border-2 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
             >
               <div className="font-semibold text-blue-700">男款尺碼模板</div>
-              <div className="text-sm text-gray-600 mt-1">包含 EU 39-46 (US 6.5-12)</div>
+              <div className="text-sm text-gray-600 mt-1">包含 EU 39-46 (US 6.5-12)，共 8 個尺碼</div>
             </button>
 
             <button
@@ -305,7 +332,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
               className="px-4 py-3 border-2 border-pink-500 rounded-lg hover:bg-pink-50 transition-colors text-left disabled:opacity-50"
             >
               <div className="font-semibold text-pink-700">女款尺碼模板</div>
-              <div className="text-sm text-gray-600 mt-1">包含 EU 35-41 (US 5-10)</div>
+              <div className="text-sm text-gray-600 mt-1">包含 EU 35-41 (US 5-10)，共 7 個尺碼</div>
             </button>
           </div>
         </div>

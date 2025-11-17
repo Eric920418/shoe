@@ -12,7 +12,8 @@
       "Bash(curl:*)",
       "Bash(pnpm prisma migrate:*)",
       "Bash(sudo -u postgres psql:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(sudo tail:*)"
     ],
     "deny": [],
     "ask": []

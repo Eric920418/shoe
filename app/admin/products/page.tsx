@@ -365,14 +365,28 @@ export default function ProductsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/products/${product.slug}`}
-                            target="_blank"
-                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                            title="查看前台展示"
-                          >
-                            查看
-                          </Link>
+                          {product.totalStock === 0 ? (
+                            <button
+                              onClick={() => {
+                                toast.error('此產品無庫存，無法在前台展示。請先前往「編輯」→「尺碼管理」設定庫存。', {
+                                  duration: 5000,
+                                })
+                              }}
+                              className="px-3 py-1 text-sm text-gray-400 cursor-not-allowed font-medium"
+                              title="產品無庫存，無法查看"
+                            >
+                              查看
+                            </button>
+                          ) : (
+                            <Link
+                              href={`/products/${encodeURIComponent(product.slug)}`}
+                              target="_blank"
+                              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                              title="查看前台展示"
+                            >
+                              查看
+                            </Link>
+                          )}
                           <Link
                             href={`/admin/products/${product.id}/edit`}
                             className="px-3 py-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
