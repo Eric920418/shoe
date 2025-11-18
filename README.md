@@ -739,6 +739,30 @@ pg_restore -h localhost -p 5432 -U postgres \
    - 使用了 EncryptType=1 → 移除該參數，使用預設 CBC 模式
    - TradeInfo 被截斷 → 檢查資料庫欄位長度或傳輸限制
 
+### 物流 API 錯誤排查
+
+如果遇到物流 API 錯誤：
+
+1. **Invalid key length / Invalid iv length**
+   ```bash
+   # 檢查物流專用的 HashKey/HashIV（如果有設定）
+   echo $NEWEBPAY_LOGISTICS_HASH_KEY | wc -c  # 應為 33
+   echo $NEWEBPAY_LOGISTICS_HASH_IV | wc -c   # 應為 17
+
+   # 或檢查共用的 HashKey/HashIV
+   echo $NEWEBPAY_HASH_KEY | wc -c  # 應為 33
+   echo $NEWEBPAY_HASH_IV | wc -c   # 應為 17
+   ```
+
+2. **查無合作商店**
+   - 聯絡藍新金流客服確認物流服務是否已開通
+   - 確認物流商店代號是否正確（可能與金流不同）
+   - 索取物流專用的 HashKey 和 HashIV
+
+3. **參數錯誤**
+   - 確保外層參數：UID_, Version_, RespondType_, EncryptData_, HashData_
+   - 確保內層只放業務欄位：LgsType, ShipType, MerchantOrderNo 等
+
 ### 資料庫遷移安全規則
 
 ⚠️ **禁止使用 `--accept-data-loss` 參數**（根據 CLAUDE.md 規範）
@@ -757,6 +781,13 @@ pnpm prisma migrate reset
 ## 📝 最新更新摘要
 
 ### 🔥 近期重點更新（2025-11-18）
+
+#### ✅ 物流 API AES 實作優化
+- 統一物流與金流的 AES-256-CBC 加解密實作
+- 新增 Key/IV 長度驗證（Key 必須 32 bytes，IV 必須 16 bytes）
+- 修正參數結構：外層放 UID_/Version_/RespondType_，內層只放業務欄位
+- 避免低級錯誤：自動檢測並報錯環境變數中的空白或換行問題
+- 提升穩定性：解決「Invalid key length」等常見錯誤
 
 #### ✅ 藍新金流解密問題修正
 - 修正 AES-256-CBC 解密實作，完全符合官方文件規範
