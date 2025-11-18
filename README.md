@@ -713,6 +713,31 @@ pg_restore -h localhost -p 5432 -U postgres \
 | 遷移失敗 | `pnpm prisma migrate status` 檢查狀態 |
 | 購物車顯示錯誤數字 | 檢查是否有過期的 JWT Token |
 | 產品庫存顯示不正確 | 產品庫存來自 SizeChart 表，檢查尺碼庫存 |
+| 藍新金流 AES bad decrypt | 檢查 HashKey/HashIV 是否正確，測試/正式環境勿混用 |
+| 藍新金流 TradeSha 驗證失敗 | 確認使用相同環境的憑證，檢查 TradeInfo 格式是否為 hex |
+
+### 藍新金流 AES 解密問題排查
+
+如果遇到 "bad decrypt" 或 "wrong final block length" 錯誤：
+
+1. **檢查環境變數**
+   ```bash
+   # 確認 HashKey 長度為 32 字元
+   echo $NEWEBPAY_HASH_KEY | wc -c  # 應為 33（含換行）
+   # 確認 HashIV 長度為 16 字元
+   echo $NEWEBPAY_HASH_IV | wc -c   # 應為 17（含換行）
+   ```
+
+2. **執行測試腳本**
+   ```bash
+   node test-newebpay-decrypt.js
+   ```
+
+3. **常見問題與解決方案**
+   - TradeInfo 不是有效的 hex 字串 → 檢查是否有 URL 編碼或空白字元
+   - HashKey/HashIV 錯誤 → 確認測試/正式環境憑證未混用
+   - 使用了 EncryptType=1 → 移除該參數，使用預設 CBC 模式
+   - TradeInfo 被截斷 → 檢查資料庫欄位長度或傳輸限制
 
 ### 資料庫遷移安全規則
 
@@ -731,9 +756,17 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
-### 🔥 近期重點更新（2025-11-17）
+### 🔥 近期重點更新（2025-11-18）
 
-#### ✅ 產品詳情頁與購物車體驗優化
+#### ✅ 藍新金流解密問題修正
+- 修正 AES-256-CBC 解密實作，完全符合官方文件規範
+- 確認 TradeInfo 使用十六進制格式（不是 Base64）
+- 移除 URL 編碼檢查，避免破壞 hex 字串
+- 新增 `/src/lib/newebpay-correct.ts` 正確實作版本
+- 更新 notify 和 return routes 使用新的解密函數
+- 確認未使用 EncryptType=1（GCM 模式）
+
+#### ✅ 產品詳情頁與購物車體驗優化（2025-11-17）
 - 麵包屑導航全面改進，支援購物車連結顯示
 - 加入購物車後自動跳轉至購物車頁面（0.5秒延遲）
 - 購物車頁面新增麵包屑導航，提升用戶體驗

@@ -13,11 +13,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
-  createPaymentFormData,
+  createPaymentData,
   generateMerchantOrderNo,
   NEWEBPAY_CONFIG,
   type NewebPaymentType,
-} from '@/lib/newebpay';
+} from '@/lib/newebpay-correct';
 
 // ============================================
 // 請求資料型別
@@ -118,14 +118,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 產生支付表單資料
-    const paymentFormData = createPaymentFormData({
+    // 產生支付表單資料（使用正確的加密函數）
+    const paymentFormData = createPaymentData({
       merchantOrderNo,
       amount: orderTotal,
       itemDesc: description,
       email,
-      paymentTypes,
-      tradeLimit: 900, // 15 分鐘交易限制
+      notifyUrl: NEWEBPAY_CONFIG.notifyUrl,
+      returnUrl: NEWEBPAY_CONFIG.returnUrl,
+      clientBackUrl: NEWEBPAY_CONFIG.clientBackUrl,
     });
 
     // 詳細日誌

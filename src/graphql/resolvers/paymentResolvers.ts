@@ -8,7 +8,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { formatPaymentType } from '@/lib/newebpay';
+import { formatPaymentType } from '@/lib/newebpay-correct';
 
 // ============================================
 // Query Resolvers

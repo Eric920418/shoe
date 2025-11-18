@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { decryptTradeInfo } from '@/lib/newebpay';
+import { decryptAndVerifyTradeInfo } from '@/lib/newebpay-correct';
 import { prisma } from '@/lib/prisma';
 
 // 取得正確的網站 URL
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     // 解密並驗證資料
     let decryptedData;
     try {
-      decryptedData = decryptTradeInfo(tradeInfo, tradeSha);
+      decryptedData = decryptAndVerifyTradeInfo(tradeInfo, tradeSha);
     } catch (error) {
       console.error('返回資料驗證失敗:', error);
       return NextResponse.redirect(
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
 
   // 解密並驗證資料
   try {
-    const decryptedData = decryptTradeInfo(tradeInfo, tradeSha);
+    const decryptedData = decryptAndVerifyTradeInfo(tradeInfo, tradeSha);
     const { Status, Message, Result } = decryptedData;
 
     const payment = await prisma.payment.findUnique({

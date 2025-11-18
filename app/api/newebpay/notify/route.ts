@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { decryptTradeInfo, verifyTradeSha } from '@/lib/newebpay';
+import { decryptAndVerifyTradeInfo } from '@/lib/newebpay-correct';
 
 // ============================================
 // Route Config - 允許處理大型請求體
@@ -110,21 +110,18 @@ export async function POST(request: NextRequest) {
     // 解密並驗證資料
     let decryptedData;
     try {
-      decryptedData = decryptTradeInfo(tradeInfo, tradeSha);
+      decryptedData = decryptAndVerifyTradeInfo(tradeInfo, tradeSha);
     } catch (error) {
       console.error('❌ 藍新金流資料驗證失敗:', error instanceof Error ? error.message : '未知錯誤');
 
-      // ✅ 嘗試從 TradeInfo 中提取商店訂單編號，以便儲存錯誤訊息
-      // 注意：即使解密失敗，我們也嘗試記錄這個錯誤
+      // ✅ 嘗試記錄錯誤訊息
       try {
-        // 嘗試找出訂單編號（可能在未解密的 tradeInfo 中仍可解析部分資訊）
         const errorMessage = `藍新金流解密失敗：${error instanceof Error ? error.message : '未知錯誤'}`;
 
         // 記錄完整的錯誤資訊到日誌
         console.error('完整錯誤資訊:', {
           error: errorMessage,
           tradeInfoLength: tradeInfo?.length,
-          tradeShaValid: tradeSha ? 'Yes' : 'No',
           timestamp: new Date().toISOString()
         });
 
@@ -151,7 +148,6 @@ export async function POST(request: NextRequest) {
               errorCode: 'DECRYPT_FAILED',
               responseData: {
                 rawTradeInfo: tradeInfo?.substring(0, 100), // 只儲存前100字避免太長
-                tradeShaValid: verifyTradeSha(tradeInfo, tradeSha),
                 error: errorMessage,
                 timestamp: new Date().toISOString()
               }
