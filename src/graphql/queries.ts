@@ -461,11 +461,17 @@ export const GET_ORDER = gql`
       status
       paymentStatus
       paymentMethod
+      shippingStatus
+      shippingMethod
+      trackingNumber
       total
       subtotal
       shippingFee
       discount
       createdAt
+      paidAt
+      shippedAt
+      deliveredAt
       shippingName
       shippingPhone
       shippingCountry
@@ -474,6 +480,15 @@ export const GET_ORDER = gql`
       shippingStreet
       shippingZipCode
       notes
+      guestName
+      guestPhone
+      guestEmail
+      user {
+        id
+        name
+        email
+        phone
+      }
       payment {
         id
         merchantOrderNo

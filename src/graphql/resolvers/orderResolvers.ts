@@ -241,6 +241,14 @@ export const orderResolvers = {
           },
           address: true,
           payment: true, // 包含支付資訊
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
         },
       })
 
