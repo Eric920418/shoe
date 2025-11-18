@@ -88,6 +88,14 @@ export function generateLogisticsHash(encryptedData: string): string {
   return crypto.createHash('sha256').update(hashString).digest('hex').toUpperCase()
 }
 
+/** 每個物流廠商限制一次可列印的標籤數量（參考《物流服務技術串接手冊》） */
+const PRINT_LABEL_LIMITS: Record<string, number> = {
+  '1': 10, // 統一
+  '2': 8,  // 全家（官方文件指出 C2C 限制 8 筆 / A4 兩張）
+  '3': 10, // 萊爾富
+  '4': 10, // OK
+}
+
 /**
  * 列印物流標籤
  * @param orderNumbers 商店訂單編號陣列（最多可一次列印多筆）
@@ -106,66 +114,72 @@ export async function printLogisticsLabel(
     throw new Error('物流 API 配置不完整，請檢查環境變數 NEWEBPAY_MERCHANT_ID, NEWEBPAY_HASH_KEY, NEWEBPAY_HASH_IV')
   }
 
-  // 準備內層參數（只包含業務欄位）
-  const encryptParams: Record<string, any> = {
-    LgsType: lgsType,
-    ShipType: shipType,
-    MerchantOrderNo: orderNumbers, // 陣列
-    TimeStamp: Math.floor(Date.now() / 1000).toString(),
+  const maxPerRequest = PRINT_LABEL_LIMITS[shipType] || 10
+  const batches: string[][] = []
+  for (let i = 0; i < orderNumbers.length; i += maxPerRequest) {
+    batches.push(orderNumbers.slice(i, i + maxPerRequest))
   }
 
-  console.log('物流 API 參數:', {
-    merchantId,
-    encryptParams,
-    apiUrl: `${apiUrl}/printLabel`,
-  })
+  const responses: any[] = []
+  for (const batch of batches) {
+    const encryptParams: Record<string, any> = {
+      LgsType: lgsType,
+      ShipType: shipType,
+      MerchantOrderNo: batch,
+      TimeStamp: Math.floor(Date.now() / 1000).toString(),
+    }
 
-  // 加密資料
-  const encryptedData = encryptLogisticsData(encryptParams)
+    console.log('物流 API 參數:', {
+      merchantId,
+      batchSize: batch.length,
+      apiUrl: `${apiUrl}/printLabel`,
+    })
 
-  // 產生雜湊值
-  const hashData = generateLogisticsHash(encryptedData)
+    const encryptedData = encryptLogisticsData(encryptParams)
+    const hashData = generateLogisticsHash(encryptedData)
 
-  // 組裝外層表單參數
-  const formData = new URLSearchParams({
-    UID_: merchantId,
-    Version_: '1.0',
-    RespondType_: 'JSON',
-    EncryptData_: encryptedData,
-    HashData_: hashData,
-  })
+    const formData = new URLSearchParams({
+      UID_: merchantId,
+      Version_: '1.0',
+      RespondType_: 'JSON',
+      EncryptData_: encryptedData,
+      HashData_: hashData,
+    })
 
-  console.log('發送物流 API 請求:', {
-    url: `${apiUrl}/printLabel`,
-    merchantId,
-    encryptedDataLength: encryptedData.length,
-    hashDataLength: hashData.length,
-  })
+    const response = await fetch(`${apiUrl}/printLabel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    })
 
-  const response = await fetch(`${apiUrl}/printLabel`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: formData.toString(),
-  })
+    const responseText = await response.text()
+    console.log('物流 API 回應:', responseText)
 
-  const responseText = await response.text()
-  console.log('物流 API 回應:', responseText)
+    let result: any
+    try {
+      result = JSON.parse(responseText)
+    } catch (e) {
+      throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
+    }
 
-  let result: any
-  try {
-    result = JSON.parse(responseText)
-  } catch (e) {
-    throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
+    if (result.Status !== 'SUCCESS') {
+      throw new Error(`列印標籤失敗: ${result.Message || '未知錯誤'}`)
+    }
+
+    responses.push(result)
   }
 
-  // 檢查回傳狀態
-  if (result.Status !== 'SUCCESS') {
-    throw new Error(`列印標籤失敗: ${result.Message || '未知錯誤'}`)
+  if (responses.length === 1) {
+    return responses[0]
   }
 
-  return result
+  return {
+    Status: 'SUCCESS',
+    Message: '已分批送出物流列印請求',
+    Results: responses,
+  }
 }
 
 /**

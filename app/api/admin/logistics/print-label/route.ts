@@ -69,6 +69,13 @@ export async function POST(request: NextRequest) {
     // 取得訂單編號
     const orderNumbers = orders.map((order) => order.orderNumber)
 
+    console.log('=== 列印物流標籤 DEBUG ===')
+    console.log('收到的 orderIds:', orderIds)
+    console.log('查到的訂單數量:', orders.length)
+    console.log('訂單編號:', orderNumbers)
+    console.log('物流類型: B2C, 全家 (2)')
+    console.log('========================')
+
     // 呼叫物流 API 列印標籤
     const result = await printLogisticsLabel(
       orderNumbers,
