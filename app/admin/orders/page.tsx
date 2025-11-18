@@ -16,19 +16,42 @@ interface Order {
   status: string
   paymentStatus: string
   shippingStatus: string
+  shippingMethod?: string | null
+  trackingNumber?: string | null
   total: number
   subtotal: number
   shippingFee: number
   discount: number
   createdAt: string
+  shippingName: string
+  shippingPhone: string
+  shippingCountry?: string | null
+  shippingCity: string
+  shippingDistrict?: string | null
+  shippingStreet: string
+  shippingZipCode?: string | null
   user?: {
     id: string
     name: string
     email: string
+    phone?: string | null
   } | null
   guestName?: string | null
   guestPhone?: string | null
   guestEmail?: string | null
+  payment?: {
+    id: string
+    paymentType: string
+    paymentTypeName?: string | null
+    status: string
+    cvsBankCode?: string | null
+    cvsPaymentNo?: string | null
+    cvsExpireDate?: string | null
+    atmBankCode?: string | null
+    atmVirtualAccount?: string | null
+    atmExpireDate?: string | null
+    card4No?: string | null
+  } | null
   items: {
     id: string
     quantity: number

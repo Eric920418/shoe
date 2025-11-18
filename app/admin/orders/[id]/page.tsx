@@ -11,6 +11,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { GET_ORDER, UPDATE_ORDER_STATUS } from '@/graphql/queries'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 
 // 訂單狀態配置
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -47,6 +48,7 @@ export default function AdminOrderDetailPage() {
   const router = useRouter()
   const params = useParams()
   const orderId = params?.id as string
+  const [isPrinting, setIsPrinting] = useState(false)
 
   const { data, loading, error, refetch } = useQuery(GET_ORDER, {
     variables: { id: orderId },
@@ -56,14 +58,50 @@ export default function AdminOrderDetailPage() {
 
   const [updateOrderStatus, { loading: updating }] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => {
-      alert('訂單狀態已更新')
+      toast.success('訂單狀態已更新')
       refetch()
     },
     onError: (error) => {
       console.error('更新訂單狀態失敗:', error)
-      alert(error.message || '更新訂單狀態失敗，請稍後再試')
+      toast.error(error.message || '更新訂單狀態失敗，請稍後再試')
     },
   })
+
+  // 列印寄貨單
+  const handlePrintLabel = async () => {
+    if (!order) return
+
+    if (!confirm('確定要列印此訂單的寄貨單嗎？')) {
+      return
+    }
+
+    setIsPrinting(true)
+    try {
+      const response = await fetch('/api/admin/logistics/print-label', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderIds: [order.id],
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '列印失敗')
+      }
+
+      toast.success('寄貨單列印請求已發送')
+      refetch()
+    } catch (error: any) {
+      console.error('列印寄貨單失敗:', error)
+      toast.error(error.message || '列印寄貨單失敗，請稍後再試')
+    } finally {
+      setIsPrinting(false)
+    }
+  }
 
   // 根據當前狀態決定下一個狀態和按鈕文字
   const getNextAction = (currentStatus: string, paymentStatus: string) => {
@@ -487,22 +525,48 @@ export default function AdminOrderDetailPage() {
             </div>
 
             {/* 操作按鈕 */}
-            {nextAction && (
-              <div className="pt-6 border-t border-gray-200">
+            <div className="pt-6 border-t border-gray-200 space-y-3">
+              {/* 列印寄貨單按鈕 */}
+              {order.paymentStatus === 'PAID' && (
                 <button
-                  onClick={() => handleUpdateStatus(nextAction.nextStatus, nextAction.buttonText)}
-                  disabled={updating}
-                  className={`w-full py-3 text-white rounded-lg transition-colors font-medium disabled:opacity-50 ${nextAction.buttonColor}`}
+                  onClick={handlePrintLabel}
+                  disabled={isPrinting}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {updating ? '處理中...' : nextAction.buttonText}
+                  {isPrinting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>列印中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      <span>列印寄貨單</span>
+                    </>
+                  )}
                 </button>
-                {order.paymentStatus === 'PENDING' && (
-                  <p className="mt-2 text-xs text-gray-500 text-center">
-                    等待客戶付款後才能操作訂單
-                  </p>
-                )}
-              </div>
-            )}
+              )}
+
+              {/* 狀態更新按鈕 */}
+              {nextAction && (
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus(nextAction.nextStatus, nextAction.buttonText)}
+                    disabled={updating}
+                    className={`w-full py-3 text-white rounded-lg transition-colors font-medium disabled:opacity-50 ${nextAction.buttonColor}`}
+                  >
+                    {updating ? '處理中...' : nextAction.buttonText}
+                  </button>
+                  {order.paymentStatus === 'PENDING' && (
+                    <p className="text-xs text-gray-500 text-center">
+                      等待客戶付款後才能操作訂單
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

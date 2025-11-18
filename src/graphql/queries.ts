@@ -415,6 +415,8 @@ export const GET_ALL_ORDERS = gql`
       paymentStatus
       paymentMethod
       shippingStatus
+      shippingMethod
+      trackingNumber
       total
       subtotal
       shippingFee
@@ -426,9 +428,11 @@ export const GET_ALL_ORDERS = gql`
       deliveredAt
       shippingName
       shippingPhone
+      shippingCountry
       shippingCity
       shippingDistrict
       shippingStreet
+      shippingZipCode
       notes
       guestName
       guestPhone
@@ -438,6 +442,26 @@ export const GET_ALL_ORDERS = gql`
         name
         email
         phone
+      }
+      payment {
+        id
+        merchantOrderNo
+        tradeNo
+        amount
+        status
+        paymentType
+        paymentTypeName
+        errorMessage
+        errorCode
+        atmBankCode
+        atmVirtualAccount
+        atmExpireDate
+        cvsBankCode
+        cvsPaymentNo
+        cvsExpireDate
+        card4No
+        authBank
+        payTime
       }
       items {
         id
