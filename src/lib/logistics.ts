@@ -111,14 +111,13 @@ const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
 
 /**
  * 列印物流標籤（取得列印網址）
- * @param orderNumbers 商店訂單編號陣列（目前只處理第一筆，確保流程正確）
- * @param lgsType 物流類別（B2C 或 C2C）
- * @param shipType 物流廠商類別（1:統一，2:全家，3:萊爾富，4:OK）
+ * @param orderNumbers 商店訂單編號陣列
+ *
+ * ⚠️ 目前硬指定為：B2C（大宗寄倉）+ 7-ELEVEN
+ * 待驗證成功後，再改成從訂單讀取物流類型
  */
 export async function printLogisticsLabel(
-  orderNumbers: string[],
-  lgsType: 'B2C' | 'C2C' = 'C2C',
-  shipType: '1' | '2' | '3' | '4' = '2' // 預設全家
+  orderNumbers: string[]
 ): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
 
@@ -127,8 +126,15 @@ export async function printLogisticsLabel(
     throw new Error('物流 API 配置不完整，請檢查環境變數 NEWEBPAY_MERCHANT_ID, NEWEBPAY_HASH_KEY, NEWEBPAY_HASH_IV')
   }
 
+  if (!orderNumbers.length) {
+    throw new Error('orderNumbers 不可為空')
+  }
+
+  // ✅ 硬指定成目前後台的型態：B2C（大宗寄倉）+ 7-ELEVEN
+  const lgsType: 'B2C' = 'B2C'
+  const shipType: '1' = '1'
+
   // ✅ MerchantOrderNo 必須是陣列格式（即使只有一筆）
-  // 這是藍新 getShipmentNo API 的要求，與 createShipment 不同
   const merchantOrderNo = orderNumbers
 
   const encryptParams: Record<string, any> = {

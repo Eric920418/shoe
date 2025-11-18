@@ -73,16 +73,12 @@ export async function POST(request: NextRequest) {
     console.log('收到的 orderIds:', orderIds)
     console.log('查到的訂單數量:', orders.length)
     console.log('訂單編號:', orderNumbers)
-    console.log('物流類型: C2C, 全家 (2)')
+    console.log('物流類型: B2C (大宗寄倉), 7-ELEVEN (1)')
     console.log('========================')
 
     // 呼叫物流 API 列印標籤
-    // 注意：全家超商只支援 C2C（店到店），不支援 B2C
-    const result = await printLogisticsLabel(
-      orderNumbers,
-      'C2C', // ✅ 全家一定是 C2C
-      '2'    // 全家超商
-    )
+    // ⚠️ 目前硬指定為 B2C + 7-ELEVEN，待驗證成功後再改成從訂單讀取
+    const result = await printLogisticsLabel(orderNumbers)
 
     // 提取列印網址（藍新會回傳 PrintUrl）
     const printUrl =
@@ -98,7 +94,7 @@ export async function POST(request: NextRequest) {
         id: { in: orderIds },
       },
       data: {
-        shippingMethod: 'FAMI_C2C', // 全家超商 C2C
+        shippingMethod: 'SEVEN_B2C', // 7-ELEVEN 大宗寄倉
         shippingStatus: 'PROCESSING',
       },
     })
