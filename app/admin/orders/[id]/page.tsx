@@ -95,6 +95,8 @@ export default function AdminOrderDetailPage() {
 
       // 檢查是否有列印網址，如果有就開啟新視窗
       const printUrl = result.printUrl || result.data?.PrintUrl
+      console.log('printUrl from API:', printUrl)
+      console.log('Full API response:', result)
 
       if (printUrl) {
         // 開啟藍新的物流標籤列印頁面

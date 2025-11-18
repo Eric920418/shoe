@@ -138,7 +138,7 @@ export async function printLogisticsLabel(
     TimeStamp: Math.floor(Date.now() / 1000).toString(),
   }
 
-  console.log('=== getShipmentNo 加密前參數 ===')
+  console.log('=== printLabel 加密前參數 ===')
   console.log(JSON.stringify(encryptParams, null, 2))
 
   const encryptedData = encryptLogisticsData(encryptParams)
@@ -152,8 +152,8 @@ export async function printLogisticsLabel(
     HashData_: hashData,
   })
 
-  // ✅ 使用正確的 API：getShipmentNo（不是 printLabel）
-  const response = await fetch(`${apiUrl}/getShipmentNo`, {
+  // ✅ 使用正確的 API：printLabel（取得列印頁面網址）
+  const response = await fetch(`${apiUrl}/printLabel`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -162,7 +162,7 @@ export async function printLogisticsLabel(
   })
 
   const responseText = await response.text()
-  console.log('getShipmentNo API 回應:', responseText)
+  console.log('printLabel API 回應:', responseText)
 
   const trimmed = responseText.trim()
 
@@ -192,9 +192,10 @@ export async function printLogisticsLabel(
   }
 
   if (result.Status !== 'SUCCESS') {
-    throw new Error(`取得列印網址失敗: ${result.Message || '未知錯誤'}`)
+    throw new Error(`列印標籤失敗: ${result.Message || '未知錯誤'}`)
   }
 
+  // 萬一某些情況下 SUCCESS 但沒有 script，就直接把結果丟回去讓上層自己處理
   return result
 }
 
