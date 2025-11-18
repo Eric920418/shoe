@@ -604,7 +604,7 @@ export const DELETE_ORDER = gql`
 
 // 更新訂單狀態（管理員專用）
 export const UPDATE_ORDER_STATUS = gql`
-  mutation UpdateOrderStatus($id: ID!, $status: String!) {
+  mutation UpdateOrderStatus($id: ID!, $status: OrderStatus!) {
     updateOrderStatus(id: $id, status: $status) {
       id
       orderNumber

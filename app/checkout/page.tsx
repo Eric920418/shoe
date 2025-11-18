@@ -42,13 +42,9 @@ interface CheckoutFormData {
   guestPhone: string
   guestEmail: string
   // 收件資訊（所有用戶必填）
+  // ⚠️ 地址資訊已移除，客戶將在藍新物流頁面填寫超商地址
   shippingName: string
   shippingPhone: string
-  shippingCity: string
-  shippingDistrict: string
-  shippingStreet: string
-  shippingZipCode: string
-  shippingCountry: string
   // 付款方式
   paymentMethod: string
   // 訂單備註
@@ -67,11 +63,6 @@ export default function CheckoutPage() {
     guestEmail: '',
     shippingName: '',
     shippingPhone: '',
-    shippingCity: '',
-    shippingDistrict: '',
-    shippingStreet: '',
-    shippingZipCode: '',
-    shippingCountry: '台灣',
     paymentMethod: 'NEWEBPAY', // 所有訂單都使用藍新金流
     notes: '',
   })
@@ -218,6 +209,7 @@ export default function CheckoutPage() {
     }
 
     // 收件資訊驗證（所有用戶必填）
+    // ⚠️ 地址將在藍新物流頁面填寫，這裡只驗證基本資訊
     if (!formData.shippingName.trim()) {
       newErrors.shippingName = '請輸入收件人姓名'
     }
@@ -225,15 +217,6 @@ export default function CheckoutPage() {
       newErrors.shippingPhone = '請輸入收件人手機'
     } else if (!/^09\d{8}$/.test(formData.shippingPhone.trim())) {
       newErrors.shippingPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
-    }
-    if (!formData.shippingCity.trim()) {
-      newErrors.shippingCity = '請輸入城市'
-    }
-    if (!formData.shippingDistrict.trim()) {
-      newErrors.shippingDistrict = '請輸入區域'
-    }
-    if (!formData.shippingStreet.trim()) {
-      newErrors.shippingStreet = '請輸入街道地址'
     }
 
     setErrors(newErrors)
@@ -278,14 +261,14 @@ export default function CheckoutPage() {
             guestEmail: isGuest && formData.guestEmail ? formData.guestEmail.trim() : null,
             // 訂單項目（僅訪客模式需要）
             items: orderItems,
-            // 收件資訊
+            // 收件資訊（地址將在藍新物流頁面填寫）
             shippingName: formData.shippingName.trim(),
             shippingPhone: formData.shippingPhone.trim(),
-            shippingCountry: formData.shippingCountry,
-            shippingCity: formData.shippingCity.trim(),
-            shippingDistrict: formData.shippingDistrict.trim(),
-            shippingStreet: formData.shippingStreet.trim(),
-            shippingZipCode: formData.shippingZipCode.trim(),
+            shippingCountry: null,
+            shippingCity: null,
+            shippingDistrict: null,
+            shippingStreet: null,
+            shippingZipCode: null,
             // 付款方式
             paymentMethod: formData.paymentMethod,
             notes: formData.notes.trim() || null,
@@ -415,9 +398,12 @@ export default function CheckoutPage() {
 
               {/* 收件人資訊 */}
               <div>
-                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">
+                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-2">
                   收件人資訊
                 </h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  ℹ️ 收件地址將在付款後的物流頁面填寫（選擇超商取貨）
+                </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -454,80 +440,6 @@ export default function CheckoutPage() {
                     {errors.shippingPhone && (
                       <p className="mt-2 text-sm text-red-600">{errors.shippingPhone}</p>
                     )}
-                  </div>
-
-                  {/* 收件地址 */}
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="shippingCity" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                          城市 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          id="shippingCity"
-                          name="shippingCity"
-                          value={formData.shippingCity}
-                          onChange={handleChange}
-                          className={`w-full px-4 py-3 border-2 ${errors.shippingCity ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                          placeholder="台北市"
-                        />
-                        {errors.shippingCity && (
-                          <p className="mt-2 text-sm text-red-600">{errors.shippingCity}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label htmlFor="shippingDistrict" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                          區域 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          id="shippingDistrict"
-                          name="shippingDistrict"
-                          value={formData.shippingDistrict}
-                          onChange={handleChange}
-                          className={`w-full px-4 py-3 border-2 ${errors.shippingDistrict ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                          placeholder="信義區"
-                        />
-                        {errors.shippingDistrict && (
-                          <p className="mt-2 text-sm text-red-600">{errors.shippingDistrict}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="shippingStreet" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                        街道地址 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="shippingStreet"
-                        name="shippingStreet"
-                        value={formData.shippingStreet}
-                        onChange={handleChange}
-                        className={`w-full px-4 py-3 border-2 ${errors.shippingStreet ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                        placeholder="信義路五段7號"
-                      />
-                      {errors.shippingStreet && (
-                        <p className="mt-2 text-sm text-red-600">{errors.shippingStreet}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label htmlFor="shippingZipCode" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                        郵遞區號（選填）
-                      </label>
-                      <input
-                        type="text"
-                        id="shippingZipCode"
-                        name="shippingZipCode"
-                        value={formData.shippingZipCode}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors bg-white"
-                        placeholder="110"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>

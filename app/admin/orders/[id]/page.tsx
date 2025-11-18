@@ -4,7 +4,7 @@
  * 管理員訂單詳情頁
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -19,7 +19,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   CONFIRMED: { label: '已確認', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   PROCESSING: { label: '處理中', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
   SHIPPED: { label: '已出貨', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  DELIVERED: { label: '已送達', color: 'text-green-700', bgColor: 'bg-green-100' },
   COMPLETED: { label: '已完成', color: 'text-green-700', bgColor: 'bg-green-100' },
   CANCELLED: { label: '已取消', color: 'text-red-700', bgColor: 'bg-red-100' },
   REFUNDED: { label: '已退款', color: 'text-gray-700', bgColor: 'bg-gray-100' },
@@ -49,6 +48,8 @@ export default function AdminOrderDetailPage() {
   const params = useParams()
   const orderId = params?.id as string
   const [isPrinting, setIsPrinting] = useState(false)
+  const [logisticsInfo, setLogisticsInfo] = useState<any>(null)
+  const [isQueryingLogistics, setIsQueryingLogistics] = useState(false)
 
   const { data, loading, error, refetch } = useQuery(GET_ORDER, {
     variables: { id: orderId },
@@ -66,6 +67,39 @@ export default function AdminOrderDetailPage() {
       toast.error(error.message || '更新訂單狀態失敗，請稍後再試')
     },
   })
+
+  // 自動查詢物流資訊
+  useEffect(() => {
+    if (!orderId || !data?.order) return
+
+    const fetchLogistics = async () => {
+      setIsQueryingLogistics(true)
+      try {
+        const response = await fetch('/api/admin/logistics/query-shipment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+          }),
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.data) {
+          console.log('物流查詢結果:', result)
+          setLogisticsInfo(result.data)
+        }
+      } catch (error: any) {
+        console.error('查詢物流資訊失敗:', error)
+      } finally {
+        setIsQueryingLogistics(false)
+      }
+    }
+
+    fetchLogistics()
+  }, [orderId, data?.order])
 
   // 列印寄貨單
   const handlePrintLabel = async () => {
@@ -129,8 +163,6 @@ export default function AdminOrderDetailPage() {
       case 'PROCESSING':
         return { nextStatus: 'SHIPPED', buttonText: '確認出貨', buttonColor: 'bg-purple-600 hover:bg-purple-700' }
       case 'SHIPPED':
-        return { nextStatus: 'DELIVERED', buttonText: '確認送達', buttonColor: 'bg-green-600 hover:bg-green-700' }
-      case 'DELIVERED':
         return { nextStatus: 'COMPLETED', buttonText: '完成訂單', buttonColor: 'bg-green-600 hover:bg-green-700' }
       default:
         return null
@@ -322,7 +354,15 @@ export default function AdminOrderDetailPage() {
 
           {/* 收件資訊 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">收件資訊</h2>
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-lg font-bold text-gray-900">收件資訊</h2>
+              {isQueryingLogistics && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>載入中...</span>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-3">
               <div className="flex">
@@ -333,14 +373,58 @@ export default function AdminOrderDetailPage() {
                 <span className="w-24 text-gray-600">聯絡電話:</span>
                 <span className="font-medium text-gray-900">{order.shippingPhone}</span>
               </div>
-              <div className="flex">
-                <span className="w-24 text-gray-600">收件地址:</span>
-                <span className="font-medium text-gray-900">
-                  {order.shippingCountry} {order.shippingCity} {order.shippingDistrict}{' '}
-                  {order.shippingStreet}
-                  {order.shippingZipCode && ` (${order.shippingZipCode})`}
-                </span>
-              </div>
+
+              {/* 物流資訊（從藍新查詢） */}
+              {logisticsInfo ? (
+                <>
+                  <div className="border-t border-gray-200 pt-3 mt-3">
+                    <p className="text-sm text-gray-500 mb-3">📦 超商取貨資訊</p>
+                  </div>
+                  {logisticsInfo.ReceiverStoreName && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">取貨店鋪:</span>
+                      <span className="font-medium text-gray-900">{logisticsInfo.ReceiverStoreName}</span>
+                    </div>
+                  )}
+                  {logisticsInfo.ReceiverStoreID && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">店鋪代號:</span>
+                      <span className="font-medium text-gray-900">{logisticsInfo.ReceiverStoreID}</span>
+                    </div>
+                  )}
+                  {logisticsInfo.ReceiverAddress && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">店鋪地址:</span>
+                      <span className="font-medium text-gray-900">{logisticsInfo.ReceiverAddress}</span>
+                    </div>
+                  )}
+                  {logisticsInfo.CVSPaymentNo && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">寄貨編號:</span>
+                      <span className="font-medium text-gray-900 font-mono">{logisticsInfo.CVSPaymentNo}</span>
+                    </div>
+                  )}
+                  {logisticsInfo.CVSValidationNo && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">驗證碼:</span>
+                      <span className="font-medium text-gray-900 font-mono">{logisticsInfo.CVSValidationNo}</span>
+                    </div>
+                  )}
+                  {logisticsInfo.Status && (
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">物流狀態:</span>
+                      <span className="font-medium text-gray-900">{logisticsInfo.Status}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <p className="text-sm text-gray-500">
+                    ℹ️ 客戶尚未選擇超商取貨地址，或物流資訊尚未建立
+                  </p>
+                </div>
+              )}
+
               {order.notes && (
                 <div className="flex">
                   <span className="w-24 text-gray-600">訂單備註:</span>

@@ -63,7 +63,6 @@ const statusLabels: Record<string, { label: string; color: string; icon: string 
   CONFIRMED: { label: '已確認', color: 'bg-blue-100 text-blue-700', icon: '✓' },
   PROCESSING: { label: '處理中', color: 'bg-indigo-100 text-indigo-700', icon: '⚙️' },
   SHIPPED: { label: '已發貨', color: 'bg-purple-100 text-purple-700', icon: '🚚' },
-  DELIVERED: { label: '已送達', color: 'bg-green-100 text-green-700', icon: '✅' },
   COMPLETED: { label: '已完成', color: 'bg-green-100 text-green-700', icon: '🎉' },
   CANCELLED: { label: '已取消', color: 'bg-red-100 text-red-700', icon: '❌' },
   REFUNDED: { label: '已退款', color: 'bg-gray-100 text-gray-700', icon: '💸' },
@@ -98,7 +97,7 @@ export default function OrdersPage() {
   const stats = useMemo(() => {
     const pending = orders.filter((o) => o.status === 'PENDING' || o.status === 'CONFIRMED').length
     const processing = orders.filter((o) => o.status === 'PROCESSING' || o.status === 'SHIPPED').length
-    const completed = orders.filter((o) => o.status === 'DELIVERED' || o.status === 'COMPLETED').length
+    const completed = orders.filter((o) => o.status === 'COMPLETED').length
     return { pending, processing, completed }
   }, [orders])
 
@@ -349,8 +348,7 @@ export default function OrdersPage() {
                     <span className="text-gray-600">
                       {order.shippingStatus === 'PENDING' ? '未發貨' :
                        order.shippingStatus === 'PROCESSING' ? '準備中' :
-                       order.shippingStatus === 'SHIPPED' ? '已發貨' :
-                       order.shippingStatus === 'DELIVERED' ? '已送達' : order.shippingStatus}
+                       order.shippingStatus === 'SHIPPED' ? '已發貨' : order.shippingStatus}
                     </span>
                   </div>
 
