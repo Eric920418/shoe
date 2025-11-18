@@ -88,12 +88,25 @@ export function generateLogisticsHash(encryptedData: string): string {
   return crypto.createHash('sha256').update(hashString).digest('hex').toUpperCase()
 }
 
-/** 每個物流廠商限制一次可列印的標籤數量（參考《物流服務技術串接手冊》） */
-const PRINT_LABEL_LIMITS: Record<string, number> = {
-  '1': 10, // 統一
-  '2': 8,  // 全家（官方文件指出 C2C 限制 8 筆 / A4 兩張）
-  '3': 10, // 萊爾富
-  '4': 10, // OK
+/**
+ * 每個物流廠商限制一次可列印的標籤數量（參考《物流服務技術串接手冊》）
+ * 注意：C2C 和 B2C 的限制不同
+ */
+const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
+  // C2C 模式限制
+  'C2C': {
+    '1': 10, // 統一
+    '2': 8,  // 全家（官方文件指出 C2C 限制 8 筆 / A4 兩張）
+    '3': 10, // 萊爾富
+    '4': 10, // OK
+  },
+  // B2C 模式限制（更嚴格）
+  'B2C': {
+    '1': 1,  // 統一
+    '2': 1,  // 全家（B2C 模式只能一次列印 1 筆）
+    '3': 1,  // 萊爾富
+    '4': 1,  // OK
+  },
 }
 
 /**
@@ -114,7 +127,11 @@ export async function printLogisticsLabel(
     throw new Error('物流 API 配置不完整，請檢查環境變數 NEWEBPAY_MERCHANT_ID, NEWEBPAY_HASH_KEY, NEWEBPAY_HASH_IV')
   }
 
-  const maxPerRequest = PRINT_LABEL_LIMITS[shipType] || 10
+  // 根據物流類型和廠商取得批次限制
+  const maxPerRequest = PRINT_LABEL_LIMITS[lgsType]?.[shipType] || 1
+  console.log(`物流列印批次設定: ${lgsType} / 廠商 ${shipType} / 每批最多 ${maxPerRequest} 筆`)
+
+  // 將訂單分批處理
   const batches: string[][] = []
   for (let i = 0; i < orderNumbers.length; i += maxPerRequest) {
     batches.push(orderNumbers.slice(i, i + maxPerRequest))
@@ -122,18 +139,29 @@ export async function printLogisticsLabel(
 
   const responses: any[] = []
   for (const batch of batches) {
+    // printLabel API 的 MerchantOrderNo 處理邏輯：
+    // B2C 模式：只能單筆，使用字串格式
+    // C2C 模式：可以多筆，使用陣列格式
+    // 注意：即使 C2C 只有一筆，仍使用陣列格式以保持一致性
+    const merchantOrderNo = (lgsType === 'B2C')
+      ? batch[0]  // B2C 一律使用字串（因為只能單筆）
+      : batch     // C2C 一律使用陣列（可以多筆）
+
     const encryptParams: Record<string, any> = {
       LgsType: lgsType,
       ShipType: shipType,
-      MerchantOrderNo: batch,
+      MerchantOrderNo: merchantOrderNo,
       TimeStamp: Math.floor(Date.now() / 1000).toString(),
     }
 
-    console.log('物流 API 參數:', {
-      merchantId,
-      batchSize: batch.length,
-      apiUrl: `${apiUrl}/printLabel`,
-    })
+    // 詳細記錄要加密的參數
+    console.log('=== 物流列印標籤詳細參數 ===')
+    console.log('批次訂單:', batch)
+    console.log('物流類型:', lgsType)
+    console.log('物流廠商:', shipType === '1' ? '統一' : shipType === '2' ? '全家' : shipType === '3' ? '萊爾富' : 'OK')
+    console.log('MerchantOrderNo 類型:', Array.isArray(merchantOrderNo) ? '陣列' : '字串')
+    console.log('MerchantOrderNo 內容:', merchantOrderNo)
+    console.log('加密前參數:', JSON.stringify(encryptParams, null, 2))
 
     const encryptedData = encryptLogisticsData(encryptParams)
     const hashData = generateLogisticsHash(encryptedData)
