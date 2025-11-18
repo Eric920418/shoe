@@ -139,13 +139,9 @@ export async function printLogisticsLabel(
 
   const responses: any[] = []
   for (const batch of batches) {
-    // printLabel API 的 MerchantOrderNo 處理邏輯：
-    // B2C 模式：只能單筆，使用字串格式
-    // C2C 模式：可以多筆，使用陣列格式
-    // 注意：即使 C2C 只有一筆，仍使用陣列格式以保持一致性
-    const merchantOrderNo = (lgsType === 'B2C')
-      ? batch[0]  // B2C 一律使用字串（因為只能單筆）
-      : batch     // C2C 一律使用陣列（可以多筆）
+    // printLabel API 的 MerchantOrderNo：不分 B2C/C2C，永遠使用陣列格式
+    // 即使只有一筆訂單，也要用 ['訂單編號'] 的形式
+    const merchantOrderNo = batch  // 永遠是 string[]
 
     const encryptParams: Record<string, any> = {
       LgsType: lgsType,
@@ -233,9 +229,10 @@ export async function createShipment(orderData: {
   }
 
   // 準備內層參數（只包含業務欄位）
+  // 注意：全家超商只支援 C2C（店到店），不支援 B2C
   const encryptParams = {
-    LgsType: 'B2C',
-    ShipType: '2', // 全家
+    LgsType: 'C2C', // ✅ 全家一定是 C2C
+    ShipType: '2',  // 全家
     MerchantOrderNo: orderData.merchantOrderNo,
     ReceiverName: orderData.receiverName,
     ReceiverCellPhone: orderData.receiverPhone,

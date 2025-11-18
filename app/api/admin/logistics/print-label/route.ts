@@ -73,13 +73,14 @@ export async function POST(request: NextRequest) {
     console.log('收到的 orderIds:', orderIds)
     console.log('查到的訂單數量:', orders.length)
     console.log('訂單編號:', orderNumbers)
-    console.log('物流類型: B2C, 全家 (2)')
+    console.log('物流類型: C2C, 全家 (2)')
     console.log('========================')
 
     // 呼叫物流 API 列印標籤
+    // 注意：全家超商只支援 C2C（店到店），不支援 B2C
     const result = await printLogisticsLabel(
       orderNumbers,
-      'B2C', // 物流類別
+      'C2C', // ✅ 全家一定是 C2C
       '2'    // 全家超商
     )
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
         id: { in: orderIds },
       },
       data: {
-        shippingMethod: 'FAMI_B2C', // 全家超商 B2C
+        shippingMethod: 'FAMI_C2C', // 全家超商 C2C
         shippingStatus: 'PROCESSING',
       },
     })
