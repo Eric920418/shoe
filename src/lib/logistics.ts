@@ -110,14 +110,14 @@ const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
 }
 
 /**
- * 列印物流標籤
- * @param orderNumbers 商店訂單編號陣列（最多可一次列印多筆）
+ * 列印物流標籤（取得列印網址）
+ * @param orderNumbers 商店訂單編號陣列（目前只處理第一筆，確保流程正確）
  * @param lgsType 物流類別（B2C 或 C2C）
  * @param shipType 物流廠商類別（1:統一，2:全家，3:萊爾富，4:OK）
  */
 export async function printLogisticsLabel(
   orderNumbers: string[],
-  lgsType: 'B2C' | 'C2C' = 'B2C',
+  lgsType: 'B2C' | 'C2C' = 'C2C',
   shipType: '1' | '2' | '3' | '4' = '2' // 預設全家
 ): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
@@ -127,105 +127,75 @@ export async function printLogisticsLabel(
     throw new Error('物流 API 配置不完整，請檢查環境變數 NEWEBPAY_MERCHANT_ID, NEWEBPAY_HASH_KEY, NEWEBPAY_HASH_IV')
   }
 
-  // 根據物流類型和廠商取得批次限制
-  const maxPerRequest = PRINT_LABEL_LIMITS[lgsType]?.[shipType] || 1
-  console.log(`物流列印批次設定: ${lgsType} / 廠商 ${shipType} / 每批最多 ${maxPerRequest} 筆`)
+  // 先只處理第一筆，確保流程正確
+  // MerchantOrderNo 必須是單一字串，與 createShipment 時的格式一致
+  const merchantOrderNo = orderNumbers[0]
 
-  // 將訂單分批處理
-  const batches: string[][] = []
-  for (let i = 0; i < orderNumbers.length; i += maxPerRequest) {
-    batches.push(orderNumbers.slice(i, i + maxPerRequest))
+  const encryptParams: Record<string, any> = {
+    LgsType: lgsType,
+    ShipType: shipType,
+    MerchantOrderNo: merchantOrderNo, // ✅ 單一字串，與建立物流單時一致
+    TimeStamp: Math.floor(Date.now() / 1000).toString(),
   }
 
-  const responses: any[] = []
-  for (const batch of batches) {
-    // printLabel API 的 MerchantOrderNo：不分 B2C/C2C，永遠使用陣列格式
-    // 即使只有一筆訂單，也要用 ['訂單編號'] 的形式
-    const merchantOrderNo = batch  // 永遠是 string[]
+  console.log('=== getShipmentNo 加密前參數 ===')
+  console.log(JSON.stringify(encryptParams, null, 2))
 
-    const encryptParams: Record<string, any> = {
-      LgsType: lgsType,
-      ShipType: shipType,
-      MerchantOrderNo: merchantOrderNo,
-      TimeStamp: Math.floor(Date.now() / 1000).toString(),
+  const encryptedData = encryptLogisticsData(encryptParams)
+  const hashData = generateLogisticsHash(encryptedData)
+
+  const formData = new URLSearchParams({
+    UID_: merchantId,
+    Version_: '1.0',
+    RespondType_: 'JSON',
+    EncryptData_: encryptedData,
+    HashData_: hashData,
+  })
+
+  // ✅ 使用正確的 API：getShipmentNo（不是 printLabel）
+  const response = await fetch(`${apiUrl}/getShipmentNo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formData.toString(),
+  })
+
+  const responseText = await response.text()
+  console.log('getShipmentNo API 回應:', responseText)
+
+  const trimmed = responseText.trim()
+
+  // 成功時會回傳：<script>location.href='...Logistic_print/view/xxxx'</script>
+  if (trimmed.startsWith('<script')) {
+    const match = trimmed.match(/location\.href=['"]([^'"]+)['"]/)
+    if (!match) {
+      throw new Error(`無法解析物流標籤網址: ${responseText}`)
     }
 
-    // 詳細記錄要加密的參數
-    console.log('=== 物流列印標籤詳細參數 ===')
-    console.log('批次訂單:', batch)
-    console.log('物流類型:', lgsType)
-    console.log('物流廠商:', shipType === '1' ? '統一' : shipType === '2' ? '全家' : shipType === '3' ? '萊爾富' : 'OK')
-    console.log('MerchantOrderNo 類型:', Array.isArray(merchantOrderNo) ? '陣列' : '字串')
-    console.log('MerchantOrderNo 內容:', merchantOrderNo)
-    console.log('加密前參數:', JSON.stringify(encryptParams, null, 2))
+    const printUrl = match[1]
+    console.log('✅ 成功解析出列印網址:', printUrl)
 
-    const encryptedData = encryptLogisticsData(encryptParams)
-    const hashData = generateLogisticsHash(encryptedData)
-
-    const formData = new URLSearchParams({
-      UID_: merchantId,
-      Version_: '1.0',
-      RespondType_: 'JSON',
-      EncryptData_: encryptedData,
-      HashData_: hashData,
-    })
-
-    const response = await fetch(`${apiUrl}/printLabel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    })
-
-    const responseText = await response.text()
-    console.log('物流 API 回應:', responseText)
-
-    const trimmed = responseText.trim()
-
-    // ① 如果是 <script>，表示正常回傳「列印頁面」網址
-    // 藍新 printLabel API 成功時會回傳 <script>location.href='...'</script>
-    if (trimmed.startsWith('<script')) {
-      const match = trimmed.match(/location\.href=['"]([^'"]+)['"]/)
-      if (!match) {
-        throw new Error(`無法解析物流標籤網址: ${responseText}`)
-      }
-
-      const printUrl = match[1]
-      console.log('✅ 成功解析出列印網址:', printUrl)
-
-      responses.push({
-        Status: 'SUCCESS',
-        Message: 'PRINT_REDIRECT',
-        PrintUrl: printUrl,
-      })
-      continue
+    return {
+      Status: 'SUCCESS',
+      Message: 'PRINT_REDIRECT',
+      PrintUrl: printUrl,
     }
-
-    // ② 否則才當成 JSON 解析（for 其他物流 API 或錯誤回應）
-    let result: any
-    try {
-      result = JSON.parse(trimmed)
-    } catch (e) {
-      throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
-    }
-
-    if (result.Status !== 'SUCCESS') {
-      throw new Error(`列印標籤失敗: ${result.Message || '未知錯誤'}`)
-    }
-
-    responses.push(result)
   }
 
-  if (responses.length === 1) {
-    return responses[0]
+  // 錯誤時會回傳 JSON
+  let result: any
+  try {
+    result = JSON.parse(trimmed)
+  } catch (e) {
+    throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
   }
 
-  return {
-    Status: 'SUCCESS',
-    Message: '已分批送出物流列印請求',
-    Results: responses,
+  if (result.Status !== 'SUCCESS') {
+    throw new Error(`取得列印網址失敗: ${result.Message || '未知錯誤'}`)
   }
+
+  return result
 }
 
 /**
