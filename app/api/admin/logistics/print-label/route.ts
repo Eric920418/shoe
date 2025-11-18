@@ -84,6 +84,14 @@ export async function POST(request: NextRequest) {
       '2'    // 全家超商
     )
 
+    // 提取列印網址（藍新會回傳 PrintUrl）
+    const printUrl =
+      result.PrintUrl ||
+      (Array.isArray(result.Results) && result.Results[0]?.PrintUrl) ||
+      null
+
+    console.log('提取到的列印網址:', printUrl)
+
     // 更新訂單物流狀態
     await prisma.order.updateMany({
       where: {
@@ -97,8 +105,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '列印標籤請求已發送',
+      message: printUrl ? '已生成物流標籤列印頁面' : '列印標籤請求已發送',
       data: result,
+      printUrl, // 提供給前端用來開啟列印頁面
       orderNumbers,
     })
   } catch (error: any) {

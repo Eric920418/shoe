@@ -181,9 +181,31 @@ export async function printLogisticsLabel(
     const responseText = await response.text()
     console.log('物流 API 回應:', responseText)
 
+    const trimmed = responseText.trim()
+
+    // ① 如果是 <script>，表示正常回傳「列印頁面」網址
+    // 藍新 printLabel API 成功時會回傳 <script>location.href='...'</script>
+    if (trimmed.startsWith('<script')) {
+      const match = trimmed.match(/location\.href=['"]([^'"]+)['"]/)
+      if (!match) {
+        throw new Error(`無法解析物流標籤網址: ${responseText}`)
+      }
+
+      const printUrl = match[1]
+      console.log('✅ 成功解析出列印網址:', printUrl)
+
+      responses.push({
+        Status: 'SUCCESS',
+        Message: 'PRINT_REDIRECT',
+        PrintUrl: printUrl,
+      })
+      continue
+    }
+
+    // ② 否則才當成 JSON 解析（for 其他物流 API 或錯誤回應）
     let result: any
     try {
-      result = JSON.parse(responseText)
+      result = JSON.parse(trimmed)
     } catch (e) {
       throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
     }

@@ -93,7 +93,17 @@ export default function AdminOrderDetailPage() {
         throw new Error(result.error || '列印失敗')
       }
 
-      toast.success('寄貨單列印請求已發送')
+      // 檢查是否有列印網址，如果有就開啟新視窗
+      const printUrl = result.printUrl || result.data?.PrintUrl
+
+      if (printUrl) {
+        // 開啟藍新的物流標籤列印頁面
+        window.open(printUrl, '_blank', 'width=800,height=600')
+        toast.success('已開啟物流標籤列印頁面')
+      } else {
+        toast.success('列印標籤請求已送出')
+      }
+
       refetch()
     } catch (error: any) {
       console.error('列印寄貨單失敗:', error)
