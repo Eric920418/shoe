@@ -127,14 +127,14 @@ export async function printLogisticsLabel(
     throw new Error('物流 API 配置不完整，請檢查環境變數 NEWEBPAY_MERCHANT_ID, NEWEBPAY_HASH_KEY, NEWEBPAY_HASH_IV')
   }
 
-  // 先只處理第一筆，確保流程正確
-  // MerchantOrderNo 必須是單一字串，與 createShipment 時的格式一致
-  const merchantOrderNo = orderNumbers[0]
+  // ✅ MerchantOrderNo 必須是陣列格式（即使只有一筆）
+  // 這是藍新 getShipmentNo API 的要求，與 createShipment 不同
+  const merchantOrderNo = orderNumbers
 
   const encryptParams: Record<string, any> = {
     LgsType: lgsType,
     ShipType: shipType,
-    MerchantOrderNo: merchantOrderNo, // ✅ 單一字串，與建立物流單時一致
+    MerchantOrderNo: merchantOrderNo, // ✅ 陣列格式（藍新 API 要求）
     TimeStamp: Math.floor(Date.now() / 1000).toString(),
   }
 
