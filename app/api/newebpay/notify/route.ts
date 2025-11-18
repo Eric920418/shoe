@@ -81,9 +81,19 @@ export async function POST(request: NextRequest) {
     console.log('Status:', status);
     console.log('TradeInfo 長度:', tradeInfo?.length || 0);
 
-    // 記錄完整的 TradeInfo 供調試（注意：生產環境應移除）
+    // 🔍 詳細診斷 TradeInfo（生產環境應移除）
     if (tradeInfo) {
+      console.log('TradeInfo 診斷：');
+      console.log('- 長度:', tradeInfo.length);
+      console.log('- 是偶數:', tradeInfo.length % 2 === 0 ? '✅' : '❌');
+      console.log('- 前100字:', tradeInfo.substring(0, 100));
+      console.log('- 後100字:', tradeInfo.substring(tradeInfo.length - 100));
+      console.log('- 包含 %:', tradeInfo.includes('%') ? '⚠️ 是（需要 URL decode）' : '✅ 否');
+      console.log('- 包含空格:', tradeInfo.includes(' ') ? '⚠️ 是' : '✅ 否');
+      console.log('- 包含 +:', tradeInfo.includes('+') ? '⚠️ 是（可能被當空格）' : '✅ 否');
+      console.log('- 只含 Hex:', /^[0-9A-Fa-f]+$/.test(tradeInfo) ? '✅ 是' : '❌ 否');
       console.log('完整 TradeInfo:', tradeInfo);
+      console.log('TradeSha 長度:', tradeSha?.length || 0);
       console.log('完整 TradeSha:', tradeSha);
     }
 

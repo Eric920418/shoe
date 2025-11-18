@@ -115,11 +115,19 @@ export function aesEncrypt(data: string): string {
 export function aesDecrypt(encryptedData: string): string {
   try {
     // 移除可能的空白字符和換行
-    const cleanedData = encryptedData.trim();
+    let cleanedData = encryptedData.trim();
+
+    // ⚠️ 重要：檢查是否有 URL 編碼字符，如果有就解碼
+    if (cleanedData.includes('%')) {
+      console.log('⚠️ 偵測到 URL 編碼字符，進行解碼');
+      cleanedData = decodeURIComponent(cleanedData);
+    }
 
     // ⚠️ PCI 合規：不記錄完整的加密資料（可能包含卡號資訊）
     console.log('解密前檢查:');
     console.log('- 加密資料長度:', cleanedData.length);
+    console.log('- 前50字符:', cleanedData.substring(0, 50));
+    console.log('- 是否只含 Hex 字符:', /^[0-9A-Fa-f]+$/.test(cleanedData) ? '✅ 是' : '❌ 否（可能有編碼問題）');
     console.log('- HashKey 長度:', NEWEBPAY_CONFIG.hashKey.length);
     console.log('- HashIV 長度:', NEWEBPAY_CONFIG.hashIV.length);
 
