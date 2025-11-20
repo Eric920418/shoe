@@ -429,10 +429,10 @@ export const typeDefs = gql`
     address: Address
     shippingName: String!
     shippingPhone: String!
-    shippingCountry: String!
-    shippingCity: String!
-    shippingDistrict: String!
-    shippingStreet: String!
+    shippingCountry: String
+    shippingCity: String
+    shippingDistrict: String
+    shippingStreet: String
     shippingZipCode: String
     subtotal: Decimal!
     shippingFee: Decimal!
@@ -1940,10 +1940,11 @@ export const typeDefs = gql`
     items: [OrderItemInput!]  # 選填：會員模式從購物車獲取，訪客模式必須提供
     shippingName: String!
     shippingPhone: String!
-    shippingCountry: String!
-    shippingCity: String!
-    shippingDistrict: String!
-    shippingStreet: String!
+    # 地址欄位改為可選，因為客戶會在藍新物流頁面填寫超商地址
+    shippingCountry: String
+    shippingCity: String
+    shippingDistrict: String
+    shippingStreet: String
     shippingZipCode: String
     paymentMethod: PaymentMethod!
     couponCode: String

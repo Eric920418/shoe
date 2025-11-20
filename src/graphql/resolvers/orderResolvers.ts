@@ -528,11 +528,11 @@ export const orderResolvers = {
             total: finalTotal,
             shippingName: input.shippingName,
             shippingPhone: input.shippingPhone,
-            shippingCountry: input.shippingCountry || '台灣',
-            shippingCity: input.shippingCity,
-            shippingDistrict: input.shippingDistrict || '',
-            shippingStreet: input.shippingStreet,
-            shippingZipCode: input.shippingZipCode || '',
+            shippingCountry: input.shippingCountry || null,
+            shippingCity: input.shippingCity || null,
+            shippingDistrict: input.shippingDistrict || null,
+            shippingStreet: input.shippingStreet || null,
+            shippingZipCode: input.shippingZipCode || null,
             notes: input.notes ? `${input.notes}${creditsUsed > 0 ? `\n[使用購物金：$${creditsUsed}]` : ''}` : creditsUsed > 0 ? `[使用購物金：$${creditsUsed}]` : null,
             items: {
               create: cartItems.map((item) => ({

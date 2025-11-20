@@ -242,6 +242,8 @@ export function createPaymentData(params: {
     NotifyURL: params.notifyUrl,
     ReturnURL: params.returnUrl,
     ClientBackURL: params.clientBackUrl,
+    // ✅ 物流設定：強制使用 C2C 店到店
+    LgsType: 'C2C',  // C2C = 店到店（7-11、全家、萊爾富、OK）
     // 重要：不要設定 EncryptType，預設使用 CBC
   };
 

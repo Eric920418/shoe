@@ -162,8 +162,7 @@ export default function AdminOrderDetailPage() {
       case 'CONFIRMED':
       case 'PROCESSING':
         return { nextStatus: 'SHIPPED', buttonText: '確認出貨', buttonColor: 'bg-purple-600 hover:bg-purple-700' }
-      case 'SHIPPED':
-        return { nextStatus: 'COMPLETED', buttonText: '完成訂單', buttonColor: 'bg-green-600 hover:bg-green-700' }
+      // SHIPPED 是最終狀態，不需要按鈕
       default:
         return null
     }

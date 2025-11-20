@@ -372,11 +372,11 @@ model Order {
   updatedAt              DateTime        @updatedAt
   shippingName           String
   shippingPhone          String
-  shippingCountry        String          @default("台灣")
-  shippingCity           String
-  shippingDistrict       String          @default("")
-  shippingStreet         String
-  shippingZipCode        String          @default("")
+  shippingCountry        String?         @default("台灣")
+  shippingCity           String?
+  shippingDistrict       String?         @default("")
+  shippingStreet         String?
+  shippingZipCode        String?         @default("")
   guestName              String?
   guestPhone             String?
   guestEmail             String?
