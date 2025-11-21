@@ -362,7 +362,7 @@ model Order {
   paymentMethod          PaymentMethod?
   paymentId              String?
   paidAt                 DateTime?
-  shippingMethod         String?
+  shippingMethod         String?         // SEVEN_ELEVEN | HOME_DELIVERY | SELF_PICKUP
   trackingNumber         String?
   shippedAt              DateTime?
   deliveredAt            DateTime?
@@ -1017,6 +1017,13 @@ enum ShippingStatus {
   PROCESSING
   SHIPPED
   DELIVERED
+}
+
+// 配送方式
+enum ShippingMethod {
+  SEVEN_ELEVEN  // 7-11取貨（運費60元，走金流+物流）
+  HOME_DELIVERY // 宅配（運費120元，只走金流）
+  SELF_PICKUP   // 自取（免運費，只走金流）
 }
 
 enum CampaignType {

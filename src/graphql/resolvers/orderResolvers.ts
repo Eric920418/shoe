@@ -427,7 +427,22 @@ export const orderResolvers = {
           return sum + price * item.quantity
         }, 0)
 
-        const shippingFee = 0 // 免運費
+        // 根據配送方式計算運費
+        let shippingFee = 0
+        switch (input.shippingMethod) {
+          case 'SEVEN_ELEVEN':
+            shippingFee = 60
+            break
+          case 'HOME_DELIVERY':
+            shippingFee = 120
+            break
+          case 'SELF_PICKUP':
+            shippingFee = 0
+            break
+          default:
+            // 如果沒有提供配送方式，預設為 7-11 取貨
+            shippingFee = 60
+        }
         let discount = 0
         let creditsUsed = 0
 
@@ -507,6 +522,11 @@ export const orderResolvers = {
         // 生成訂單編號
         const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substring(2, 9).toUpperCase()}`
 
+        console.log('=== 建立訂單 ===')
+        console.log('配送方式:', input.shippingMethod)
+        console.log('運費:', shippingFee)
+        console.log('================')
+
         // 確保總額不為負數
         const finalTotal = Math.max(0, total)
 
@@ -526,6 +546,7 @@ export const orderResolvers = {
             shippingFee,
             discount,
             total: finalTotal,
+            shippingMethod: input.shippingMethod, // 不設預設值，必須明確傳入
             shippingName: input.shippingName,
             shippingPhone: input.shippingPhone,
             shippingCountry: input.shippingCountry || null,

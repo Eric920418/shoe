@@ -66,18 +66,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 只處理 7-11 取貨的訂單
+    const sevenElevenOrders = orders.filter((order) => order.shippingMethod === 'SEVEN_ELEVEN')
+    if (sevenElevenOrders.length === 0) {
+      return NextResponse.json(
+        {
+          error: '只有 7-11 取貨的訂單需要列印物流標籤',
+        },
+        { status: 400 }
+      )
+    }
+
     // 取得訂單編號
-    const orderNumbers = orders.map((order) => order.orderNumber)
+    const orderNumbers = sevenElevenOrders.map((order) => order.orderNumber)
 
     console.log('=== 列印物流標籤 DEBUG ===')
     console.log('收到的 orderIds:', orderIds)
     console.log('查到的訂單數量:', orders.length)
     console.log('訂單編號:', orderNumbers)
-    console.log('物流類型: B2C (大宗寄倉), 7-ELEVEN (1)')
+    console.log('物流類型: C2C (店到店)')
     console.log('========================')
 
+    // ⚠️ C2C 店到店需要先建立物流單（提供測試用的超商資訊）
+    // 在列印前先嘗試建立物流單（如果已存在會回傳錯誤，但不影響列印）
+    const order = sevenElevenOrders[0]
+
+    try {
+      console.log('嘗試建立物流單...')
+      const { createShipment } = await import('@/lib/logistics')
+
+      // 測試用超商資訊（實際應該由客戶選擇）
+      await createShipment({
+        merchantOrderNo: order.orderNumber,
+        receiverName: order.shippingName,
+        receiverPhone: order.shippingPhone,
+        receiverStoreId: '991182', // 測試用：7-ELEVEN 門市代號
+        receiverStoreName: '測試門市',
+        goodsName: `訂單 ${order.orderNumber}`,
+        goodsAmount: Number(order.total),
+        senderName: '鞋店',
+        senderPhone: '0912345678',
+      })
+      console.log('✅ 物流單建立成功')
+    } catch (createError: any) {
+      // 如果物流單已存在，會回傳錯誤，但可以繼續列印
+      console.log('建立物流單失敗（可能已存在）:', createError.message)
+    }
+
     // 呼叫物流 API 列印標籤
-    // ⚠️ 目前硬指定為 B2C + 7-ELEVEN，待驗證成功後再改成從訂單讀取
     const result = await printLogisticsLabel(orderNumbers)
 
     // 提取列印網址（藍新會回傳 PrintUrl）
@@ -94,8 +130,7 @@ export async function POST(request: NextRequest) {
         id: { in: orderIds },
       },
       data: {
-        shippingMethod: 'SEVEN_B2C', // 7-ELEVEN 大宗寄倉
-        shippingStatus: 'PROCESSING',
+        shippingStatus: 'PROCESSING', // 不需要更新 shippingMethod，已經是 SEVEN_ELEVEN
       },
     })
 

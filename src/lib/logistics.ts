@@ -130,8 +130,8 @@ export async function printLogisticsLabel(
     throw new Error('orderNumbers 不可為空')
   }
 
-  // ✅ 硬指定成目前後台的型態：B2C（大宗寄倉）+ 7-ELEVEN
-  const lgsType: 'B2C' = 'B2C'
+  // ✅ 硬指定成目前後台的型態：C2C（店到店）+ 7-ELEVEN
+  const lgsType: 'C2C' = 'C2C'
   const shipType: '1' = '1'
 
   // ✅ MerchantOrderNo 必須是陣列格式（即使只有一筆）
@@ -228,10 +228,10 @@ export async function createShipment(orderData: {
   }
 
   // 準備內層參數（只包含業務欄位）
-  // 注意：全家超商只支援 C2C（店到店），不支援 B2C
+  // 注意：C2C（店到店）支援 7-ELEVEN、全家、萊爾富、OK
   const encryptParams = {
-    LgsType: 'C2C', // ✅ 全家一定是 C2C
-    ShipType: '2',  // 全家
+    LgsType: 'C2C', // ✅ C2C 店到店
+    ShipType: '1',  // 7-ELEVEN
     MerchantOrderNo: orderData.merchantOrderNo,
     ReceiverName: orderData.receiverName,
     ReceiverCellPhone: orderData.receiverPhone,

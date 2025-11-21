@@ -118,6 +118,13 @@ export const typeDefs = gql`
     DELIVERED
   }
 
+  # 配送方式
+  enum ShippingMethod {
+    SEVEN_ELEVEN    # 7-11取貨（運費60元，走金流+物流）
+    HOME_DELIVERY   # 宅配（運費120元，只走金流）
+    SELF_PICKUP     # 自取（免運費，只走金流）
+  }
+
   # 優惠券類型
   enum CouponType {
     PERCENTAGE
@@ -449,7 +456,7 @@ export const typeDefs = gql`
     bankTransferVerifiedAt: DateTime
     pointsEarned: Int!
     pointsUsed: Int!
-    shippingMethod: String
+    shippingMethod: ShippingMethod
     trackingNumber: String
     shippedAt: DateTime
     deliveredAt: DateTime
@@ -1946,6 +1953,7 @@ export const typeDefs = gql`
     shippingDistrict: String
     shippingStreet: String
     shippingZipCode: String
+    shippingMethod: ShippingMethod!  # 配送方式（必填）
     paymentMethod: PaymentMethod!
     couponCode: String
     pointsToUse: Int
