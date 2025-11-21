@@ -7,28 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// 用户系统
-// ============================================
-
-// 會員等級配置表（完全動態）
 model MembershipTierConfig {
-  id                    String    @id @default(cuid())
-  name                  String    @unique // 等級名稱（銅卡、銀卡、金卡等）
-  slug                  String    @unique // 唯一標識符（bronze, silver, gold）
-  minSpent              Decimal   @db.Decimal(12, 2) // 最低消費門檻
-  maxSpent              Decimal?  @db.Decimal(12, 2) // 最高消費門檻（最高等級為 null）
-  discount              Decimal   @default(0) @db.Decimal(5, 4) // 折扣率（0.05 = 5%）
-  pointsMultiplier      Decimal   @default(1.0) @db.Decimal(4, 2) // 積分倍數
-  freeShippingThreshold Decimal   @default(0) @db.Decimal(10, 2) // 免運門檻（0 = 永遠免運）
-  birthdayGift          Decimal   @default(0) @db.Decimal(10, 2) // 生日禮購物金
-  sortOrder             Int       @default(0) // 排序（數字越小等級越低）
-  color                 String?   // 顯示顏色（前端 UI 用）
-  icon                  String?   // 圖示（前端 UI 用）
-  description           String?   // 等級描述
-  isActive              Boolean   @default(true)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  slug                  String   @unique
+  minSpent              Decimal  @db.Decimal(12, 2)
+  maxSpent              Decimal? @db.Decimal(12, 2)
+  discount              Decimal  @default(0) @db.Decimal(5, 4)
+  pointsMultiplier      Decimal  @default(1.0) @db.Decimal(4, 2)
+  freeShippingThreshold Decimal  @default(0) @db.Decimal(10, 2)
+  birthdayGift          Decimal  @default(0) @db.Decimal(10, 2)
+  sortOrder             Int      @default(0)
+  color                 String?
+  icon                  String?
+  description           String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
   users                 User[]
 
   @@index([isActive, sortOrder])
@@ -40,13 +35,7 @@ model User {
   id                     String                  @id @default(cuid())
   email                  String?                 @unique
   phone                  String?                 @unique
-  password               String?                 // 可選：用戶想要可以設定密碼
-  lineId                 String?                 @unique // LINE User ID
-  lineDisplayName        String?                 // LINE 顯示名稱
-  lineProfileImage       String?                 // LINE 大頭照
-  isLineConnected        Boolean                 @default(false) // 是否已綁定 LINE
-  isLineOfficialFriend   Boolean                 @default(false) // 是否為官方帳號好友
-  lineConnectedAt        DateTime?               // LINE 綁定時間
+  password               String?
   name                   String
   role                   Role                    @default(USER)
   avatar                 String?
@@ -63,60 +52,64 @@ model User {
   lastName               String?
   membershipExpiredAt    DateTime?
   membershipPoints       Int                     @default(0)
-  membershipTierId       String?                 // 動態會員等級外鍵
   phoneVerifiedAt        DateTime?
   preferences            Json                    @default("{}")
   totalOrders            Int                     @default(0)
   totalSpent             Decimal                 @default(0) @db.Decimal(12, 2)
   isFirstTimeBuyer       Boolean                 @default(true)
   firstPurchaseAt        DateTime?
-  // 郵件行銷訂閱
-  marketingEmailOptIn    Boolean                 @default(false) // 是否同意接收行銷郵件
-  marketingEmailOptInAt  DateTime?               // 同意時間（法律要求記錄）
-  unsubscribeToken       String?                 @unique // 退訂 token
+  lineId                 String?                 @unique
+  lineDisplayName        String?
+  lineProfileImage       String?
+  isLineConnected        Boolean                 @default(false)
+  isLineOfficialFriend   Boolean                 @default(false)
+  lineConnectedAt        DateTime?
+  membershipTierId       String?
+  marketingEmailOptIn    Boolean                 @default(false)
+  marketingEmailOptInAt  DateTime?
+  unsubscribeToken       String?                 @unique
   addresses              Address[]
   campaignOrders         CampaignOrder[]
   campaignParticipations CampaignParticipation[]
   campaignRewards        CampaignReward[]
-  cart                   Cart?
   cartItems              CartItem[]
+  cart                   Cart?
+  conversations          Conversation[]
+  emailLogs              EmailLog[]
   notifications          Notification[]
   orders                 Order[]
+  pointTransactions      PointTransaction[]
+  referralCodes          ReferralCode[]          @relation("ReferralCodeOwner")
+  referralsAsReferee     ReferralUsage[]         @relation("ReferralReferee")
+  referralsAsReferrer    ReferralUsage[]         @relation("ReferralReferrer")
   reviews                Review[]
   userCoupons            UserCoupon[]
   credits                UserCredit[]
-  wishlistItems          WishlistItem[]
-  pointTransactions      PointTransaction[]
-  referralCodes          ReferralCode[]          @relation("ReferralCodeOwner")
-  referralsAsReferrer    ReferralUsage[]         @relation("ReferralReferrer")
-  referralsAsReferee     ReferralUsage[]         @relation("ReferralReferee")
-  conversations          Conversation[]
-  emailLogs              EmailLog[]              // 郵件發送記錄
   membershipTierConfig   MembershipTierConfig?   @relation(fields: [membershipTierId], references: [id])
+  wishlistItems          WishlistItem[]
 
   @@index([email])
   @@index([phone])
   @@index([lineId])
   @@index([membershipTierId])
   @@index([marketingEmailOptIn])
-  @@index([isActive, role])          // 後台用戶列表篩選（管理員/用戶）
-  @@index([totalSpent])               // 會員等級計算查詢
-  @@index([createdAt])                // 註冊時間排序
-  @@index([isActive, createdAt])      // 複合篩選（活躍用戶排序）
+  @@index([isActive, role])
+  @@index([totalSpent])
+  @@index([createdAt])
+  @@index([isActive, createdAt])
   @@map("users")
 }
 
-// OTP 驗證系統（免密碼登入/註冊）
 model OtpVerification {
-  id          String   @id @default(cuid())
-  phone       String   // 手機號碼
-  code        String   // 6 位數驗證碼
-  purpose     OtpPurpose // 用途：REGISTER（註冊）或 LOGIN（登入）
-  expiresAt   DateTime // 有效期限（通常 5-10 分鐘）
-  isUsed      Boolean  @default(false) // 是否已使用
-  usedAt      DateTime? // 使用時間
-  attempts    Int      @default(0) // 嘗試次數（防止暴力破解）
-  createdAt   DateTime @default(now())
+  id        String     @id @default(cuid())
+  phone     String
+  code      String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  isUsed    Boolean    @default(false)
+  usedAt    DateTime?
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now())
 
   @@index([phone, purpose, expiresAt])
   @@map("otp_verifications")
@@ -141,149 +134,138 @@ model Address {
   @@map("addresses")
 }
 
-// ============================================
-// 产品系统（鞋店专属）
-// ============================================
-
 model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  image       String?
-  sortOrder   Int       @default(0)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
+  id              String           @id @default(cuid())
+  name            String           @unique
+  slug            String           @unique
+  image           String?
+  sortOrder       Int              @default(0)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   categoryDisplay CategoryDisplay?
+  products        Product[]
 
   @@map("categories")
 }
 
 model Brand {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  logo        String?
-  website     String?
-  country     String?
-  isActive    Boolean   @default(true)
-  isFeatured  Boolean   @default(false)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
+  id         String    @id @default(cuid())
+  name       String    @unique
+  slug       String    @unique
+  logo       String?
+  website    String?
+  country    String?
+  isActive   Boolean   @default(true)
+  isFeatured Boolean   @default(false)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  products   Product[]
 
   @@map("brands")
 }
 
 model Product {
-  id                 String           @id @default(cuid())
-  name               String
-  slug               String           @unique
-  description        String?
-  price              Decimal          @db.Decimal(10, 2)
-  originalPrice      Decimal?         @db.Decimal(10, 2)
-  cost               Decimal?         @db.Decimal(10, 2)
-  stock              Int              @default(0)
-  minStock           Int              @default(0)
-  weight             Decimal?         @db.Decimal(8, 2)
-  categoryId         String
-  brandId            String?
-  images             Json             @default("[]")
-  isActive           Boolean          @default(true)
-  isFeatured         Boolean          @default(false)
-  isNewArrival       Boolean          @default(false)
-  sortOrder          Int              @default(0)
-  viewCount          Int              @default(0)
-  soldCount          Int              @default(0)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  averageRating      Decimal?         @db.Decimal(3, 2)
-  reviewCount        Int              @default(0)
-  favoriteCount      Int              @default(0)
-  // 鞋店专属字段
-  shoeType           String?          // 鞋类型（运动鞋、皮鞋、凉鞋、靴子）
-  gender             ProductGender?   // 性别（男、女、中性）
-  season             String?          // 季节（春夏、秋冬、四季）
-  heelHeight         Decimal?         @db.Decimal(5, 2) // 鞋跟高度（厘米）
-  closure            String?          // 闭合方式（系带、魔术贴、拉链、套脚）
-  sole               String?          // 鞋底材质（橡胶、皮革、EVA）
-  features           Json             @default("[]") // 特性（防水、透气、防滑）
-  cartItems          CartItem[]
-  orderItems         OrderItem[]
-  variants           ProductVariant[]
-  sizeCharts         SizeChart[]      // 新增：尺码表
-  bundleItems        BundleItem[]     // 組合套裝項目
-  brand              Brand?           @relation(fields: [brandId], references: [id])
-  category           Category         @relation(fields: [categoryId], references: [id])
-  reviews            Review[]
-  wishlistItems      WishlistItem[]
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  description   String?
+  price         Decimal          @db.Decimal(10, 2)
+  originalPrice Decimal?         @db.Decimal(10, 2)
+  cost          Decimal?         @db.Decimal(10, 2)
+  stock         Int              @default(0)
+  minStock      Int              @default(0)
+  weight        Decimal?         @db.Decimal(8, 2)
+  categoryId    String
+  brandId       String?
+  images        Json             @default("[]")
+  isActive      Boolean          @default(true)
+  isFeatured    Boolean          @default(false)
+  sortOrder     Int              @default(0)
+  viewCount     Int              @default(0)
+  soldCount     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  averageRating Decimal?         @db.Decimal(3, 2)
+  reviewCount   Int              @default(0)
+  favoriteCount Int              @default(0)
+  shoeType      String?
+  gender        ProductGender?
+  season        String?
+  heelHeight    Decimal?         @db.Decimal(5, 2)
+  closure       String?
+  sole          String?
+  features      Json             @default("[]")
+  isNewArrival  Boolean          @default(false)
+  bundleItems   BundleItem[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  variants      ProductVariant[]
+  brand         Brand?           @relation(fields: [brandId], references: [id])
+  category      Category         @relation(fields: [categoryId], references: [id])
+  reviews       Review[]
+  sizeCharts    SizeChart[]
+  wishlistItems WishlistItem[]
 
-  // ✅ 單一欄位索引
   @@index([slug])
-
-  // ✅ 複合索引（針對常見查詢組合優化）
-  @@index([isActive, categoryId])     // 分類篩選查詢
-  @@index([isActive, brandId])        // 品牌篩選查詢
-  @@index([isActive, gender])         // 性別篩選查詢
-  @@index([isActive, price])          // 價格排序查詢
-  @@index([isActive, createdAt])      // 最新產品查詢
-  @@index([isActive, isFeatured])     // 精選產品查詢
-  @@index([isActive, isNewArrival])   // 新品展示查詢
-  @@index([categoryId, brandId, isActive])  // 複合篩選查詢
+  @@index([isActive, categoryId])
+  @@index([isActive, brandId])
+  @@index([isActive, gender])
+  @@index([isActive, price])
+  @@index([isActive, createdAt])
+  @@index([isActive, isFeatured])
+  @@index([isActive, isNewArrival])
+  @@index([categoryId, brandId, isActive])
   @@map("products")
 }
 
-// 产品变体（颜色 × 尺码）
 model ProductVariant {
-  id              String      @id @default(cuid())
+  id              String       @id @default(cuid())
   productId       String
   name            String
   barcode         String?
-  attributes      Json        // 原有属性
-  // 鞋店专属字段
-  color           String?     // 颜色名称（黑色、白色、红色）
-  colorHex        String?     // 颜色色码 (#000000)
-  colorImage      String?     // 该颜色的产品图
-  material        String?     // 材质（真皮、合成革、帆布）
-  pattern         String?     // 图案（纯色、条纹、印花）
-  priceAdjustment Decimal     @default(0) @db.Decimal(10, 2)
-  stock           Int         @default(0)
-  reservedStock   Int         @default(0)
-  images          Json        @default("[]")
-  weight          Decimal?    @db.Decimal(8, 2)
-  isActive        Boolean     @default(true)
-  isDefault       Boolean     @default(false)
-  sortOrder       Int         @default(0)
-  soldCount       Int         @default(0)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  attributes      Json
+  color           String?
+  colorHex        String?
+  colorImage      String?
+  material        String?
+  pattern         String?
+  priceAdjustment Decimal      @default(0) @db.Decimal(10, 2)
+  stock           Int          @default(0)
+  reservedStock   Int          @default(0)
+  images          Json         @default("[]")
+  weight          Decimal?     @db.Decimal(8, 2)
+  isActive        Boolean      @default(true)
+  isDefault       Boolean      @default(false)
+  sortOrder       Int          @default(0)
+  soldCount       Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  bundleItems     BundleItem[]
   cartItems       CartItem[]
   orderItems      OrderItem[]
-  bundleItems     BundleItem[]  // 組合套裝項目
-  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_variants")
 }
 
-// 新增：尺码表
 model SizeChart {
   id         String     @id @default(cuid())
   productId  String
-  variantId  String?    // 可选：特定颜色的尺码可能不同
-  eu         String     // 欧码 (36, 37, 38...)
-  us         String     // 美码 (6, 7, 8...)
-  uk         String     // 英码 (4, 5, 6...)
-  cm         String     // 厘米 (23, 24, 25...)
-  footLength Decimal    @db.Decimal(5, 2) // 脚长（厘米）
-  footWidth  String?    // 脚宽（窄/标准/宽）
-  stock      Int        @default(0) // 该尺码的库存
+  variantId  String?
+  eu         String
+  us         String
+  uk         String
+  cm         String
+  footLength Decimal    @db.Decimal(5, 2)
+  footWidth  String?
+  stock      Int        @default(0)
   isActive   Boolean    @default(true)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems  CartItem[]
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, variantId, eu])
   @@index([productId])
@@ -291,59 +273,47 @@ model SizeChart {
   @@map("size_charts")
 }
 
-// ============================================
-// 购物车与订单
-// ============================================
-
-// 购物车主表
 model Cart {
   id        String     @id @default(cuid())
   userId    String     @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("carts")
 }
 
-// 购物车项目
 model CartItem {
   id              String          @id @default(cuid())
-  cartId          String
   userId          String
   productId       String
   quantity        Int             @default(1)
-  price           Decimal         @db.Decimal(10, 2)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   variantId       String?
-  sizeChartId     String?         // 关联到尺码表
-  sizeEu          String?         // 冗余字段：选择的欧码
-  // 組合套裝相關字段
-  bundleId        String?         // 關聯到組合套裝
-  isBundleItem    Boolean         @default(false) // 是否為組合商品
-  bundleItemPrice Decimal?        @db.Decimal(10, 2) // 組合優惠分配後的價格（若為組合商品）
+  sizeEu          String?
+  cartId          String
+  price           Decimal         @db.Decimal(10, 2)
+  sizeChartId     String?
+  bundleId        String?
+  isBundleItem    Boolean         @default(false)
+  bundleItemPrice Decimal?        @db.Decimal(10, 2)
+  bundle          ProductBundle?  @relation(fields: [bundleId], references: [id])
   cart            Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeChart       SizeChart?      @relation(fields: [sizeChartId], references: [id])
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  sizeChart       SizeChart?      @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
-  bundle          ProductBundle?  @relation(fields: [bundleId], references: [id], onDelete: SetNull)
 
   @@unique([cartId, productId, variantId, sizeChartId])
-
-  // ✅ 單一欄位索引
   @@index([cartId])
   @@index([userId])
   @@index([productId])
   @@index([bundleId])
-
-  // ✅ 複合索引（優化查詢）
-  @@index([cartId, productId, variantId, sizeChartId])  // 查找重複項目
-  @@index([userId, productId])  // 用戶購物車查詢
-
+  @@index([cartId, productId, variantId, sizeChartId])
+  @@index([userId, productId])
   @@map("cart_items")
 }
 
@@ -362,7 +332,7 @@ model Order {
   paymentMethod          PaymentMethod?
   paymentId              String?
   paidAt                 DateTime?
-  shippingMethod         String?         // SEVEN_ELEVEN | HOME_DELIVERY | SELF_PICKUP
+  shippingMethod         String?
   trackingNumber         String?
   shippedAt              DateTime?
   deliveredAt            DateTime?
@@ -393,25 +363,21 @@ model Order {
   address                Address?        @relation(fields: [addressId], references: [id])
   coupon                 Coupon?         @relation(fields: [couponId], references: [id])
   user                   User?           @relation(fields: [userId], references: [id])
-  returns                Return[]
   payment                Payment?
+  returns                Return[]
 
-  // ✅ 單一欄位索引
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
   @@index([shippingStatus])
   @@index([createdAt])
   @@index([orderNumber])
-
-  // ✅ 複合索引（優化查詢）
-  @@index([userId, status])  // 用戶訂單篩選
-  @@index([userId, createdAt])  // 用戶訂單排序
-  @@index([status, createdAt])  // 管理員訂單篩選
-  @@index([status, paymentStatus])  // 訂單狀態組合查詢
-  @@index([paymentMethod, status])  // 支付方式分析
-  @@index([paidAt])  // 支付時間統計
-
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([status, paymentStatus])
+  @@index([paymentMethod, status])
+  @@index([paidAt])
   @@map("orders")
 }
 
@@ -428,65 +394,46 @@ model OrderItem {
   variantAttrs Json?
   variantId    String?
   variantName  String?
-  sizeEu       String?         // 新增：购买的尺码
-  color        String?         // 新增：购买的颜色
+  sizeEu       String?
+  color        String?
   order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      Product         @relation(fields: [productId], references: [id])
   variant      ProductVariant? @relation(fields: [variantId], references: [id])
   returnItems  ReturnItem[]
 
-  // ✅ 新增索引（優化查詢）
-  @@index([orderId])  // 訂單項目查詢
-  @@index([productId])  // 產品銷量統計
-  @@index([productId, orderId])  // 複合查詢
-
+  @@index([orderId])
+  @@index([productId])
+  @@index([productId, orderId])
   @@map("order_items")
 }
 
-// ============================================
-// 支付系统（藍新金流）
-// ============================================
-
 model Payment {
-  id                    String             @id @default(cuid())
-  orderId               String             @unique // 關聯訂單
-  merchantOrderNo       String             @unique // 商店訂單編號
-  tradeNo               String?            @unique // 藍新金流交易編號
-  amount                Decimal            @db.Decimal(10, 2) // 支付金額
-  paymentType           NewebPaymentType   // 支付方式（信用卡/ATM/超商）
-  status                NewebPaymentStatus @default(PENDING) // 支付狀態
-
-  // 藍新金流回傳資料
-  tradeInfo             String?            @db.Text // 加密的交易資料
-  tradeSha              String?            // 交易驗證碼
-  responseData          Json?              // 解密後的完整回傳資料
-
-  // ATM 專用欄位
-  atmBankCode           String?            // 銀行代碼
-  atmVirtualAccount     String?            // 虛擬帳號
-  atmExpireDate         DateTime?          // 繳費期限
-
-  // 超商代碼專用欄位
-  cvsBankCode           String?            // 超商代碼
-  cvsPaymentNo          String?            // 繳費代碼
-  cvsExpireDate         DateTime?          // 繳費期限
-
-  // 信用卡專用欄位
-  card4No               String?            // 信用卡末四碼
-  card6No               String?            // 信用卡前六碼
-  authBank              String?            // 授權銀行
-  respondCode           String?            // 授權碼
-
-  // 時間記錄
-  payTime               DateTime?          // 實際支付時間
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-
-  // 錯誤記錄
-  errorMessage          String?            // 錯誤訊息
-  errorCode             String?            // 錯誤代碼
-
-  order                 Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                String             @id @default(cuid())
+  orderId           String             @unique
+  merchantOrderNo   String             @unique
+  tradeNo           String?            @unique
+  amount            Decimal            @db.Decimal(10, 2)
+  paymentType       NewebPaymentType
+  status            NewebPaymentStatus @default(PENDING)
+  tradeInfo         String?
+  tradeSha          String?
+  responseData      Json?
+  atmBankCode       String?
+  atmVirtualAccount String?
+  atmExpireDate     DateTime?
+  cvsBankCode       String?
+  cvsPaymentNo      String?
+  cvsExpireDate     DateTime?
+  card4No           String?
+  card6No           String?
+  authBank          String?
+  respondCode       String?
+  payTime           DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  errorMessage      String?
+  errorCode         String?
+  order             Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([merchantOrderNo])
@@ -496,10 +443,6 @@ model Payment {
   @@index([createdAt])
   @@map("payments")
 }
-
-// ============================================
-// 优惠券与营销活动
-// ============================================
 
 model Coupon {
   id                   String           @id @default(cuid())
@@ -514,7 +457,6 @@ model Coupon {
   usedCount            Int              @default(0)
   userLimit            Int?
   isActive             Boolean          @default(true)
-  isLocked             Boolean          @default(false) // 鎖定的優惠券不能被刪除，只能編輯
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   applicableCategories Json             @default("[]")
@@ -523,6 +465,7 @@ model Coupon {
   isPublic             Boolean          @default(true)
   validFrom            DateTime
   validUntil           DateTime
+  isLocked             Boolean          @default(false)
   campaignRewards      CampaignReward[]
   orders               Order[]
   userCoupons          UserCoupon[]
@@ -643,76 +586,73 @@ model CampaignOrder {
 }
 
 model UserCredit {
-  id               String        @id @default(cuid())
+  id               String       @id @default(cuid())
   userId           String
-  amount           Decimal       @db.Decimal(10, 2)
-  balance          Decimal       @db.Decimal(10, 2)
-  source           CreditSource  @default(CAMPAIGN)
+  amount           Decimal      @db.Decimal(10, 2)
+  balance          Decimal      @db.Decimal(10, 2)
+  source           CreditSource @default(CAMPAIGN)
   sourceId         String?
-  maxUsagePerOrder Decimal?      @db.Decimal(10, 2)
-  minOrderAmount   Decimal?      @db.Decimal(10, 2)
-  validFrom        DateTime      @default(now())
+  maxUsagePerOrder Decimal?     @db.Decimal(10, 2)
+  minOrderAmount   Decimal?     @db.Decimal(10, 2)
+  validFrom        DateTime     @default(now())
   validUntil       DateTime
-  isActive         Boolean       @default(true)
-  isUsed           Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive         Boolean      @default(true)
+  isUsed           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_credits")
 }
 
-// 邀請碼全局設定（後台可配置）
 model ReferralSettings {
-  id                    String   @id @default(cuid())
-  isEnabled             Boolean  @default(true) // 是否啟用邀請碼系統
-  rewardAmount          Decimal  @default(100) @db.Decimal(10, 2) // 每筆訂單獎勵金額
-  minOrderAmount        Decimal  @default(0) @db.Decimal(10, 2) // 訂單金額門檻（0 = 無門檻）
-  maxRewardsPerReferee  Int      @default(0) // 每個被邀請人最多獎勵次數（0 = 無限制）
-  rewardType            String   @default("FIXED") // FIXED（固定金額）或 PERCENTAGE（百分比）
-  rewardPercentage      Decimal  @default(0) @db.Decimal(5, 2) // 獎勵百分比（當 rewardType = PERCENTAGE 時使用）
-  maxRewardPerOrder     Decimal? @db.Decimal(10, 2) // 單筆訂單最大獎勵金額（僅用於百分比模式）
-  creditValidityDays    Int      @default(365) // 購物金有效期（天）
-  description           String?  // 說明文字
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  isEnabled            Boolean  @default(true)
+  rewardAmount         Decimal  @default(100) @db.Decimal(10, 2)
+  minOrderAmount       Decimal  @default(0) @db.Decimal(10, 2)
+  maxRewardsPerReferee Int      @default(0)
+  rewardType           String   @default("FIXED")
+  rewardPercentage     Decimal  @default(0) @db.Decimal(5, 2)
+  maxRewardPerOrder    Decimal? @db.Decimal(10, 2)
+  creditValidityDays   Int      @default(365)
+  description          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@map("referral_settings")
 }
 
-// 邀請碼系統
 model ReferralCode {
-  id              String   @id @default(cuid())
-  userId          String   // 邀請人
-  code            String   @unique // 邀請碼
-  usedCount       Int      @default(0) // 使用次數（無上限）
-  totalRewards    Decimal  @default(0) @db.Decimal(10, 2) // 累計獲得的獎勵總額
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation("ReferralCodeOwner", fields: [userId], references: [id], onDelete: Cascade)
-  usages          ReferralUsage[]
+  id           String          @id @default(cuid())
+  userId       String
+  code         String          @unique
+  usedCount    Int             @default(0)
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  totalRewards Decimal         @default(0) @db.Decimal(10, 2)
+  user         User            @relation("ReferralCodeOwner", fields: [userId], references: [id], onDelete: Cascade)
+  usages       ReferralUsage[]
 
   @@index([userId])
   @@index([code])
   @@map("referral_codes")
 }
 
-// 邀請碼使用記錄（每筆訂單都記錄）
 model ReferralUsage {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   referralCodeId String
-  referrerId     String        // 邀請人
-  refereeId      String        // 被邀請人
-  orderId        String?       // 關聯的訂單 ID（每筆訂單都記錄）
-  orderAmount    Decimal?      @db.Decimal(10, 2) // 訂單金額
-  rewardAmount   Decimal       @default(0) @db.Decimal(10, 2) // 本次獎勵金額
-  rewardGranted  Boolean       @default(false) // 是否已發放獎勵
-  creditId       String?       // 發放的購物金 ID
-  createdAt      DateTime      @default(now())
-  referralCode   ReferralCode  @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
-  referrer       User          @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referee        User          @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+  referrerId     String
+  refereeId      String
+  rewardGranted  Boolean      @default(false)
+  creditId       String?
+  createdAt      DateTime     @default(now())
+  orderId        String?
+  orderAmount    Decimal?     @db.Decimal(10, 2)
+  rewardAmount   Decimal      @default(0) @db.Decimal(10, 2)
+  referee        User         @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+  referralCode   ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrer       User         @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
 
   @@index([referralCodeId])
   @@index([referrerId])
@@ -721,17 +661,16 @@ model ReferralUsage {
   @@map("referral_usages")
 }
 
-// 客服聊天室系統
 model Conversation {
-  id           String    @id @default(cuid())
-  userId       String    // 客戶 ID
-  subject      String?   // 對話主題
-  status       ConversationStatus @default(OPEN)
-  lastMessageAt DateTime @default(now())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages     Message[]
+  id            String             @id @default(cuid())
+  userId        String
+  subject       String?
+  status        ConversationStatus @default(OPEN)
+  lastMessageAt DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      Message[]
 
   @@index([userId])
   @@index([status])
@@ -741,8 +680,8 @@ model Conversation {
 model Message {
   id             String       @id @default(cuid())
   conversationId String
-  senderId       String       // 發送者 ID（可能是客戶或管理員）
-  senderType     SenderType   // USER 或 ADMIN
+  senderId       String
+  senderType     SenderType
   content        String
   isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
@@ -752,21 +691,6 @@ model Message {
   @@index([senderId])
   @@map("messages")
 }
-
-enum ConversationStatus {
-  OPEN      // 進行中
-  CLOSED    // 已關閉
-  RESOLVED  // 已解決
-}
-
-enum SenderType {
-  USER
-  ADMIN
-}
-
-// ============================================
-// 退换货系统（强化）
-// ============================================
 
 model Return {
   id                String       @id @default(cuid())
@@ -786,9 +710,8 @@ model Return {
   processedBy       String?
   processedAt       DateTime?
   adminNotes        String?
-  // 鞋店专属：尺码不合
-  isSizeIssue       Boolean      @default(false) // 是否尺码问题
-  requestedSize     String?      // 想要换的尺码
+  isSizeIssue       Boolean      @default(false)
+  requestedSize     String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   items             ReturnItem[]
@@ -810,22 +733,18 @@ model ReturnItem {
   @@map("return_items")
 }
 
-// ============================================
-// FAQ与评论
-// ============================================
-
 model Faq {
   id           String   @id @default(cuid())
   question     String
-  answer       String   @db.Text // 使用 Text 類型支援長文字
-  category     String?  // 分類（產品、訂購、配送、退換貨等）
+  answer       String
+  category     String?
   slug         String   @unique
   viewCount    Int      @default(0)
   helpfulCount Int      @default(0)
   isPublished  Boolean  @default(true)
-  sortOrder    Int      @default(0) // 排序（數字越小越前面）
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  sortOrder    Int      @default(0)
 
   @@index([isPublished, sortOrder])
   @@index([category])
@@ -845,9 +764,8 @@ model Review {
   isApproved   Boolean  @default(false)
   isPublic     Boolean  @default(true)
   helpfulCount Int      @default(0)
-  // 鞋店专属：尺码反馈
-  sizeFit      SizeFit? // 尺码合适度（偏大/标准/偏小）
-  boughtSize   String?  // 购买的尺码
+  sizeFit      SizeFit?
+  boughtSize   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -859,8 +777,8 @@ model Review {
   @@index([rating])
   @@index([isApproved])
   @@index([createdAt])
-  @@index([productId, isApproved, rating])  // 產品評分統計查詢
-  @@index([userId, isApproved])             // 用戶評論歷史查詢
+  @@index([productId, isApproved, rating])
+  @@index([userId, isApproved])
   @@map("reviews")
 }
 
@@ -875,10 +793,6 @@ model WishlistItem {
   @@unique([userId, productId])
   @@map("wishlist_items")
 }
-
-// ============================================
-// 通知与积分
-// ============================================
 
 model Notification {
   id         String           @id @default(cuid())
@@ -902,21 +816,20 @@ model Notification {
   @@map("notifications")
 }
 
-// 系統公告
 model Announcement {
-  id           String            @id @default(cuid())
-  title        String
-  content      String
-  type         AnnouncementType  @default(INFO)
-  priority     Int               @default(0) // 優先級，數字越大越優先顯示
-  isActive     Boolean           @default(true)
-  startDate    DateTime          @default(now())
-  endDate      DateTime?
-  actionUrl    String?
-  actionLabel  String?
-  createdBy    String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String           @id @default(cuid())
+  title       String
+  content     String
+  type        AnnouncementType @default(INFO)
+  priority    Int              @default(0)
+  isActive    Boolean          @default(true)
+  startDate   DateTime         @default(now())
+  endDate     DateTime?
+  actionUrl   String?
+  actionLabel String?
+  createdBy   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([isActive])
   @@index([startDate])
@@ -937,9 +850,296 @@ model PointTransaction {
   @@map("point_transactions")
 }
 
-// ============================================
-// 枚举类型
-// ============================================
+model ProductBundle {
+  id              String       @id @default(cuid())
+  name            String
+  slug            String       @unique
+  description     String?
+  originalPrice   Decimal      @db.Decimal(10, 2)
+  bundlePrice     Decimal      @db.Decimal(10, 2)
+  discount        Decimal?     @db.Decimal(10, 2)
+  discountPercent Decimal?     @db.Decimal(5, 2)
+  image           String?
+  images          Json         @default("[]")
+  isActive        Boolean      @default(true)
+  isFeatured      Boolean      @default(false)
+  showOnHomepage  Boolean      @default(true)
+  sortOrder       Int          @default(0)
+  startDate       DateTime?
+  endDate         DateTime?
+  maxPurchaseQty  Int?
+  soldCount       Int          @default(0)
+  viewCount       Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  items           BundleItem[]
+  cartItems       CartItem[]
+
+  @@index([isActive, isFeatured])
+  @@index([showOnHomepage, sortOrder])
+  @@index([startDate, endDate])
+  @@index([slug])
+  @@map("product_bundles")
+}
+
+model BundleItem {
+  id                    String          @id @default(cuid())
+  bundleId              String
+  productId             String
+  quantity              Int             @default(1)
+  variantId             String?
+  allowVariantSelection Boolean         @default(true)
+  sortOrder             Int             @default(0)
+  createdAt             DateTime        @default(now())
+  bundle                ProductBundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product               Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant               ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
+  @@index([productId])
+  @@map("bundle_items")
+}
+
+model HeroSlide {
+  id             String       @id @default(cuid())
+  title          String
+  subtitle       String?
+  description    String?
+  cta            String
+  link           String
+  sortOrder      Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  bgColor        String?
+  ctaSecondary   String?
+  endDate        DateTime?
+  linkSecondary  String?
+  overlayOpacity Float        @default(0.3)
+  startDate      DateTime?
+  textColor      String       @default("#FFFFFF")
+  textPosition   TextPosition @default(CENTER_LEFT)
+
+  @@index([isActive, sortOrder])
+  @@index([startDate, endDate])
+  @@map("hero_slides")
+}
+
+model EmailCampaign {
+  id              String              @id @default(cuid())
+  name            String
+  subject         String
+  htmlContent     String
+  textContent     String?
+  status          EmailCampaignStatus @default(DRAFT)
+  targetAudience  Json                @default("{}")
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  totalRecipients Int                 @default(0)
+  successCount    Int                 @default(0)
+  failedCount     Int                 @default(0)
+  openedCount     Int                 @default(0)
+  clickedCount    Int                 @default(0)
+  createdBy       String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  emailLogs       EmailLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_campaigns")
+}
+
+model EmailLog {
+  id           String         @id @default(cuid())
+  campaignId   String
+  userId       String
+  email        String
+  status       EmailLogStatus @default(PENDING)
+  sentAt       DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+  bouncedAt    DateTime?
+  errorMessage String?
+  createdAt    DateTime       @default(now())
+  campaign     EmailCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+  @@index([email])
+  @@map("email_logs")
+}
+
+model HomepageConfig {
+  id             String        @id @default(cuid())
+  componentId    String        @unique
+  componentType  ComponentType
+  title          String?
+  subtitle       String?
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  settings       Json          @default("{}")
+  mobileSettings Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("homepage_configs")
+}
+
+model SaleCountdown {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String?
+  endTime       DateTime
+  bgColor       String   @default("#FF0000")
+  textColor     String   @default("#FFFFFF")
+  link          String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  description   String?
+  highlightText String?
+
+  @@index([isActive, endTime])
+  @@map("sale_countdowns")
+}
+
+model GuaranteeItem {
+  id          String   @id @default(cuid())
+  icon        String
+  title       String
+  description String?
+  link        String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("guarantee_items")
+}
+
+model CategoryDisplay {
+  id             String   @id @default(cuid())
+  categoryId     String   @unique
+  displayName    String?
+  icon           String?
+  image          String?
+  bgColor        String?
+  textColor      String?
+  sortOrder      Int      @default(0)
+  isHighlighted  Boolean  @default(false)
+  showOnHomepage Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  category       Category @relation(fields: [categoryId], references: [id])
+
+  @@index([showOnHomepage, sortOrder])
+  @@map("category_displays")
+}
+
+model FlashSaleConfig {
+  id          String   @id @default(cuid())
+  name        String
+  startTime   DateTime
+  endTime     DateTime
+  bgImage     String?
+  bgColor     String   @default("#FF6B6B")
+  products    Json
+  maxProducts Int      @default(6)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, startTime, endTime])
+  @@map("flash_sale_configs")
+}
+
+model DailyDealConfig {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  title     String   @default("今日特價")
+  subtitle  String?
+  products  Json
+  bgColor   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, date])
+  @@map("daily_deal_configs")
+}
+
+model FloatingPromo {
+  id        String            @id @default(cuid())
+  type      FloatingPromoType @default(DISCOUNT)
+  icon      String?
+  text      String
+  link      String
+  bgColor   String            @default("#FF0000")
+  textColor String            @default("#FFFFFF")
+  position  FloatingPosition  @default(BOTTOM_RIGHT)
+  animation String?
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([isActive, startDate, endDate])
+  @@map("floating_promos")
+}
+
+model SuperDealSection {
+  id          String     @id @default(cuid())
+  title       String     @default("超值優惠")
+  subtitle    String?
+  bgImage     String?
+  bgGradient  String?
+  productIds  Json
+  maxProducts Int        @default(8)
+  layout      DealLayout @default(GRID)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("super_deal_sections")
+}
+
+model PopularProductsConfig {
+  id              String           @id @default(cuid())
+  title           String           @default("熱門商品")
+  subtitle        String?
+  algorithm       PopularAlgorithm @default(MANUAL)
+  productIds      Json?
+  maxProducts     Int              @default(12)
+  timeRange       Int?
+  minSales        Int?
+  showBadge       Boolean          @default(true)
+  badgeText       String           @default("HOT")
+  badgeColor      String           @default("#FF0000")
+  autoRefresh     Boolean          @default(false)
+  refreshInterval Int?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("popular_products_configs")
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+  RESOLVED
+}
+
+enum SenderType {
+  USER
+  ADMIN
+}
 
 enum Role {
   USER
@@ -947,8 +1147,8 @@ enum Role {
 }
 
 enum OtpPurpose {
-  REGISTER  // 註冊新帳號
-  LOGIN     // 登入現有帳號
+  REGISTER
+  LOGIN
 }
 
 enum Gender {
@@ -989,27 +1189,25 @@ enum PaymentMethod {
   LINE_PAY
   CREDIT_CARD
   CASH_ON_DELIVERY
-  NEWEBPAY  // 藍新金流
+  NEWEBPAY
 }
 
-// 藍新金流支付方式
 enum NewebPaymentType {
-  CREDIT_CARD  // 信用卡
-  VACC         // ATM 轉帳
-  CVS          // 超商代碼
-  BARCODE      // 超商條碼
-  WEBATM       // 網路 ATM
+  CREDIT_CARD
+  VACC
+  CVS
+  BARCODE
+  WEBATM
 }
 
-// 藍新金流支付狀態
 enum NewebPaymentStatus {
-  PENDING      // 待支付
-  PROCESSING   // 處理中
-  SUCCESS      // 支付成功
-  FAILED       // 支付失敗
-  CANCELLED    // 已取消
-  EXPIRED      // 已過期（ATM/超商逾期未繳）
-  REFUNDED     // 已退款
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
 }
 
 enum ShippingStatus {
@@ -1017,13 +1215,6 @@ enum ShippingStatus {
   PROCESSING
   SHIPPED
   DELIVERED
-}
-
-// 配送方式
-enum ShippingMethod {
-  SEVEN_ELEVEN  // 7-11取貨（運費60元，走金流+物流）
-  HOME_DELIVERY // 宅配（運費120元，只走金流）
-  SELF_PICKUP   // 自取（免運費，只走金流）
 }
 
 enum CampaignType {
@@ -1150,37 +1341,31 @@ enum SizeFit {
 }
 
 enum AnnouncementType {
-  INFO        // 一般資訊
-  SUCCESS     // 成功訊息
-  WARNING     // 警告
-  ERROR       // 錯誤
-  PROMOTION   // 促銷活動
-  MAINTENANCE // 系統維護
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  PROMOTION
+  MAINTENANCE
 }
 
-// ============================================
-// 首頁管理系統枚舉
-// ============================================
-
-// 組件類型枚舉
 enum ComponentType {
-  HERO_SLIDER        // 輪播圖
-  SALE_COUNTDOWN     // 促銷倒計時
-  GUARANTEE_BAR      // 服務保證欄
-  FLASH_SALE         // 限時搶購
-  CATEGORY_GRID      // 分類網格
-  DAILY_DEALS        // 每日特價
-  SUPER_DEALS        // 超值優惠
-  POPULAR_PRODUCTS   // 熱門商品
-  NEW_ARRIVALS       // 新品上架
-  FEATURED_BRANDS    // 精選品牌
-  CUSTOMER_REVIEWS   // 客戶評價
-  NEWSLETTER         // 電子報訂閱
-  CUSTOM_BANNER      // 自定義橫幅
-  CUSTOM_HTML        // 自定義 HTML
+  HERO_SLIDER
+  SALE_COUNTDOWN
+  GUARANTEE_BAR
+  FLASH_SALE
+  CATEGORY_GRID
+  DAILY_DEALS
+  SUPER_DEALS
+  POPULAR_PRODUCTS
+  NEW_ARRIVALS
+  FEATURED_BRANDS
+  CUSTOMER_REVIEWS
+  NEWSLETTER
+  CUSTOM_BANNER
+  CUSTOM_HTML
 }
 
-// 文字位置枚舉
 enum TextPosition {
   TOP_LEFT
   TOP_CENTER
@@ -1193,16 +1378,14 @@ enum TextPosition {
   BOTTOM_RIGHT
 }
 
-// 浮動按鈕類型
 enum FloatingPromoType {
-  DISCOUNT      // 折扣
-  GIFT          // 禮物
-  CUSTOMER_SERVICE // 客服
-  CART          // 購物車
-  CUSTOM        // 自定義
+  DISCOUNT
+  GIFT
+  CUSTOMER_SERVICE
+  CART
+  CUSTOM
 }
 
-// 浮動位置
 enum FloatingPosition {
   TOP_LEFT
   TOP_RIGHT
@@ -1212,353 +1395,36 @@ enum FloatingPosition {
   CENTER_RIGHT
 }
 
-// 佈局方式
 enum DealLayout {
-  GRID          // 網格
-  CAROUSEL      // 輪播
-  LIST          // 列表
-  MASONRY       // 瀑布流
+  GRID
+  CAROUSEL
+  LIST
+  MASONRY
 }
 
-// 熱門算法
 enum PopularAlgorithm {
-  MANUAL        // 手動選擇
-  SALES_VOLUME  // 銷量
-  VIEW_COUNT    // 瀏覽次數
-  RATING        // 評分
-  TRENDING      // 趨勢（綜合算法）
+  MANUAL
+  SALES_VOLUME
+  VIEW_COUNT
+  RATING
+  TRENDING
 }
 
 enum EmailCampaignStatus {
-  DRAFT       // 草稿
-  SCHEDULED   // 已排程
-  SENDING     // 發送中
-  SENT        // 已發送
-  FAILED      // 發送失敗
-  CANCELLED   // 已取消
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
 }
 
 enum EmailLogStatus {
-  PENDING     // 等待發送
-  SENDING     // 發送中
-  SENT        // 已發送
-  OPENED      // 已打開
-  CLICKED     // 已點擊
-  BOUNCED     // 退回
-  FAILED      // 失敗
-}
-
-// ============================================
-// 組合套裝系統
-// ============================================
-
-// 組合套裝（促銷活動）
-model ProductBundle {
-  id              String        @id @default(cuid())
-  name            String        // 組合名稱（例如：春季運動套組）
-  slug            String        @unique // URL slug
-  description     String?       @db.Text // 組合描述
-  originalPrice   Decimal       @db.Decimal(10, 2) // 原價總和
-  bundlePrice     Decimal       @db.Decimal(10, 2) // 優惠套裝價
-  discount        Decimal?      @db.Decimal(10, 2) // 折扣金額（自動計算）
-  discountPercent Decimal?      @db.Decimal(5, 2) // 折扣百分比（自動計算）
-  image           String?       // 主圖片
-  images          Json          @default("[]") // 多張圖片
-  isActive        Boolean       @default(true) // 是否啟用
-  isFeatured      Boolean       @default(false) // 是否在首頁展示
-  showOnHomepage  Boolean       @default(true) // 是否在首頁顯示
-  sortOrder       Int           @default(0) // 排序順序
-  startDate       DateTime?     // 活動開始時間
-  endDate         DateTime?     // 活動結束時間
-  maxPurchaseQty  Int?          // 每人限購數量（null = 無限制）
-  soldCount       Int           @default(0) // 已售出數量
-  viewCount       Int           @default(0) // 瀏覽次數
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  items           BundleItem[]  // 包含的產品
-  cartItems       CartItem[]    // 購物車中的組合商品
-
-  @@index([isActive, isFeatured])
-  @@index([showOnHomepage, sortOrder])
-  @@index([startDate, endDate])
-  @@index([slug])
-  @@map("product_bundles")
-}
-
-// 組合項目（組合中包含的產品）
-model BundleItem {
-  id                    String          @id @default(cuid())
-  bundleId              String
-  productId             String
-  quantity              Int             @default(1) // 該產品在組合中的數量
-  variantId             String?         // 可選：如果管理員指定固定變體
-  allowVariantSelection Boolean         @default(true) // 是否允許客戶選擇變體
-  sortOrder             Int             @default(0)
-  createdAt             DateTime        @default(now())
-
-  bundle                ProductBundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
-  product               Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant               ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-
-  @@index([bundleId])
-  @@index([productId])
-  @@map("bundle_items")
-}
-
-// ============================================
-// 首頁內容管理
-// ============================================
-
-// 首頁輪播圖
-model HeroSlide {
-  id             String        @id @default(cuid())
-  title          String        // 主標題
-  subtitle       String?       // 副標題
-  description    String?       // 描述文字
-  cta            String        // 按鈕文字
-  ctaSecondary   String?       // 次要按鈕文字
-  link           String        // 主按鈕連結
-  linkSecondary  String?       // 次要按鈕連結
-  textColor      String        @default("#FFFFFF") // 文字顏色
-  bgColor        String?       // 背景顏色
-  overlayOpacity Float         @default(0.3) // 遮罩透明度
-  textPosition   TextPosition  @default(CENTER_LEFT) // 文字位置
-  sortOrder      Int           @default(0)
-  isActive       Boolean       @default(true)
-  startDate      DateTime?     // 開始顯示時間
-  endDate        DateTime?     // 結束顯示時間
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@index([isActive, sortOrder])
-  @@index([startDate, endDate])
-  @@map("hero_slides")
-}
-
-// ============================================
-// 郵件行銷系統
-// ============================================
-
-// 郵件發送活動
-model EmailCampaign {
-  id               String              @id @default(cuid())
-  name             String              // 活動名稱
-  subject          String              // 郵件主旨
-  htmlContent      String              @db.Text // HTML 郵件內容
-  textContent      String?             @db.Text // 純文字內容（備用）
-  status           EmailCampaignStatus @default(DRAFT)
-  targetAudience   Json                @default("{}") // 目標受眾篩選條件
-  scheduledAt      DateTime?           // 預定發送時間
-  sentAt           DateTime?           // 實際發送時間
-  totalRecipients  Int                 @default(0) // 收件人總數
-  successCount     Int                 @default(0) // 成功發送數
-  failedCount      Int                 @default(0) // 失敗數
-  openedCount      Int                 @default(0) // 打開數（預留）
-  clickedCount     Int                 @default(0) // 點擊數（預留）
-  createdBy        String              // 建立者（管理員 ID）
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  emailLogs        EmailLog[]
-
-  @@index([status])
-  @@index([createdAt])
-  @@map("email_campaigns")
-}
-
-// 郵件發送記錄
-model EmailLog {
-  id               String           @id @default(cuid())
-  campaignId       String           // 關聯的活動
-  userId           String           // 收件人
-  email            String           // 收件人郵件地址
-  status           EmailLogStatus   @default(PENDING)
-  sentAt           DateTime?        // 發送時間
-  openedAt         DateTime?        // 打開時間（預留）
-  clickedAt        DateTime?        // 點擊時間（預留）
-  bouncedAt        DateTime?        // 退回時間
-  errorMessage     String?          // 錯誤訊息
-  createdAt        DateTime         @default(now())
-  campaign         EmailCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([campaignId])
-  @@index([userId])
-  @@index([status])
-  @@index([email])
-  @@map("email_logs")
-}
-
-// ============================================
-// 首頁管理系統
-// ============================================
-
-// 首頁配置（控制組件顯示與順序）
-model HomepageConfig {
-  id             String        @id @default(cuid())
-  componentId    String        @unique // 組件識別碼
-  componentType  ComponentType // 組件類型
-  title          String?       // 顯示標題
-  subtitle       String?       // 副標題
-  isActive       Boolean       @default(true) // 是否啟用
-  sortOrder      Int           @default(0) // 排序順序
-  settings       Json          @default("{}") // 組件特定設定（JSON格式）
-  mobileSettings Json?         // 手機版特定設定
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@index([isActive, sortOrder])
-  @@map("homepage_configs")
-}
-
-// 促銷倒計時設定
-model SaleCountdown {
-  id            String   @id @default(cuid())
-  title         String   // 標題（如：限時特賣）
-  subtitle      String?  // 副標題
-  description   String?  // 描述文字（如：全場5折起！）
-  highlightText String?  // 滾動高亮文字（如：限時特賣 • SALE）
-  endTime       DateTime // 結束時間
-  bgColor       String   @default("#FF0000") // 背景顏色
-  textColor     String   @default("#FFFFFF") // 文字顏色
-  link          String?  // 點擊連結
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([isActive, endTime])
-  @@map("sale_countdowns")
-}
-
-// 服務保證項目
-model GuaranteeItem {
-  id          String   @id @default(cuid())
-  icon        String   // 圖示名稱或 URL
-  title       String   // 標題（如：免費退貨）
-  description String?  // 描述
-  link        String?  // 連結
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([isActive, sortOrder])
-  @@map("guarantee_items")
-}
-
-// 分類展示設定
-model CategoryDisplay {
-  id              String   @id @default(cuid())
-  categoryId      String   // 關聯到 Category 表
-  displayName     String?  // 顯示名稱（覆蓋原分類名稱）
-  icon            String?  // 圖示
-  image           String?  // 分類圖片
-  bgColor         String?  // 背景顏色
-  textColor       String?  // 文字顏色
-  sortOrder       Int      @default(0)
-  isHighlighted   Boolean  @default(false) // 是否突出顯示
-  showOnHomepage  Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  category Category @relation(fields: [categoryId], references: [id])
-
-  @@unique([categoryId])
-  @@index([showOnHomepage, sortOrder])
-  @@map("category_displays")
-}
-
-// 限時搶購設定
-model FlashSaleConfig {
-  id          String    @id @default(cuid())
-  name        String    // 活動名稱
-  startTime   DateTime  // 開始時間
-  endTime     DateTime  // 結束時間
-  bgImage     String?   // 背景圖片
-  bgColor     String    @default("#FF6B6B") // 背景顏色
-  products    Json      // 產品 ID 列表與折扣設定
-  maxProducts Int       @default(6) // 最多顯示產品數
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([isActive, startTime, endTime])
-  @@map("flash_sale_configs")
-}
-
-// 每日特價設定
-model DailyDealConfig {
-  id          String    @id @default(cuid())
-  date        DateTime  // 特價日期
-  title       String    @default("今日特價")
-  subtitle    String?
-  products    Json      // 產品 ID 列表與折扣設定
-  bgColor     String?   // 背景顏色
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@unique([date])
-  @@index([isActive, date])
-  @@map("daily_deal_configs")
-}
-
-// 浮動促銷按鈕設定
-model FloatingPromo {
-  id          String   @id @default(cuid())
-  type        FloatingPromoType @default(DISCOUNT) // 類型
-  icon        String?  // 圖示
-  text        String   // 顯示文字
-  link        String   // 連結
-  bgColor     String   @default("#FF0000") // 背景顏色
-  textColor   String   @default("#FFFFFF") // 文字顏色
-  position    FloatingPosition @default(BOTTOM_RIGHT) // 位置
-  animation   String?  // 動畫效果類型
-  startDate   DateTime? // 開始顯示時間
-  endDate     DateTime? // 結束顯示時間
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([isActive, startDate, endDate])
-  @@map("floating_promos")
-}
-
-// 超值優惠專區設定
-model SuperDealSection {
-  id          String   @id @default(cuid())
-  title       String   @default("超值優惠")
-  subtitle    String?
-  bgImage     String?  // 背景圖片
-  bgGradient  String?  // 背景漸層
-  productIds  Json     // 產品 ID 列表
-  maxProducts Int      @default(8)
-  layout      DealLayout @default(GRID) // 佈局方式
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("super_deal_sections")
-}
-
-// 熱門產品設定
-model PopularProductsConfig {
-  id              String   @id @default(cuid())
-  title           String   @default("熱門商品")
-  subtitle        String?
-  algorithm       PopularAlgorithm @default(MANUAL) // 選擇算法
-  productIds      Json?    // 手動選擇的產品 ID
-  maxProducts     Int      @default(12)
-  timeRange       Int?     // 統計時間範圍（天數）
-  minSales        Int?     // 最低銷量門檻
-  showBadge       Boolean  @default(true) // 顯示熱門標籤
-  badgeText       String   @default("HOT")
-  badgeColor      String   @default("#FF0000")
-  autoRefresh     Boolean  @default(false) // 自動更新
-  refreshInterval Int?     // 更新間隔（小時）
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@map("popular_products_configs")
+  PENDING
+  SENDING
+  SENT
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
 }

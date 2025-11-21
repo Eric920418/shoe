@@ -213,7 +213,7 @@ export function generateTradeSha(tradeInfo: string): string {
 }
 
 /**
- * 6) 建立支付資料（修正版：白名單機制）
+ * 6) 建立支付資料（修正版：白名單機制 + 付款方式控制）
  */
 export function createPaymentData(params: {
   merchantOrderNo: string;
@@ -224,6 +224,7 @@ export function createPaymentData(params: {
   returnUrl: string;
   clientBackUrl: string;
   shippingMethod?: string; // 接收字串
+  paymentTypes: NewebPaymentType[]; // 新增：付款方式陣列
 }) {
   // 1. 強制轉型並移除空白，確保比對精準
   const cleanShippingMethod = String(params.shippingMethod || '').trim();
@@ -247,16 +248,33 @@ export function createPaymentData(params: {
     LoginType: 0,
   };
 
-  // 4. 🔥 核心判斷邏輯：只有 'SEVEN_ELEVEN' 才加物流參數
+  // 4. 🎯 明確設定付款方式（根據 paymentTypes 陣列）
+  console.log(`💳 [PaymentTypes] 設定付款方式: ${params.paymentTypes.join(', ')}`);
+  const types = new Set(params.paymentTypes);
+
+  // 根據陣列設定對應的藍新金流欄位
+  if (types.has('CREDIT_CARD')) tradeData.CREDIT = 1;
+  if (types.has('WEBATM'))      tradeData.WEBATM = 1;
+  if (types.has('VACC'))        tradeData.VACC = 1;
+  if (types.has('CVS'))         tradeData.CVS = 1;
+  if (types.has('BARCODE'))     tradeData.BARCODE = 1;
+
+  // 5. 🔥 核心判斷邏輯：只有 'SEVEN_ELEVEN' 才加物流參數
   console.log(`🛡️ [PaymentCheck] 訂單號: ${params.merchantOrderNo}, 配送方式: "${cleanShippingMethod}"`);
 
   if (cleanShippingMethod === 'SEVEN_ELEVEN') {
     console.log('✅ 判定為 [7-11 店到店] -> 啟用 LgsType');
     tradeData.LgsType = 'C2C';
+    // 如果有超商付款，可能還需要 CVSCOM（超商取貨付款）
+    if (types.has('CVS') || types.has('BARCODE')) {
+      tradeData.CVSCOM = 1; // 啟用超商取貨付款
+      console.log('   📦 啟用 CVSCOM（超商取貨付款）');
+    }
   } else {
     console.log('🚫 判定為 [純金流/宅配/自取] -> 強制移除 LgsType');
     // 確保完全移除，不留痕跡
     delete tradeData.LgsType;
+    delete tradeData.CVSCOM;
     // 移除其他可能殘留的超商參數
     delete tradeData.CVSStoreID;
     delete tradeData.CVSStoreName;
@@ -264,13 +282,15 @@ export function createPaymentData(params: {
     delete tradeData.CVSOutSide;
   }
 
-  // 5. 轉換為 Query String
+  // 6. 轉換為 Query String
   const queryString = Object.entries(tradeData)
     .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
 
-  // 6. 🔍 最終檢查 (請查看 VS Code 終端機)
+  // 7. 🔍 最終檢查 (請查看 VS Code 終端機)
+  console.log('[NewebPay QueryString] =>', queryString.substring(0, 200) + '...');
+
   if (queryString.includes('LgsType')) {
     console.warn('⚠️ 警告：最終字串包含 LgsType，將會顯示取貨地圖！');
   } else {
