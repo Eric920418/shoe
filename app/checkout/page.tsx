@@ -278,10 +278,7 @@ export default function CheckoutPage() {
           }))
         : undefined // 會員模式：後端從購物車獲取
 
-      console.log('=== 前端提交訂單 ===')
-      console.log('配送方式:', formData.shippingMethod)
-      console.log('運費:', shippingFee)
-      console.log('==================')
+      console.log('提交訂單:', formData.shippingMethod, '/ 運費', shippingFee)
 
       await createOrder({
         variables: {

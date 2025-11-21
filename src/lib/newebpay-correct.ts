@@ -223,7 +223,7 @@ export function createPaymentData(params: {
   notifyUrl: string;
   returnUrl: string;
   clientBackUrl: string;
-  shippingMethod?: string; // 配送方式
+  shippingMethod?: 'SEVEN_ELEVEN' | 'HOME_DELIVERY' | 'SELF_PICKUP'; // 配送方式
 }) {
   // 確保金額是整數
   const amount = Math.floor(params.amount);
@@ -246,13 +246,11 @@ export function createPaymentData(params: {
     // 重要：不要設定 EncryptType，預設使用 CBC
   };
 
-  // 只有當配送方式為 7-11 取貨時才加入物流參數
+  // ⭐ 只有 7-11 取貨時，才啟用藍新物流整合，讓客人選門市
   if (params.shippingMethod === 'SEVEN_ELEVEN') {
-    console.log('⚠️ 加入 7-11 物流參數 LgsType=C2C');
     tradeData.LgsType = 'C2C';  // C2C = 店到店
-  } else {
-    console.log('✅ 配送方式:', params.shippingMethod || '未提供', '- 不加入物流參數');
   }
+  // 宅配 / 自取 → 不設 LgsType → 藍新當一般金流頁面
 
   // 轉換為 query string
   const queryString = Object.entries(tradeData)
@@ -260,12 +258,7 @@ export function createPaymentData(params: {
     .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
 
-  console.log('建立支付資料:');
-  console.log('- 訂單編號:', params.merchantOrderNo);
-  console.log('- 金額:', amount);
-  console.log('- 配送方式:', params.shippingMethod || '未提供');
-  console.log('- 是否包含 LgsType:', tradeData.LgsType ? '是' : '否');
-  console.log('- Query String (前100字):', queryString.substring(0, 100));
+  console.log('藍新支付:', params.merchantOrderNo, '/', params.shippingMethod || '無配送方式', tradeData.LgsType ? '(含物流)' : '(純金流)');
 
   const tradeInfo = encryptTradeInfo(queryString);
   const tradeSha = generateTradeSha(tradeInfo);

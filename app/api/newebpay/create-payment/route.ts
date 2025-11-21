@@ -130,15 +130,8 @@ export async function POST(request: NextRequest) {
       shippingMethod: order.shippingMethod || undefined, // 傳遞配送方式
     });
 
-    // 詳細日誌
-    console.log('=== 藍新金流支付請求 ===');
-    console.log('訂單號:', merchantOrderNo);
-    console.log('金額:', Number(order.total));
-    console.log('Email:', email);
-    console.log('配送方式:', order.shippingMethod || '未設定');
-    console.log('支付方式:', paymentTypes);
-    console.log('TradeInfo (前100字):', paymentFormData.TradeInfo.substring(0, 100));
-    console.log('TradeSha:', paymentFormData.TradeSha);
+    // 日誌
+    console.log('藍新金流支付請求:', merchantOrderNo, '/ NT$', Number(order.total), '/', order.shippingMethod || '未設定');
 
     // 建立或更新 Payment 記錄
     const payment = existingPayment
