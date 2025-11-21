@@ -213,7 +213,7 @@ export function generateTradeSha(tradeInfo: string): string {
 }
 
 /**
- * 6) 建立支付資料（確保不使用 EncryptType）
+ * 6) 建立支付資料（修正版：白名單機制）
  */
 export function createPaymentData(params: {
   merchantOrderNo: string;
@@ -223,16 +223,15 @@ export function createPaymentData(params: {
   notifyUrl: string;
   returnUrl: string;
   clientBackUrl: string;
-  shippingMethod?: 'SEVEN_ELEVEN' | 'HOME_DELIVERY' | 'SELF_PICKUP'; // 配送方式
+  shippingMethod?: string; // 接收字串
 }) {
-  console.log('*** 使用新版 createPaymentData，shippingMethod =', params.shippingMethod, '***');
+  // 1. 強制轉型並移除空白，確保比對精準
+  const cleanShippingMethod = String(params.shippingMethod || '').trim();
 
-  // 確保金額是整數
+  // 2. 金額取整
   const amount = Math.floor(params.amount);
-  if (amount !== params.amount) {
-    console.warn(`金額已轉為整數: ${params.amount} -> ${amount}`);
-  }
 
+  // 3. 建立基本參數
   const tradeData: Record<string, any> = {
     MerchantID: MERCHANT_ID,
     RespondType: 'JSON',
@@ -240,47 +239,43 @@ export function createPaymentData(params: {
     Version: '2.0',
     MerchantOrderNo: params.merchantOrderNo,
     Amt: amount,
-    ItemDesc: params.itemDesc.substring(0, 50), // 限制 50 字
+    ItemDesc: params.itemDesc.substring(0, 50),
     Email: params.email,
     NotifyURL: params.notifyUrl,
     ReturnURL: params.returnUrl,
     ClientBackURL: params.clientBackUrl,
-    // 重要：不要設定 EncryptType，預設使用 CBC
+    LoginType: 0,
   };
 
-  // ⭐ 只有 7-11 取貨時，才啟用藍新物流整合，讓客人選門市
-  console.log('檢查配送方式:', {
-    'params.shippingMethod': params.shippingMethod,
-    'typeof': typeof params.shippingMethod,
-    '=== SEVEN_ELEVEN': params.shippingMethod === 'SEVEN_ELEVEN',
-    '實際字串': JSON.stringify(params.shippingMethod)
-  });
+  // 4. 🔥 核心判斷邏輯：只有 'SEVEN_ELEVEN' 才加物流參數
+  console.log(`🛡️ [PaymentCheck] 訂單號: ${params.merchantOrderNo}, 配送方式: "${cleanShippingMethod}"`);
 
-  if (params.shippingMethod === 'SEVEN_ELEVEN') {
-    console.log('✅ 匹配 7-11，加入 LgsType=C2C');
-    tradeData.LgsType = 'C2C';  // C2C = 店到店
+  if (cleanShippingMethod === 'SEVEN_ELEVEN') {
+    console.log('✅ 判定為 [7-11 店到店] -> 啟用 LgsType');
+    tradeData.LgsType = 'C2C';
   } else {
-    console.log('✅ 非 7-11 配送，強制清除所有物流參數（純金流）');
-    // 保險做法：強制刪除所有可能的物流相關參數
+    console.log('🚫 判定為 [純金流/宅配/自取] -> 強制移除 LgsType');
+    // 確保完全移除，不留痕跡
     delete tradeData.LgsType;
+    // 移除其他可能殘留的超商參數
     delete tradeData.CVSStoreID;
-    delete tradeData.CVSAddress;
-    delete tradeData.CVSName;
     delete tradeData.CVSStoreName;
+    delete tradeData.CVSAddress;
+    delete tradeData.CVSOutSide;
   }
-  // 宅配 / 自取 → 不設 LgsType → 藍新當一般金流頁面
 
-  // 轉換為 query string
+  // 5. 轉換為 Query String
   const queryString = Object.entries(tradeData)
     .filter(([_, value]) => value !== undefined && value !== null)
     .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
 
-  // 🔍 關鍵檢查：SELF_PICKUP / HOME_DELIVERY 時，這裡不應該出現 LgsType
-  console.log('--- NewebPay QueryString ---');
-  console.log(queryString);
-  console.log('QueryString 是否包含 LgsType:', queryString.includes('LgsType') ? '❌ 有 LgsType' : '✅ 無 LgsType');
-  console.log('藍新支付:', params.merchantOrderNo, '/', params.shippingMethod || '無配送方式', tradeData.LgsType ? '(含物流)' : '(純金流)');
+  // 6. 🔍 最終檢查 (請查看 VS Code 終端機)
+  if (queryString.includes('LgsType')) {
+    console.warn('⚠️ 警告：最終字串包含 LgsType，將會顯示取貨地圖！');
+  } else {
+    console.log('👍 確認：最終字串不含 LgsType，將只顯示付款選項。');
+  }
 
   const tradeInfo = encryptTradeInfo(queryString);
   const tradeSha = generateTradeSha(tradeInfo);
