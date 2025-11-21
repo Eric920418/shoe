@@ -87,8 +87,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 產生商店訂單編號（使用訂單號碼）
-    const merchantOrderNo = existingPayment?.merchantOrderNo || order.orderNumber;
+    // ----------------------------------------------------------
+    // 🔥 修正重點：產生唯一的 MerchantOrderNo
+    // ----------------------------------------------------------
+    // 即使是同一筆 Order ID，每次發起支付請求都應該視為新的交易嘗試
+    // 避免藍新鎖死第一次的參數設定 (如 LgsType)
+
+    const timestamp = Date.now().toString();
+    // 取時間戳後 4 碼，避免過長
+    const randomSuffix = timestamp.substring(timestamp.length - 4);
+
+    // 組合新的訂單編號：原單號_嘗試次數或時間
+    // 例如: ORD20231121001_8821
+    const merchantOrderNo = `${order.orderNumber}_${randomSuffix}`;
+
+    console.log('💡 產生新的 MerchantOrderNo:', merchantOrderNo, '(原訂單:', order.orderNumber, ')');
 
     // 準備商品描述
     const description =
@@ -134,18 +147,21 @@ export async function POST(request: NextRequest) {
 
     // 日誌
     console.log('=== 第 2 層：藍新金流支付請求 ===');
-    console.log('訂單編號:', merchantOrderNo);
+    console.log('原訂單號:', order.orderNumber);
+    console.log('新 MerchantOrderNo:', merchantOrderNo, '(每次都是唯一的)');
     console.log('order.shippingMethod:', order.shippingMethod, '(type:', typeof order.shippingMethod, ')');
     console.log('傳給 createPaymentData:', order.shippingMethod || undefined);
     console.log('金額: NT$', Number(order.total));
     console.log('====================================');
 
     // 建立或更新 Payment 記錄
+    // 注意：因為 merchantOrderNo 變了，建議更新該欄位以利對帳
     const payment = existingPayment
       ? await prisma.payment.update({
           where: { id: existingPayment.id },
           data: {
             paymentType: paymentTypes[0], // 儲存第一個支付方式（用戶實際選擇後會更新）
+            merchantOrderNo, // 👈 更新 DB 中的訂單編號（每次都是新的）
             tradeInfo: paymentFormData.TradeInfo,
             tradeSha: paymentFormData.TradeSha,
             status: 'PENDING',
@@ -155,7 +171,7 @@ export async function POST(request: NextRequest) {
       : await prisma.payment.create({
           data: {
             orderId,
-            merchantOrderNo,
+            merchantOrderNo, // 👈 寫入新的編號
             amount: order.total,
             paymentType: paymentTypes[0],
             tradeInfo: paymentFormData.TradeInfo,
