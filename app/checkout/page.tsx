@@ -110,15 +110,14 @@ export default function CheckoutPage() {
       setProcessingPayment(true)
 
       try {
-        // 根據配送方式決定可用的付款方式
-        const paymentTypes =
-          order.shippingMethod === 'SEVEN_ELEVEN'
-            ? ['CREDIT_CARD', 'VACC', 'CVS', 'BARCODE', 'WEBATM'] // 7-11 取貨可以用超商付款
-            : ['CREDIT_CARD', 'VACC', 'WEBATM'];                  // 宅配 / 自取只給信用卡 & 匯款
+        // 所有配送方式都支援完整的付款方式
+        // 但只有 SEVEN_ELEVEN 會啟用物流（LgsType），其他只是純付款
+        const paymentTypes = ['CREDIT_CARD', 'VACC', 'CVS', 'BARCODE', 'WEBATM'] as NewebPaymentType[];
 
         console.log('=== 付款方式選擇 ===');
         console.log('訂單配送方式:', order.shippingMethod);
         console.log('可用付款方式:', paymentTypes);
+        console.log('說明: 所有配送方式都支援超商代碼/條碼，但只有 7-11 會顯示取貨門市選擇');
         console.log('===================');
 
         // 呼叫藍新金流 API 創建支付
