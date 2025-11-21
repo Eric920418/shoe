@@ -260,7 +260,13 @@ export function createPaymentData(params: {
     console.log('✅ 匹配 7-11，加入 LgsType=C2C');
     tradeData.LgsType = 'C2C';  // C2C = 店到店
   } else {
-    console.log('✅ 非 7-11 配送，不加入 LgsType（純金流）');
+    console.log('✅ 非 7-11 配送，強制清除所有物流參數（純金流）');
+    // 保險做法：強制刪除所有可能的物流相關參數
+    delete tradeData.LgsType;
+    delete tradeData.CVSStoreID;
+    delete tradeData.CVSAddress;
+    delete tradeData.CVSName;
+    delete tradeData.CVSStoreName;
   }
   // 宅配 / 自取 → 不設 LgsType → 藍新當一般金流頁面
 
@@ -270,6 +276,10 @@ export function createPaymentData(params: {
     .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
     .join('&');
 
+  // 🔍 關鍵檢查：SELF_PICKUP / HOME_DELIVERY 時，這裡不應該出現 LgsType
+  console.log('--- NewebPay QueryString ---');
+  console.log(queryString);
+  console.log('QueryString 是否包含 LgsType:', queryString.includes('LgsType') ? '❌ 有 LgsType' : '✅ 無 LgsType');
   console.log('藍新支付:', params.merchantOrderNo, '/', params.shippingMethod || '無配送方式', tradeData.LgsType ? '(含物流)' : '(純金流)');
 
   const tradeInfo = encryptTradeInfo(queryString);

@@ -128,6 +128,8 @@ export async function POST(request: NextRequest) {
       returnUrl: NEWEBPAY_CONFIG.returnUrl,
       clientBackUrl: NEWEBPAY_CONFIG.clientBackUrl,
       shippingMethod: order.shippingMethod || undefined, // 傳遞配送方式
+      // ⚠️ 快篩測試：如果需要測試，取消下面這行的註解，強制使用 SELF_PICKUP
+      // shippingMethod: 'SELF_PICKUP' as any,
     });
 
     // 日誌

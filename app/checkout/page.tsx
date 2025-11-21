@@ -110,14 +110,24 @@ export default function CheckoutPage() {
       setProcessingPayment(true)
 
       try {
+        // 根據配送方式決定可用的付款方式
+        const paymentTypes =
+          order.shippingMethod === 'SEVEN_ELEVEN'
+            ? ['CREDIT_CARD', 'VACC', 'CVS', 'BARCODE', 'WEBATM'] // 7-11 取貨可以用超商付款
+            : ['CREDIT_CARD', 'VACC', 'WEBATM'];                  // 宅配 / 自取只給信用卡 & 匯款
+
+        console.log('=== 付款方式選擇 ===');
+        console.log('訂單配送方式:', order.shippingMethod);
+        console.log('可用付款方式:', paymentTypes);
+        console.log('===================');
+
         // 呼叫藍新金流 API 創建支付
         const response = await fetch('/api/newebpay/create-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             orderId: order.id,
-            // 啟用所有已開通的支付方式
-            paymentTypes: ['CREDIT_CARD', 'VACC', 'CVS', 'BARCODE', 'WEBATM'],
+            paymentTypes,
             itemDesc: `訂單 ${order.orderNumber}`,
           }),
         })

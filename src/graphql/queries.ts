@@ -575,6 +575,7 @@ export const CREATE_ORDER = gql`
       orderNumber
       status
       paymentStatus
+      shippingMethod
       total
       createdAt
     }
