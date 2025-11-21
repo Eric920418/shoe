@@ -278,7 +278,11 @@ export default function CheckoutPage() {
           }))
         : undefined // 會員模式：後端從購物車獲取
 
-      console.log('提交訂單:', formData.shippingMethod, '/ 運費', shippingFee)
+      console.log('=== 第 0 層：前端提交訂單 ===');
+      console.log('formData.shippingMethod:', formData.shippingMethod, '(type:', typeof formData.shippingMethod, ')');
+      console.log('運費:', shippingFee);
+      console.log('實際傳送到 GraphQL 的值:', formData.shippingMethod);
+      console.log('===============================');
 
       await createOrder({
         variables: {

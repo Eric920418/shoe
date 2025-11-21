@@ -225,6 +225,8 @@ export function createPaymentData(params: {
   clientBackUrl: string;
   shippingMethod?: 'SEVEN_ELEVEN' | 'HOME_DELIVERY' | 'SELF_PICKUP'; // 配送方式
 }) {
+  console.log('*** 使用新版 createPaymentData，shippingMethod =', params.shippingMethod, '***');
+
   // 確保金額是整數
   const amount = Math.floor(params.amount);
   if (amount !== params.amount) {
@@ -247,8 +249,18 @@ export function createPaymentData(params: {
   };
 
   // ⭐ 只有 7-11 取貨時，才啟用藍新物流整合，讓客人選門市
+  console.log('檢查配送方式:', {
+    'params.shippingMethod': params.shippingMethod,
+    'typeof': typeof params.shippingMethod,
+    '=== SEVEN_ELEVEN': params.shippingMethod === 'SEVEN_ELEVEN',
+    '實際字串': JSON.stringify(params.shippingMethod)
+  });
+
   if (params.shippingMethod === 'SEVEN_ELEVEN') {
+    console.log('✅ 匹配 7-11，加入 LgsType=C2C');
     tradeData.LgsType = 'C2C';  // C2C = 店到店
+  } else {
+    console.log('✅ 非 7-11 配送，不加入 LgsType（純金流）');
   }
   // 宅配 / 自取 → 不設 LgsType → 藍新當一般金流頁面
 

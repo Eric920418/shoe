@@ -522,7 +522,11 @@ export const orderResolvers = {
         // 生成訂單編號
         const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substring(2, 9).toUpperCase()}`
 
-        console.log('建立訂單:', orderNumber, '/', input.shippingMethod, '/ 運費', shippingFee)
+        console.log('=== 第 1 層：建立訂單 ===');
+        console.log('訂單編號:', orderNumber);
+        console.log('input.shippingMethod:', input.shippingMethod, '(type:', typeof input.shippingMethod, ')');
+        console.log('運費:', shippingFee);
+        console.log('========================');
 
         // 確保總額不為負數
         const finalTotal = Math.max(0, total)

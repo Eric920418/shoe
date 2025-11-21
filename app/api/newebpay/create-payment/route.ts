@@ -131,7 +131,12 @@ export async function POST(request: NextRequest) {
     });
 
     // 日誌
-    console.log('藍新金流支付請求:', merchantOrderNo, '/ NT$', Number(order.total), '/', order.shippingMethod || '未設定');
+    console.log('=== 第 2 層：藍新金流支付請求 ===');
+    console.log('訂單編號:', merchantOrderNo);
+    console.log('order.shippingMethod:', order.shippingMethod, '(type:', typeof order.shippingMethod, ')');
+    console.log('傳給 createPaymentData:', order.shippingMethod || undefined);
+    console.log('金額: NT$', Number(order.total));
+    console.log('====================================');
 
     // 建立或更新 Payment 記錄
     const payment = existingPayment
