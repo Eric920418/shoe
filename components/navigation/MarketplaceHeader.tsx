@@ -118,20 +118,7 @@ const MarketplaceHeader = () => {
                   <Search size={18} className="sm:w-5 sm:h-5" />
                 </button>
               </form>
-              {/* 熱門搜索 - 只在桌面版顯示 */}
-              <div className="hidden md:flex items-center gap-3 mt-2 text-xs">
-                <span className="text-gray-500">熱搜：</span>
-                {hotSearches.map((term, index) => (
-                  <Link
-                    key={index}
-                    href={`/search?q=${term}`}
-                    className="text-gray-700 hover:text-orange-500 transition-colors"
-                  >
-                    {index === 0 && <span className="text-red-500 font-bold mr-1">HOT</span>}
-                    {term}
-                  </Link>
-                ))}
-              </div>
+        
             </div>
 
             {/* 購物車和收藏 */}
