@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { analyzeCartForBatching } from '@/lib/cart-batching'
 
 interface Context {
   user?: {
@@ -87,6 +88,21 @@ export const cartResolvers = {
 
         // 其他錯誤
         throw new Error(`購物車載入失敗: ${error.message}`)
+      }
+    },
+
+    // 分析購物車並生成智能分單建議
+    analyzeCartForBatching: async (_: any, __: any, context: Context) => {
+      if (!context.user) {
+        throw new Error('請先登入')
+      }
+
+      try {
+        const analysis = await analyzeCartForBatching(prisma, context.user.userId)
+        return analysis
+      } catch (error: any) {
+        console.error('分析購物車失敗:', error)
+        throw new Error(`分析購物車失敗: ${error.message}`)
       }
     },
   },
@@ -317,6 +333,64 @@ export const cartResolvers = {
 
       // ✅ 返回清空後的購物車（使用共用函數）
       return await getCartWithItems(cart.id)
+    },
+
+    // 設定購物車項目的批次號
+    setCartItemBatch: async (_: any, args: { cartItemId: string; batchNumber: number }, context: Context) => {
+      if (!context.user) {
+        throw new Error('請先登入')
+      }
+
+      const { cartItemId, batchNumber } = args
+
+      // 檢查購物車項目是否屬於當前用戶
+      const cartItem = await prisma.cartItem.findFirst({
+        where: {
+          id: cartItemId,
+          userId: context.user.userId,
+        },
+      })
+
+      if (!cartItem) {
+        throw new Error('購物車項目不存在或無權限修改')
+      }
+
+      // 更新批次號
+      await prisma.cartItem.update({
+        where: { id: cartItemId },
+        data: { suggestedBatch: batchNumber },
+      })
+
+      // 返回更新後的購物車
+      const cart = await prisma.cart.findUnique({
+        where: { userId: context.user.userId },
+        include: CART_INCLUDE,
+      })
+
+      return cart
+    },
+
+    // 自動優化購物車分批
+    optimizeCartBatching: async (_: any, __: any, context: Context) => {
+      if (!context.user) {
+        throw new Error('請先登入')
+      }
+
+      try {
+        // 執行智能分單分析
+        await analyzeCartForBatching(prisma, context.user.userId)
+
+        // 返回更新後的購物車
+        const cart = await prisma.cart.findUnique({
+          where: { userId: context.user.userId },
+          include: CART_INCLUDE,
+        })
+
+        return cart
+      } catch (error: any) {
+        console.error('優化購物車分批失敗:', error)
+        throw new Error(`優化購物車分批失敗: ${error.message}`)
+      }
     },
   },
 

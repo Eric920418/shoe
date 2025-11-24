@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
-  Search, ShoppingCart, Menu, MessageCircle, Bell, Gift,
+  Search, ShoppingCart, Menu, MessageCircle, Gift,
   MapPin, ChevronDown, Percent, Truck, Heart, Store,
   User, Star, TrendingUp, Clock, Flame
 } from 'lucide-react'
@@ -23,6 +24,7 @@ const MarketplaceHeader = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showCategories, setShowCategories] = useState(false)
   const { user } = useAuth()
+  const router = useRouter()
 
   // 使用統一的 Cart Context（避免重複查詢）
   const { cartCount, wishlistCount } = useCart()
@@ -30,6 +32,13 @@ const MarketplaceHeader = () => {
   const cartItemCount = cartCount
   const wishlistItemCount = wishlistCount
 
+  // 處理搜尋
+  const handleSearch = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
 
   const hotSearches = ['運動鞋', 'Nike', 'Adidas', '限時特價', '新品上市']
 
@@ -61,11 +70,6 @@ const MarketplaceHeader = () => {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/notifications" className="flex items-center gap-1 hover:text-yellow-300 relative">
-              <Bell size={24} />
-              <span className="hidden sm:inline">通知</span>
-              <span className="absolute -top-1 right-[42%] bg-yellow-400 text-red-600 text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">3</span>
-            </Link>
             <Link href="/help" className="flex items-center gap-1 hover:text-yellow-300">
               <MessageCircle size={24} />
               <span className="hidden sm:inline">幫助中心</span>
@@ -99,7 +103,7 @@ const MarketplaceHeader = () => {
 
             {/* 搜索框 */}
             <div className="flex-1 ">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <input
                   type="text"
                   placeholder="搜索商品..."
@@ -107,10 +111,13 @@ const MarketplaceHeader = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-3 sm:pl-4 pr-10 sm:pr-24 py-2 sm:py-2.5 text-sm border-2 border-orange-500 rounded-full focus:outline-none focus:border-red-500"
                 />
-                <button className="absolute right-0 top-0 bottom-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 sm:px-6 rounded-r-full hover:from-orange-600 hover:to-red-600 transition-colors">
+                <button
+                  type="submit"
+                  className="absolute right-0 top-0 bottom-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 sm:px-6 rounded-r-full hover:from-orange-600 hover:to-red-600 transition-colors"
+                >
                   <Search size={18} className="sm:w-5 sm:h-5" />
                 </button>
-              </div>
+              </form>
               {/* 熱門搜索 - 只在桌面版顯示 */}
               <div className="hidden md:flex items-center gap-3 mt-2 text-xs">
                 <span className="text-gray-500">熱搜：</span>

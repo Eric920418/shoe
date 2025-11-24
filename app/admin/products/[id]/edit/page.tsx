@@ -41,6 +41,12 @@ interface ProductFormData {
   closure: string
   sole: string
   features: string[]
+  // 數量限制與包裝設定
+  maxQuantityPerOrder: number | ''
+  maxCombinedQuantity: number | ''
+  canCombinePackaging: boolean
+  packagingVolume: string
+  minPackagingUnits: number | ''
 }
 
 const availableFeatures = [
@@ -91,6 +97,12 @@ export default function EditProductPage() {
           closure: data.product.closure || '',
           sole: data.product.sole || '',
           features,
+          // 數量限制與包裝設定
+          maxQuantityPerOrder: data.product.maxQuantityPerOrder || 10,
+          maxCombinedQuantity: data.product.maxCombinedQuantity || 3,
+          canCombinePackaging: data.product.canCombinePackaging ?? true,
+          packagingVolume: data.product.packagingVolume || 'STANDARD',
+          minPackagingUnits: data.product.minPackagingUnits || 1,
         })
       }
     },
@@ -210,6 +222,12 @@ export default function EditProductPage() {
         closure: formData.closure || null,
         sole: formData.sole || null,
         features: formData.features, // 添加產品特性欄位
+        // 數量限制與包裝設定
+        maxQuantityPerOrder: formData.maxQuantityPerOrder ? Number(formData.maxQuantityPerOrder) : 10,
+        maxCombinedQuantity: formData.maxCombinedQuantity ? Number(formData.maxCombinedQuantity) : 3,
+        canCombinePackaging: formData.canCombinePackaging,
+        packagingVolume: formData.packagingVolume,
+        minPackagingUnits: formData.minPackagingUnits ? Number(formData.minPackagingUnits) : 1,
       }
 
       console.log('GraphQL mutation input:', input)
@@ -591,6 +609,96 @@ export default function EditProductPage() {
                   {feature}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 數量限制與包裝設定 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">數量限制與包裝設定</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            設定單筆訂單的購買限制，以及與711超商取貨物流配送相關的包裝限制。
+          </p>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  單筆訂單最多可購買數量
+                </label>
+                <input
+                  type="number"
+                  value={formData.maxQuantityPerOrder}
+                  onChange={(e) => updateField('maxQuantityPerOrder', e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  min="1"
+                  max="100"
+                />
+                <p className="text-xs text-gray-500 mt-1">此產品單筆訂單最多可購買的數量</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  711取貨最大總數（與其他產品搭配）
+                </label>
+                <input
+                  type="number"
+                  value={formData.maxCombinedQuantity}
+                  onChange={(e) => updateField('maxCombinedQuantity', e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  min="1"
+                  max="10"
+                />
+                <p className="text-xs text-gray-500 mt-1">使用711取貨時，此商品與其他商品搭配的最大總數</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  包裝體積大小
+                </label>
+                <select
+                  value={formData.packagingVolume}
+                  onChange={(e) => updateField('packagingVolume', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="SMALL">小型（如涼鞋、拖鞋）</option>
+                  <option value="STANDARD">標準（一般運動鞋、休閒鞋）</option>
+                  <option value="LARGE">大型（靴子、高筒鞋）</option>
+                  <option value="OVERSIZED">超大（特殊款式）</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">影響物流配送限制的計算</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最小包裝單位（雙/盒）
+                </label>
+                <input
+                  type="number"
+                  value={formData.minPackagingUnits}
+                  onChange={(e) => updateField('minPackagingUnits', e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  min="1"
+                  max="10"
+                />
+                <p className="text-xs text-gray-500 mt-1">每個包裝盒最少裝幾雙</p>
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="canCombinePackaging"
+                checked={formData.canCombinePackaging}
+                onChange={(e) => updateField('canCombinePackaging', e.target.checked)}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="canCombinePackaging" className="ml-2 block text-sm text-gray-700">
+                <span className="font-medium">允許合併包裝</span>
+                <span className="text-gray-500 ml-2">（多雙可以裝在同一個盒子以減少體積）</span>
+              </label>
             </div>
           </div>
         </div>

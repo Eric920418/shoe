@@ -197,6 +197,12 @@ model Product {
   closure       String?
   sole          String?
   features      Json             @default("[]")
+  // 購買數量限制設定
+  maxQuantityPerOrder Int             @default(10) // 單筆訂單最多可購買數量
+  maxCombinedQuantity Int             @default(3)  // 與其他產品搭配時的最大總數（適用於711物流）
+  canCombinePackaging Boolean         @default(true) // 是否可以合併包裝（多雙裝一盒）
+  packagingVolume     PackagingVolume @default(STANDARD) // 包裝體積大小
+  minPackagingUnits   Int             @default(1) // 最小包裝單位（例如：1雙一盒）
   isNewArrival  Boolean          @default(false)
   bundleItems   BundleItem[]
   cartItems     CartItem[]
@@ -300,6 +306,7 @@ model CartItem {
   bundleId        String?
   isBundleItem    Boolean         @default(false)
   bundleItemPrice Decimal?        @db.Decimal(10, 2)
+  suggestedBatch  Int?            // 建議的批次號（智能分單用）
   bundle          ProductBundle?  @relation(fields: [bundleId], references: [id])
   cart            Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -358,6 +365,11 @@ model Order {
   cancelComment          String?
   cancelReason           String?
   cancelledAt            DateTime?
+  // 包裝選項設定
+  packagingOption        PackagingOption @default(STANDARD) // 包裝方式（標準/合併）
+  packagingNote          String?         // 包裝備註
+  batchGroupId           String?         // 分批訂單群組ID（當需要分批時）
+  batchSequence          Int?            // 批次序號（第幾批）
   campaignOrders         CampaignOrder[]
   items                  OrderItem[]
   address                Address?        @relation(fields: [addressId], references: [id])
@@ -1427,4 +1439,17 @@ enum EmailLogStatus {
   CLICKED
   BOUNCED
   FAILED
+}
+
+enum PackagingVolume {
+  SMALL    // 小型包裝（如單雙運動鞋、涼鞋）
+  STANDARD // 標準包裝（如一般鞋款）
+  LARGE    // 大型包裝（如靴子、高筒鞋）
+  OVERSIZED // 超大包裝（特殊款式）
+}
+
+enum PackagingOption {
+  STANDARD // 標準包裝（每雙獨立包裝）
+  COMBINED // 合併包裝（多雙裝一盒，減少體積）
+  SEPARATE // 強制分開包裝（客戶要求）
 }

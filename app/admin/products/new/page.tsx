@@ -30,6 +30,12 @@ interface ProductFormData {
   closure: string
   sole: string
   features: string[]
+  // 數量限制與包裝設定
+  maxQuantityPerOrder: number | ''
+  maxCombinedQuantity: number | ''
+  canCombinePackaging: boolean
+  packagingVolume: string
+  minPackagingUnits: number | ''
 }
 
 interface TempSizeChart {
@@ -61,6 +67,12 @@ const initialFormData: ProductFormData = {
   closure: '',
   sole: '',
   features: [],
+  // 數量限制與包裝設定
+  maxQuantityPerOrder: 10,
+  maxCombinedQuantity: 3,
+  canCombinePackaging: true,
+  packagingVolume: 'STANDARD',
+  minPackagingUnits: 1,
 }
 
 // 可選的鞋子特性

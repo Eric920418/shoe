@@ -18,6 +18,8 @@ import Image from 'next/image'
 import { GET_CART, CREATE_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
+import PackagingOptionSelector from '@/components/checkout/PackagingOptionSelector'
+import { validateOrderQuantityLimits } from '@/lib/cart-batching'
 import CreditSelector from '@/components/checkout/CreditSelector'
 import CouponInput from '@/components/checkout/CouponInput'
 import MembershipBenefitsBanner from '@/components/common/MembershipBenefitsBanner'
@@ -56,6 +58,8 @@ interface CheckoutFormData {
   paymentMethod: string
   // 訂單備註
   notes: string
+  // 包裝選項
+  packagingOption: 'STANDARD' | 'COMBINED' | 'SEPARATE'
 }
 
 export default function CheckoutPage() {
@@ -77,6 +81,7 @@ export default function CheckoutPage() {
     homeDeliveryZipCode: '',
     paymentMethod: 'NEWEBPAY', // 所有訂單都使用藍新金流
     notes: '',
+    packagingOption: 'STANDARD',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -320,6 +325,8 @@ export default function CheckoutPage() {
             // 優惠券和購物金
             couponCode: appliedCoupon?.code || null,
             creditsToUse: !isGuest && creditsToUse > 0 ? creditsToUse : null,
+            // 包裝選項
+            packagingOption: formData.packagingOption,
           },
         },
       })

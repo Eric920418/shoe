@@ -82,7 +82,7 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
         const originalPrice = parseFloat(product.originalPrice) || price
         const soldCount = product.soldCount || 0
         const viewCount = product.viewCount || 0
-        const averageRating = product.averageRating ? parseFloat(product.averageRating) : 0
+        const averageRating = product.averageRating ? Number(product.averageRating) : 0
         const images = Array.isArray(product.images) ? product.images : []
         const image = images.length > 0 ? images[0] : '/api/placeholder/200/200'
         const discount = originalPrice > price ? ((originalPrice - price) / originalPrice) * 100 : 0
@@ -120,7 +120,7 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
       const originalPrice = parseFloat(product.originalPrice) || price
       const soldCount = product.soldCount || 0
       const viewCount = product.viewCount || 0
-      const averageRating = product.averageRating ? parseFloat(product.averageRating) : 0
+      const averageRating = product.averageRating ? Number(product.averageRating) : 0
       const images = Array.isArray(product.images) ? product.images : []
       const image = images.length > 0 ? images[0] : '/api/placeholder/200/200'
       const discount = originalPrice > price ? ((originalPrice - price) / originalPrice) * 100 : 0
@@ -298,7 +298,7 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
                   {product.rating > 0 && (
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                       <Star className="text-yellow-400 fill-current" size={10} />
-                      <span className="text-gray-600">{product.rating.toFixed(1)}</span>
+                      <span className="text-gray-600">{typeof product.rating === 'number' ? product.rating.toFixed(1) : Number(product.rating || 0).toFixed(1)}</span>
                     </div>
                   )}
                 </div>

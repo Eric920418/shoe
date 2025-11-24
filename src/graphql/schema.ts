@@ -62,6 +62,21 @@ export const typeDefs = gql`
     TOO_LARGE
   }
 
+  # 包裝體積大小
+  enum PackagingVolume {
+    SMALL    # 小型包裝（如單雙運動鞋、涼鞋）
+    STANDARD # 標準包裝（如一般鞋款）
+    LARGE    # 大型包裝（如靴子、高筒鞋）
+    OVERSIZED # 超大包裝（特殊款式）
+  }
+
+  # 包裝選項
+  enum PackagingOption {
+    STANDARD # 標準包裝（每雙獨立包裝）
+    COMBINED # 合併包裝（多雙裝一盒，減少體積）
+    SEPARATE # 強制分開包裝（客戶要求）
+  }
+
   # 訂單状态
   enum OrderStatus {
     PENDING
@@ -334,6 +349,12 @@ export const typeDefs = gql`
     closure: String
     sole: String
     features: JSON
+    # 購買數量限制設定
+    maxQuantityPerOrder: Int! # 單筆訂單最多可購買數量
+    maxCombinedQuantity: Int! # 與其他產品搭配時的最大總數（適用於711物流）
+    canCombinePackaging: Boolean! # 是否可以合併包裝（多雙裝一盒）
+    packagingVolume: PackagingVolume! # 包裝體積大小
+    minPackagingUnits: Int! # 最小包裝單位（例如：1雙一盒）
     # 关联
     brand: Brand
     category: Category!
@@ -414,6 +435,7 @@ export const typeDefs = gql`
     bundleId: String
     isBundleItem: Boolean!
     bundleItemPrice: Decimal
+    suggestedBatch: Int # 建議的批次號（智能分單用）
     cart: Cart!
     product: Product!
     variant: ProductVariant
@@ -468,6 +490,11 @@ export const typeDefs = gql`
     items: [OrderItem!]!
     notes: String
     payment: Payment
+    # 包裝選項設定
+    packagingOption: PackagingOption! # 包裝方式（標準/合併）
+    packagingNote: String # 包裝備註
+    batchGroupId: String # 分批訂單群組ID（當需要分批時）
+    batchSequence: Int # 批次序號（第幾批）
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -1703,6 +1730,9 @@ export const typeDefs = gql`
     ): EmailCampaignsResponse!
     emailCampaign(id: ID!): EmailCampaign
     emailPreviewStats(targetAudience: JSON!): EmailPreviewStats!
+
+    # 智能分單建議
+    analyzeCartForBatching: CartBatchingAnalysis!
   }
 
   # 退貨列表響應
@@ -1710,6 +1740,31 @@ export const typeDefs = gql`
     items: [Return!]!
     total: Int!
     hasMore: Boolean!
+  }
+
+  # 購物車批次分析結果
+  type CartBatchingAnalysis {
+    totalItems: Int!
+    totalVolume: Int!
+    requiresBatching: Boolean!
+    canCombinePackaging: Boolean!
+    batches: [CartBatch!]!
+    suggestedPackagingOption: PackagingOption!
+    estimatedShippingFee: Decimal!
+    warnings: [String!]!
+    suggestions: [String!]!
+  }
+
+  # 購物車批次
+  type CartBatch {
+    batchNumber: Int!
+    items: [CartItem!]!
+    totalQuantity: Int!
+    totalVolume: Int!
+    estimatedBoxCount: Int!
+    canShipTogether: Boolean!
+    shippingFee: Decimal!
+    notes: [String!]!
   }
 
   # ==================== Mutation ====================
@@ -1750,7 +1805,11 @@ export const typeDefs = gql`
     updateCartItem(cartItemId: ID!, quantity: Int!): Cart!
     removeFromCart(cartItemId: ID!): Cart!
     clearCart: Cart!
-    
+    # 設定購物車項目分批
+    setCartItemBatch(cartItemId: ID!, batchNumber: Int!): Cart!
+    # 自動優化購物車分批
+    optimizeCartBatching: Cart!
+
     # 訂單
     createOrder(input: CreateOrderInput!): Order!
     updateOrderStatus(id: ID!, status: OrderStatus!): Order!
@@ -1964,6 +2023,11 @@ export const typeDefs = gql`
     guestPhone: String
     guestEmail: String
     isGuest: Boolean
+    # 包裝選項
+    packagingOption: PackagingOption
+    packagingNote: String
+    batchGroupId: String # 分批訂單群組ID（系統自動生成）
+    batchSequence: Int # 批次序號（系統自動計算）
   }
 
   input OrderItemInput {
@@ -1994,6 +2058,11 @@ export const typeDefs = gql`
     closure: String
     sole: String
     features: JSON
+    maxQuantityPerOrder: Int
+    maxCombinedQuantity: Int
+    canCombinePackaging: Boolean
+    packagingVolume: PackagingVolume
+    minPackagingUnits: Int
   }
 
   input UpdateProductInput {
@@ -2017,6 +2086,11 @@ export const typeDefs = gql`
     closure: String
     sole: String
     features: JSON
+    maxQuantityPerOrder: Int
+    maxCombinedQuantity: Int
+    canCombinePackaging: Boolean
+    packagingVolume: PackagingVolume
+    minPackagingUnits: Int
   }
 
   input CreateSizeChartInput {

@@ -29,12 +29,6 @@ const navItems: NavItem[] = [
     description: '查看所有訂單',
   },
   {
-    label: '訂單追蹤',
-    icon: '🚚',
-    href: '/account/orders/track',
-    description: '追蹤包裹位置',
-  },
-  {
     label: '購物金 & 優惠券',
     icon: '🎁',
     href: '/account/wallet',

@@ -24,6 +24,25 @@ const GET_MY_CONVERSATIONS = gql`
   }
 `
 
+const GET_CONVERSATION = gql`
+  query GetConversation($id: ID!) {
+    conversation(id: $id) {
+      id
+      subject
+      status
+      lastMessageAt
+      createdAt
+      messages {
+        id
+        content
+        senderType
+        isRead
+        createdAt
+      }
+    }
+  }
+`
+
 const CREATE_CONVERSATION = gql`
   mutation CreateConversation($subject: String, $message: String!) {
     createConversation(subject: $subject, message: $message) {
@@ -50,6 +69,7 @@ const SEND_MESSAGE = gql`
 export default function SupportPage() {
   const { user } = useAuth()
   const [selectedConversation, setSelectedConversation] = useState<any>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [showNewChat, setShowNewChat] = useState(false)
   const [newSubject, setNewSubject] = useState('')
   const [newMessage, setNewMessage] = useState('')
@@ -59,11 +79,24 @@ export default function SupportPage() {
   // ✅ 優化：只在選中對話時才輪詢，避免無意義的資源消耗
   const { data, loading, refetch } = useQuery(GET_MY_CONVERSATIONS, {
     skip: !user,
-    // 只在有選中對話時才啟用輪詢（避免閒置時持續請求）
-    pollInterval: selectedConversation ? 10000 : 0, // 提高到 10 秒
     fetchPolicy: 'cache-first', // 優先使用快取
     nextFetchPolicy: 'cache-first', // 後續請求也優先快取
   })
+
+  // 獲取選中對話的完整訊息
+  const { data: conversationData, loading: conversationLoading } = useQuery(GET_CONVERSATION, {
+    variables: { id: selectedConversationId },
+    skip: !selectedConversationId,
+    pollInterval: selectedConversationId ? 10000 : 0, // 只在有選中對話時才輪詢
+    fetchPolicy: 'cache-and-network',
+  })
+
+  // 當對話數據加載完成時更新選中的對話
+  useEffect(() => {
+    if (conversationData?.conversation) {
+      setSelectedConversation(conversationData.conversation)
+    }
+  }, [conversationData])
 
   const [createConversation, { loading: creating }] = useMutation(CREATE_CONVERSATION, {
     onCompleted: (data) => {
@@ -72,7 +105,8 @@ export default function SupportPage() {
       setNewSubject('')
       setNewMessage('')
       refetch()
-      setSelectedConversation(data.createConversation)
+      // 選中新創建的對話
+      setSelectedConversationId(data.createConversation.id)
     },
     onError: (error) => {
       alert(`創建失敗：${error.message}`)
@@ -169,11 +203,12 @@ export default function SupportPage() {
               ) : (
                 conversations.map((conv: any) => {
                   const status = getStatusDisplay(conv.status)
-                  const isSelected = selectedConversation?.id === conv.id
+                  const isSelected = selectedConversationId === conv.id
+                  const lastMessage = conv.messages?.[0]?.content || '暫無訊息'
                   return (
                     <div
                       key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
+                      onClick={() => setSelectedConversationId(conv.id)}
                       className={`px-4 py-3 cursor-pointer transition-colors ${
                         isSelected ? 'bg-primary-50' : 'hover:bg-gray-50'
                       }`}
@@ -190,7 +225,7 @@ export default function SupportPage() {
                         {new Date(conv.lastMessageAt).toLocaleString('zh-TW')}
                       </p>
                       <p className="text-xs text-gray-600 mt-1 truncate">
-                        {conv.messages[conv.messages.length - 1]?.content}
+                        {lastMessage}
                       </p>
                     </div>
                   )
@@ -227,32 +262,38 @@ export default function SupportPage() {
 
               {/* 訊息列表 */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {selectedConversation.messages.map((msg: any) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.senderType === 'USER' ? 'justify-end' : 'justify-start'}`}
-                  >
+                {conversationLoading ? (
+                  <div className="text-center text-gray-500 py-8">載入訊息中...</div>
+                ) : selectedConversation.messages && selectedConversation.messages.length > 0 ? (
+                  selectedConversation.messages.map((msg: any) => (
                     <div
-                      className={`max-w-[70%] rounded-lg px-4 py-3 ${
-                        msg.senderType === 'USER'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}
+                      key={msg.id}
+                      className={`flex ${msg.senderType === 'USER' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.senderType === 'USER' ? 'text-primary-100' : 'text-gray-500'
+                      <div
+                        className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                          msg.senderType === 'USER'
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        {new Date(msg.createdAt).toLocaleTimeString('zh-TW', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            msg.senderType === 'USER' ? 'text-primary-100' : 'text-gray-500'
+                          }`}
+                        >
+                          {new Date(msg.createdAt).toLocaleTimeString('zh-TW', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">暫無訊息</div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
