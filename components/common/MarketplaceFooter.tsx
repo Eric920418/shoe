@@ -231,30 +231,6 @@ const MarketplaceFooter = () => {
         </div>
       </div>
 
-      {/* 服務保證橫幅 */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-4">
-        <div className="max-w-[1400px] mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Shield size={20} />
-              <span>100%正品保證</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CreditCard size={20} />
-              <span>安全交易</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <HeadphonesIcon size={20} />
-              <span>7天鑑賞期</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Truck size={20} />
-              <span>快速配送</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 公司資訊與版權聲明 */}
       <div className="bg-gray-800 text-gray-300 py-6">
         <div className="max-w-[1400px] mx-auto px-4">

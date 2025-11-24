@@ -9,7 +9,6 @@ import CategoryGrid from '@/components/sections/CategoryGrid'
 import DailyDeals from '@/components/sections/DailyDeals'
 import SuperDeals from '@/components/sections/SuperDeals'
 import PopularProducts from '@/components/sections/PopularProducts'
-import GuaranteeBar from '@/components/sections/GuaranteeBar'
 import AnnouncementWrapper from '@/components/common/AnnouncementWrapper'
 import FloatingPromo from '@/components/common/FloatingPromo'
 import SaleCountdown from '@/components/sections/SaleCountdown'
@@ -18,7 +17,6 @@ import SaleCountdown from '@/components/sections/SaleCountdown'
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   HERO_SLIDER: MarketplaceHero,
   SALE_COUNTDOWN: SaleCountdown,
-  GUARANTEE_BAR: GuaranteeBar,
   FLASH_SALE: FlashSale,
   CATEGORY_GRID: CategoryGrid,
   DAILY_DEALS: DailyDeals,
@@ -129,7 +127,6 @@ export default function HomePageClient({
           // 如果沒有配置或配置載入失敗，顯示預設佈局
           <>
             <MarketplaceHero serverProducts={products} />
-            <GuaranteeBar />
             <FlashSale serverProducts={products} serverFlashSale={flashSale} />
             <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
             <CategoryGrid serverCategoryDisplays={categoryDisplays} />
