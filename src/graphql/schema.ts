@@ -1742,7 +1742,7 @@ export const typeDefs = gql`
     hasMore: Boolean!
   }
 
-  # 購物車批次分析結果
+  # 購物車配送分析結果（用於貨到付款限制判斷）
   type CartBatchingAnalysis {
     totalItems: Int!
     totalVolume: Int!
@@ -1753,9 +1753,37 @@ export const typeDefs = gql`
     estimatedShippingFee: Decimal!
     warnings: [String!]!
     suggestions: [String!]!
+    # 合併包裝的數量調整建議（向後相容）
+    quantityAdjustments: [QuantityAdjustment!]!
+    adjustedTotalItems: Int!
+    adjustedTotalVolume: Int!
+    # 貨到付款限制相關（新增）
+    codStandardLimit: Int! # 貨到付款 + 單獨包裝限制（固定為1）
+    codCombinedLimit: Int! # 貨到付款 + 合併包裝限制（取最小值）
+    exceedsStandardLimit: Boolean! # 是否超過單獨包裝限制
+    exceedsCombinedLimit: Boolean! # 是否超過合併包裝限制
+    standardPackagingAdjustments: [QuantityAdjustment!]! # 單獨包裝調整建議
+    combinedPackagingAdjustments: [QuantityAdjustment!]! # 合併包裝調整建議
   }
 
-  # 購物車批次
+  # 數量調整建議
+  type QuantityAdjustment {
+    cartItemId: ID!
+    productName: String!
+    currentQuantity: Int!
+    suggestedQuantity: Int!
+    reason: String!
+  }
+
+  # 套用數量調整的結果
+  type ApplyQuantityAdjustmentsResult {
+    cart: Cart!
+    adjustedItems: Int!
+    removedItems: Int!
+    message: String!
+  }
+
+  # 購物車批次（保留向後相容）
   type CartBatch {
     batchNumber: Int!
     items: [CartItem!]!
@@ -1809,6 +1837,9 @@ export const typeDefs = gql`
     setCartItemBatch(cartItemId: ID!, batchNumber: Int!): Cart!
     # 自動優化購物車分批
     optimizeCartBatching: Cart!
+    # 套用智能數量調整（貨到付款用）
+    # packagingType: STANDARD（單獨包裝，只保留1件）或 COMBINED（合併包裝，調整到合併上限）
+    applySmartQuantityAdjustments(packagingType: String): ApplyQuantityAdjustmentsResult!
 
     # 訂單
     createOrder(input: CreateOrderInput!): Order!

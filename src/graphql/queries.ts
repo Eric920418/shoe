@@ -93,6 +93,13 @@ export const GET_PRODUCT_BY_ID = gql`
       closure
       sole
       isActive
+      isFeatured
+      isNewArrival
+      maxQuantityPerOrder
+      maxCombinedQuantity
+      canCombinePackaging
+      packagingVolume
+      minPackagingUnits
       category {
         id
         name

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
+import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
 
 // GraphQL 查詢
 const GET_FLASH_SALE = gql`
@@ -53,6 +54,7 @@ export default function FlashSalePage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
   const [showFilters, setShowFilters] = useState(false)
+  const [quickAddProduct, setQuickAddProduct] = useState<{ id: string; name: string } | null>(null)
 
   // 查詢限時搶購設定
   const { data: flashSaleData } = useQuery(GET_FLASH_SALE, {
@@ -334,7 +336,7 @@ export default function FlashSalePage() {
         {/* 產品網格 */}
         {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
-          {products.map((product) => (
+          {products.map((product: { id: string; slug: string; name: string; originalPrice: number; salePrice: number; image: string; sold: number; stock: number; rating: number; reviews: number; tag: string; discount: number; category: string }) => (
             <div
               key={product.id}
               className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
@@ -414,7 +416,7 @@ export default function FlashSalePage() {
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        // TODO: 加入購物車功能
+                        setQuickAddProduct({ id: product.id, name: product.name })
                       }}
                       className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 rounded text-xs font-medium hover:shadow-md transition-shadow relative z-10"
                     >
@@ -428,6 +430,15 @@ export default function FlashSalePage() {
         </div>
         )}
       </div>
+
+      {/* 快速加入購物車 Modal */}
+      {quickAddProduct && (
+        <QuickAddToCartModal
+          productId={quickAddProduct.id}
+          productName={quickAddProduct.name}
+          onClose={() => setQuickAddProduct(null)}
+        />
+      )}
     </div>
   )
 }

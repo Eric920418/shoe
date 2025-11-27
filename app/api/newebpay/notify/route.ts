@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { decryptAndVerifyTradeInfo } from '@/lib/newebpay-correct';
+import { sendOrderConfirmationEmail, notifyPaymentSuccess } from '@/lib/notification';
 
 // ============================================
 // Route Config - 允許處理大型請求體
@@ -330,8 +331,75 @@ async function updatePaymentRecord(
 
       console.log(`訂單 ${payment.order.orderNumber} 支付成功`);
 
-      // TODO: 發送訂單確認通知（Email/LINE）
-      // await sendOrderConfirmationEmail(payment.order);
+      // 發送訂單確認通知（Email/LINE）
+      try {
+        // 獲取完整訂單資訊
+        const fullOrder = await prisma.order.findUnique({
+          where: { id: payment.orderId },
+          include: {
+            items: {
+              include: {
+                product: true,
+                variant: true,
+              },
+            },
+            payment: true,
+            user: {
+              select: {
+                email: true,
+              },
+            },
+          },
+        });
+
+        if (fullOrder) {
+          // 準備通知資料
+          const orderData = {
+            orderNumber: fullOrder.orderNumber,
+            total: Number(fullOrder.total),
+            subtotal: Number(fullOrder.subtotal),
+            shippingFee: Number(fullOrder.shippingFee),
+            discount: Number(fullOrder.discount),
+            shippingName: fullOrder.shippingName,
+            shippingPhone: fullOrder.shippingPhone,
+            shippingCity: fullOrder.shippingCity || '',
+            shippingDistrict: fullOrder.shippingDistrict || '',
+            shippingStreet: fullOrder.shippingStreet || '',
+            shippingZipCode: fullOrder.shippingZipCode || '',
+            paymentMethod: fullOrder.paymentMethod || undefined,
+            paymentTypeName: fullOrder.payment?.paymentType,
+            items: fullOrder.items.map(item => ({
+              productName: item.productName,
+              productImage: item.productImage || undefined,
+              color: item.color || undefined,
+              sizeEu: item.sizeEu || '',
+              quantity: item.quantity,
+              price: Number(item.price),
+              subtotal: Number(item.subtotal),
+            })),
+            payment: fullOrder.payment ? {
+              atmBankCode: fullOrder.payment.atmBankCode || undefined,
+              atmVirtualAccount: fullOrder.payment.atmVirtualAccount || undefined,
+              atmExpireDate: fullOrder.payment.atmExpireDate || undefined,
+              cvsPaymentNo: fullOrder.payment.cvsPaymentNo || undefined,
+              cvsExpireDate: fullOrder.payment.cvsExpireDate || undefined,
+            } : undefined,
+          };
+
+          // 發送郵件通知給客戶
+          const customerEmail = fullOrder.user?.email || fullOrder.guestEmail;
+          if (customerEmail) {
+            await sendOrderConfirmationEmail(customerEmail, orderData, true);
+            console.log(`付款成功郵件已發送至: ${customerEmail}`);
+          }
+
+          // 發送 LINE 通知給商家
+          await notifyPaymentSuccess(orderData);
+        }
+      } catch (notifyError) {
+        // 通知發送失敗不影響訂單狀態
+        console.error('發送付款成功通知失敗:', notifyError);
+      }
     } else {
       await prisma.order.update({
         where: { id: payment.orderId },

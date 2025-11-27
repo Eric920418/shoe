@@ -68,7 +68,15 @@ export const homepageResolvers = {
     categoryDisplays: async () => {
       return prisma.categoryDisplay.findMany({
         where: { showOnHomepage: true },
-        include: { category: true },
+        include: {
+          category: {
+            include: {
+              _count: {
+                select: { products: true }
+              }
+            }
+          }
+        },
         orderBy: { sortOrder: 'asc' },
       })
     },

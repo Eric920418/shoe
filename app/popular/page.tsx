@@ -3,67 +3,77 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useQuery, gql } from '@apollo/client'
 import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award, Trophy } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
+import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
+
+// GraphQL 查詢 - 獲取人氣產品
+const GET_POPULAR_PRODUCTS = gql`
+  query GetPopularProducts($take: Int, $sortBy: String) {
+    products(take: $take, sortBy: $sortBy) {
+      id
+      name
+      slug
+      price
+      originalPrice
+      images
+      soldCount
+      averageRating
+      reviewCount
+      stock
+    }
+  }
+`
 
 export default function PopularPage() {
   const [activeTab, setActiveTab] = useState('trending')
+  const [quickAddProduct, setQuickAddProduct] = useState<{ id: string; name: string } | null>(null)
 
   const tabs = [
-    { id: 'trending', label: '熱銷榜', icon: TrendingUp, color: 'text-red-500', bgColor: 'from-red-500 to-orange-500' },
-    { id: 'rated', label: '好評榜', icon: Star, color: 'text-yellow-500', bgColor: 'from-yellow-500 to-orange-500' },
-    { id: 'viewed', label: '人氣榜', icon: Eye, color: 'text-blue-500', bgColor: 'from-blue-500 to-cyan-500' },
-    { id: 'discount', label: '折扣榜', icon: Flame, color: 'text-orange-500', bgColor: 'from-orange-500 to-red-500' }
+    { id: 'trending', label: '熱銷榜', icon: TrendingUp, color: 'text-red-500', bgColor: 'from-red-500 to-orange-500', sortBy: 'soldCount' },
+    { id: 'rated', label: '好評榜', icon: Star, color: 'text-yellow-500', bgColor: 'from-yellow-500 to-orange-500', sortBy: 'rating' },
+    { id: 'viewed', label: '人氣榜', icon: Eye, color: 'text-blue-500', bgColor: 'from-blue-500 to-cyan-500', sortBy: 'views' },
+    { id: 'discount', label: '折扣榜', icon: Flame, color: 'text-orange-500', bgColor: 'from-orange-500 to-red-500', sortBy: 'discount' }
   ]
 
-  const allProducts = {
-    trending: Array.from({ length: 50 }, (_, i) => ({
-      id: i + 1,
-      rank: i + 1,
-      name: `熱銷商品 ${i + 1}`,
-      price: 999 + i * 100,
-      originalPrice: 1999 + i * 200,
-      sales: `${(50 - i) / 10}k`,
-      rating: (4.9 - i * 0.01).toFixed(1),
-      image: '/api/placeholder/200/200'
-    })),
-    rated: Array.from({ length: 50 }, (_, i) => ({
-      id: i + 51,
-      rank: i + 1,
-      name: `高評分商品 ${i + 1}`,
-      price: 1999 + i * 100,
-      originalPrice: 3999 + i * 200,
-      sales: `${(40 - i) / 10}k`,
-      rating: 4.9,
-      image: '/api/placeholder/200/200'
-    })),
-    viewed: Array.from({ length: 50 }, (_, i) => ({
-      id: i + 101,
-      rank: i + 1,
-      name: `人氣商品 ${i + 1}`,
-      price: 2999 + i * 100,
-      originalPrice: 5999 + i * 200,
-      sales: `${(35 - i) / 10}k`,
-      rating: (4.8 - i * 0.01).toFixed(1),
-      image: '/api/placeholder/200/200'
-    })),
-    discount: Array.from({ length: 50 }, (_, i) => ({
-      id: i + 151,
-      rank: i + 1,
-      name: `超值折扣商品 ${i + 1}`,
-      price: 499 + i * 50,
-      originalPrice: 1999 + i * 200,
-      sales: `${(45 - i) / 10}k`,
-      rating: (4.7 - i * 0.01).toFixed(1),
-      image: '/api/placeholder/200/200'
-    }))
-  }
-
-  const currentProducts = allProducts[activeTab] || allProducts.trending
   const currentTab = tabs.find(t => t.id === activeTab)
 
-  const getRankBadge = (rank) => {
+  // 從 API 獲取產品數據
+  const { data, loading, error } = useQuery(GET_POPULAR_PRODUCTS, {
+    variables: {
+      take: 50,
+      sortBy: currentTab?.sortBy || 'soldCount'
+    },
+    fetchPolicy: 'cache-and-network'
+  })
+
+  // 處理產品數據
+  const currentProducts = React.useMemo(() => {
+    if (!data?.products) return []
+
+    return data.products.map((product: any, index: number) => {
+      const images = Array.isArray(product.images) ? product.images : []
+      const image = images.length > 0 ? images[0] : '/images/placeholder.png'
+      const soldCount = product.soldCount || 0
+
+      return {
+        id: product.id,
+        slug: product.slug,
+        rank: index + 1,
+        name: product.name,
+        price: parseFloat(product.price),
+        originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+        sales: soldCount >= 1000 ? `${(soldCount / 1000).toFixed(1)}k` : soldCount.toString(),
+        rating: product.averageRating?.toFixed(1) || '4.5',
+        image,
+        stock: product.stock || 0
+      }
+    })
+  }, [data])
+
+  const getRankBadge = (rank: number) => {
     if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-orange-400'
     if (rank === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400'
     if (rank === 3) return 'bg-gradient-to-r from-orange-400 to-orange-500'
@@ -116,14 +126,40 @@ export default function PopularPage() {
           </div>
         </div>
 
+        {/* Loading 狀態 */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">載入中...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error 狀態 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600">載入失敗：{error.message}</p>
+          </div>
+        )}
+
+        {/* 沒有產品 */}
+        {!loading && !error && currentProducts.length === 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+            <Trophy className="text-gray-400 mx-auto mb-4" size={48} />
+            <p className="text-gray-600 text-lg">目前沒有商品</p>
+          </div>
+        )}
+
         {/* 商品網格 */}
+        {!loading && !error && currentProducts.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {currentProducts.map((product) => (
+          {currentProducts.map((product: { id: string; slug: string; rank: number; name: string; price: number; originalPrice: number; sales: string; rating: string; image: string; stock: number }) => (
             <div
               key={product.id}
               className="group border rounded-lg overflow-hidden hover:shadow-lg transition-all bg-white"
             >
-              <Link href={`/products/${product.id}`}>
+              <Link href={`/products/${product.slug}`}>
                 {/* 圖片區 */}
                 <div className="relative aspect-square bg-gray-50">
                   {/* 排名標誌 */}
@@ -140,7 +176,7 @@ export default function PopularPage() {
 
                   {/* 願望清單按鈕 - 右上角 */}
                   <div className="absolute top-2 right-2 z-20">
-                    <WishlistButton productId={product.id.toString()} size="sm" />
+                    <WishlistButton productId={product.id} size="sm" />
                   </div>
 
                   {/* 快速操作 */}
@@ -150,7 +186,7 @@ export default function PopularPage() {
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          // TODO: 加入購物車功能
+                          setQuickAddProduct({ id: product.id, name: product.name })
                         }}
                         className="bg-orange-500 text-white px-3 py-2 rounded-full hover:bg-orange-600 flex items-center gap-1 relative z-10"
                       >
@@ -178,18 +214,32 @@ export default function PopularPage() {
                   <div className="flex items-end justify-between gap-1">
                     <div className="flex flex-col">
                       <span className="text-red-500 font-bold text-base">${product.price}</span>
-                      <span className="text-gray-400 text-xs line-through">${product.originalPrice}</span>
+                      {product.originalPrice > product.price && (
+                        <span className="text-gray-400 text-xs line-through">${product.originalPrice}</span>
+                      )}
                     </div>
-                    <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-medium">
-                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                    </span>
+                    {product.originalPrice > product.price && (
+                      <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-medium">
+                        {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                      </span>
+                    )}
                   </div>
                 </div>
               </Link>
             </div>
           ))}
         </div>
+        )}
       </div>
+
+      {/* 快速加入購物車 Modal */}
+      {quickAddProduct && (
+        <QuickAddToCartModal
+          productId={quickAddProduct.id}
+          productName={quickAddProduct.name}
+          onClose={() => setQuickAddProduct(null)}
+        />
+      )}
     </div>
   )
 }

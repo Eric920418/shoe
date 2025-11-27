@@ -217,16 +217,19 @@ export const orderResolvers = {
       })
     },
 
-    // 獲取單個訂單詳情
-    order: async (_: any, { id }: { id: string }, { user }: GraphQLContext) => {
-      if (!user) {
-        throw new GraphQLError('請先登入', {
-          extensions: { code: 'UNAUTHENTICATED' },
+    // 獲取單個訂單詳情（支持 id 或 orderNumber 查詢）
+    order: async (_: any, { id, orderNumber }: { id?: string; orderNumber?: string }, { user }: GraphQLContext) => {
+      if (!id && !orderNumber) {
+        throw new GraphQLError('請提供訂單 ID 或訂單編號', {
+          extensions: { code: 'BAD_USER_INPUT' },
         })
       }
 
-      const order = await prisma.order.findUnique({
-        where: { id },
+      // 構建查詢條件
+      const whereCondition = id ? { id } : { orderNumber }
+
+      const order = await prisma.order.findFirst({
+        where: whereCondition,
         include: {
           items: {
             include: {
@@ -258,11 +261,19 @@ export const orderResolvers = {
         })
       }
 
-      // 確保只能查看自己的訂單
-      if (order.userId !== user.userId && user.role !== 'ADMIN') {
-        throw new GraphQLError('無權查看此訂單', {
-          extensions: { code: 'FORBIDDEN' },
-        })
+      // 訪客訂單（無 userId）允許查看
+      // 會員訂單需要驗證身份：必須是訂單擁有者或管理員
+      if (order.userId) {
+        if (!user) {
+          throw new GraphQLError('請先登入', {
+            extensions: { code: 'UNAUTHENTICATED' },
+          })
+        }
+        if (order.userId !== user.userId && user.role !== 'ADMIN') {
+          throw new GraphQLError('無權查看此訂單', {
+            extensions: { code: 'FORBIDDEN' },
+          })
+        }
       }
 
       return order

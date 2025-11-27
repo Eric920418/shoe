@@ -75,7 +75,7 @@ const MarketplaceHeader = () => {
               <span className="hidden sm:inline">幫助中心</span>
             </Link>
             {user ? (
-              <Link href="/account" className="flex items-center gap-1 hover:text-yellow-300">
+              <Link href={user.role === 'ADMIN' ? '/admin' : '/account'} className="flex items-center gap-1 hover:text-yellow-300">
                 <User size={24} />
                 <span>{user.name || user.email}</span>
               </Link>

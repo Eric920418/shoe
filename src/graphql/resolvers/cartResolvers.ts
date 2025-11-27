@@ -3,7 +3,12 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { analyzeCartForBatching } from '@/lib/cart-batching'
+import {
+  analyzeCartForBatching,
+  applyQuantityAdjustments,
+  applyStandardPackagingAdjustments,
+  applyCombinedPackagingAdjustments,
+} from '@/lib/cart-batching'
 
 interface Context {
   user?: {
@@ -390,6 +395,46 @@ export const cartResolvers = {
       } catch (error: any) {
         console.error('優化購物車分批失敗:', error)
         throw new Error(`優化購物車分批失敗: ${error.message}`)
+      }
+    },
+
+    // 套用智能數量調整（合併包裝用，向後相容）
+    applySmartQuantityAdjustments: async (_: any, args: { packagingType?: string }, context: Context) => {
+      if (!context.user) {
+        throw new Error('請先登入')
+      }
+
+      try {
+        const packagingType = args.packagingType || 'COMBINED'
+        let result
+
+        if (packagingType === 'STANDARD') {
+          // 單獨包裝：只保留一件
+          result = await applyStandardPackagingAdjustments(prisma, context.user.userId)
+        } else {
+          // 合併包裝：調整到合併上限
+          result = await applyCombinedPackagingAdjustments(prisma, context.user.userId)
+        }
+
+        if (!result.success) {
+          throw new Error('套用數量調整失敗')
+        }
+
+        // 返回更新後的購物車
+        const cart = await prisma.cart.findUnique({
+          where: { userId: context.user.userId },
+          include: CART_INCLUDE,
+        })
+
+        return {
+          cart,
+          adjustedItems: result.adjustedItems,
+          removedItems: result.removedItems,
+          message: result.message,
+        }
+      } catch (error: any) {
+        console.error('套用數量調整失敗:', error)
+        throw new Error(`套用數量調整失敗: ${error.message}`)
       }
     },
   },
