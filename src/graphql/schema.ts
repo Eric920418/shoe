@@ -404,10 +404,54 @@ export const typeDefs = gql`
     cm: String!
     footLength: Decimal!
     footWidth: String
-    stock: Int!
+    stock: Int!  # 暫時保留，向後兼容
     isActive: Boolean!
     createdAt: DateTime!
     updatedAt: DateTime!
+  }
+
+  # 庫存管理 - 顏色 × 尺碼 組合（SKU）
+  type ProductSku {
+    id: ID!
+    productId: String!
+    variantId: String!
+    sizeChartId: String!
+    sku: String
+    stock: Int!
+    reservedStock: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    # Relations
+    product: Product!
+    variant: ProductVariant!
+    sizeChart: SizeChart!
+  }
+
+  # SKU 矩陣格式（用於後台管理）
+  type SkuMatrix {
+    productId: String!
+    productName: String!
+    variants: [ProductVariant!]!
+    sizes: [SizeChart!]!
+    skus: [ProductSku!]!
+    # 統計資訊
+    totalStock: Int!
+    totalVariants: Int!
+    totalSizes: Int!
+  }
+
+  # SKU 庫存更新輸入
+  input SkuStockInput {
+    skuId: ID!
+    stock: Int!
+  }
+
+  # 批量生成 SKU 結果
+  type GenerateSkusResult {
+    created: Int!
+    skipped: Int!
+    skus: [ProductSku!]!
   }
 
   # 購物車
@@ -426,7 +470,8 @@ export const typeDefs = gql`
     cartId: String!
     productId: String!
     variantId: String
-    sizeChartId: String!
+    sizeChartId: String
+    skuId: String
     sizeEu: String
     quantity: Int!
     price: Decimal!
@@ -439,7 +484,8 @@ export const typeDefs = gql`
     cart: Cart!
     product: Product!
     variant: ProductVariant
-    sizeChart: SizeChart!
+    sizeChart: SizeChart
+    sku: ProductSku
     bundle: ProductBundle
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -514,6 +560,7 @@ export const typeDefs = gql`
     variantAttrs: JSON
     sizeEu: String
     color: String
+    skuId: String
     order: Order!
     product: Product  # 產品可能已被刪除，設為可選
     variant: ProductVariant
@@ -1709,8 +1756,17 @@ export const typeDefs = gql`
     # Admin: FAQ 管理
     allFaqs(skip: Int, take: Int, category: String): FaqsResponse!
 
+    # 產品變體（顏色）
+    productVariants(productId: ID!): [ProductVariant!]!
+
     # 尺码表
     productSizeChart(productId: ID!, variantId: ID): [SizeChart!]!
+
+    # SKU 庫存管理
+    productSkus(productId: ID!): [ProductSku!]!
+    skuMatrix(productId: ID!): SkuMatrix!
+    sku(id: ID!): ProductSku
+    skuByVariantAndSize(productId: ID!, variantId: ID!, sizeChartId: ID!): ProductSku
 
     # 退貨管理
     myReturns: [Return!]!
@@ -1857,6 +1913,17 @@ export const typeDefs = gql`
     updateProduct(id: ID!, input: UpdateProductInput!): Product!
     deleteProduct(id: ID!): Boolean!
     
+    # 產品變體（顏色）管理（管理員）
+    createProductVariant(input: CreateProductVariantInput!): ProductVariant!
+    updateProductVariant(id: ID!, input: UpdateProductVariantInput!): ProductVariant!
+    deleteProductVariant(id: ID!): Boolean!
+
+    # SKU 庫存管理（管理員）
+    updateSkuStock(skuId: ID!, stock: Int!): ProductSku!
+    batchUpdateSkuStock(productId: ID!, updates: [SkuStockInput!]!): [ProductSku!]!
+    generateSkus(productId: ID!): GenerateSkusResult!
+    deleteSku(id: ID!): Boolean!
+
     # 尺码管理（管理員）
     createSizeChart(input: CreateSizeChartInput!): SizeChart!
     updateSizeChart(id: ID!, input: UpdateSizeChartInput!): SizeChart!
@@ -2122,6 +2189,34 @@ export const typeDefs = gql`
     canCombinePackaging: Boolean
     packagingVolume: PackagingVolume
     minPackagingUnits: Int
+  }
+
+  # 產品變體（顏色）管理 Input
+  input CreateProductVariantInput {
+    productId: ID!
+    name: String!
+    color: String!
+    colorHex: String!
+    colorImage: String
+    priceAdjustment: Decimal
+    stock: Int
+    images: JSON
+    isActive: Boolean
+    isDefault: Boolean
+    sortOrder: Int
+  }
+
+  input UpdateProductVariantInput {
+    name: String
+    color: String
+    colorHex: String
+    colorImage: String
+    priceAdjustment: Decimal
+    stock: Int
+    images: JSON
+    isActive: Boolean
+    isDefault: Boolean
+    sortOrder: Int
   }
 
   input CreateSizeChartInput {

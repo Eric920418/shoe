@@ -37,12 +37,13 @@ export const productResolvers = {
           },
         })
 
-        // ✅ 預先計算 totalStock
+        // ✅ 預先計算 totalStock（從 SKU 表）
         if (prod) {
-          const totalStock = prod.sizeCharts?.reduce(
-            (sum, chart) => sum + chart.stock,
-            0
-          ) || 0
+          const skuStockResult = await prisma.productSku.aggregate({
+            where: { productId: prod.id },
+            _sum: { stock: true },
+          })
+          const totalStock = skuStockResult._sum.stock || 0
           return { ...prod, totalStock }
         }
 
@@ -146,13 +147,12 @@ export const productResolvers = {
           },
         })
 
-        // ✅ 批次查詢所有產品的庫存總和（使用 groupBy 提升效能）
+        // ✅ 批次查詢所有產品的庫存總和（使用 SKU 表的 groupBy 提升效能）
         const productIds = products.map(p => p.id)
-        const stockAggregations = await prisma.sizeChart.groupBy({
+        const stockAggregations = await prisma.productSku.groupBy({
           by: ['productId'],
           where: {
             productId: { in: productIds },
-            isActive: true,
           },
           _sum: {
             stock: true,
@@ -247,6 +247,14 @@ export const productResolvers = {
           isActive: true,
         },
         orderBy: { eu: 'asc' },
+      })
+    },
+
+    // 獲取產品變體（顏色）
+    productVariants: async (_: any, { productId }: { productId: string }) => {
+      return await prisma.productVariant.findMany({
+        where: { productId },
+        orderBy: { sortOrder: 'asc' },
       })
     },
   },
@@ -690,6 +698,162 @@ export const productResolvers = {
         })
       }
     },
+
+    // 創建產品變體（顏色）（管理員）
+    createProductVariant: async (_: any, { input }: { input: any }, context: GraphQLContext) => {
+      if (!context.userId || context.userRole !== 'ADMIN') {
+        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      try {
+        // 驗證產品是否存在
+        const product = await prisma.product.findUnique({
+          where: { id: input.productId },
+          select: { id: true },
+        })
+
+        if (!product) {
+          throw new GraphQLError('產品不存在', { extensions: { code: 'NOT_FOUND' } })
+        }
+
+        // 如果設為預設，先取消其他變體的預設狀態
+        if (input.isDefault) {
+          await prisma.productVariant.updateMany({
+            where: { productId: input.productId, isDefault: true },
+            data: { isDefault: false },
+          })
+        }
+
+        // 獲取最大 sortOrder
+        const maxSortOrder = await prisma.productVariant.aggregate({
+          where: { productId: input.productId },
+          _max: { sortOrder: true },
+        })
+        const nextSortOrder = (maxSortOrder._max.sortOrder || 0) + 1
+
+        const variant = await prisma.productVariant.create({
+          data: {
+            productId: input.productId,
+            name: input.name,
+            color: input.color,
+            colorHex: input.colorHex,
+            colorImage: input.colorImage || null,
+            attributes: input.attributes || {}, // 必填欄位，預設空物件
+            priceAdjustment: input.priceAdjustment || 0,
+            stock: input.stock || 0,
+            images: input.images || [],
+            isActive: input.isActive !== false,
+            isDefault: input.isDefault || false,
+            sortOrder: input.sortOrder ?? nextSortOrder,
+          },
+        })
+
+        // 清除產品快取
+        await ProductCache.invalidate(input.productId)
+
+        return variant
+      } catch (error: any) {
+        console.error('創建產品變體失敗:', error)
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+        throw new GraphQLError(`創建產品變體失敗: ${error.message}`, {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
+        })
+      }
+    },
+
+    // 更新產品變體（顏色）（管理員）
+    updateProductVariant: async (_: any, { id, input }: { id: string; input: any }, context: GraphQLContext) => {
+      if (!context.userId || context.userRole !== 'ADMIN') {
+        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      try {
+        // 確認變體存在
+        const existingVariant = await prisma.productVariant.findUnique({
+          where: { id },
+          select: { id: true, productId: true },
+        })
+
+        if (!existingVariant) {
+          throw new GraphQLError('產品變體不存在', { extensions: { code: 'NOT_FOUND' } })
+        }
+
+        // 如果設為預設，先取消其他變體的預設狀態
+        if (input.isDefault) {
+          await prisma.productVariant.updateMany({
+            where: { productId: existingVariant.productId, isDefault: true, id: { not: id } },
+            data: { isDefault: false },
+          })
+        }
+
+        const variant = await prisma.productVariant.update({
+          where: { id },
+          data: input,
+        })
+
+        // 清除產品快取
+        await ProductCache.invalidate(existingVariant.productId)
+
+        return variant
+      } catch (error: any) {
+        console.error('更新產品變體失敗:', error)
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+        throw new GraphQLError(`更新產品變體失敗: ${error.message}`, {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
+        })
+      }
+    },
+
+    // 刪除產品變體（顏色）（管理員）
+    deleteProductVariant: async (_: any, { id }: { id: string }, context: GraphQLContext) => {
+      if (!context.userId || context.userRole !== 'ADMIN') {
+        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
+      }
+
+      try {
+        // 確認變體存在
+        const variant = await prisma.productVariant.findUnique({
+          where: { id },
+          select: { id: true, productId: true },
+        })
+
+        if (!variant) {
+          throw new GraphQLError('產品變體不存在', { extensions: { code: 'NOT_FOUND' } })
+        }
+
+        // 檢查是否有訂單項目關聯
+        const orderItemCount = await prisma.orderItem.count({
+          where: { variantId: id },
+        })
+
+        if (orderItemCount > 0) {
+          throw new GraphQLError(
+            `無法刪除顏色變體，因為還有 ${orderItemCount} 筆訂單使用此顏色。建議改為停用而非刪除。`,
+            { extensions: { code: 'BAD_REQUEST' } }
+          )
+        }
+
+        // 刪除變體
+        await prisma.productVariant.delete({ where: { id } })
+
+        // 清除產品快取
+        await ProductCache.invalidate(variant.productId)
+
+        return true
+      } catch (error: any) {
+        console.error('刪除產品變體失敗:', error)
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+        throw new GraphQLError(`刪除產品變體失敗: ${error.message}`, {
+          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
+        })
+      }
+    },
   },
 
   // 移除 Product.category 和 Product.brand 的 field resolver
@@ -728,20 +892,13 @@ export const productResolvers = {
         return product.totalStock
       }
 
-      // 計算所有尺碼的庫存總和
-      const sizeCharts = await prisma.sizeChart.findMany({
-        where: {
-          productId: product.id,
-          isActive: true,
-        },
-        select: {
-          stock: true,
-        },
+      // 從 SKU 表計算庫存總和
+      const result = await prisma.productSku.aggregate({
+        where: { productId: product.id },
+        _sum: { stock: true },
       })
 
-      // 加總所有尺碼庫存
-      const total = sizeCharts.reduce((sum, chart) => sum + chart.stock, 0)
-      return total
+      return result._sum.stock || 0
     },
   },
 }

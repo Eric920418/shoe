@@ -82,6 +82,19 @@ export const getProductBySlug = cache(async (slug: string) => {
             { eu: 'asc' },
           ],
         },
+        // 包含 SKU 庫存數據
+        skus: {
+          where: {
+            isActive: true,
+          },
+          select: {
+            id: true,
+            variantId: true,
+            sizeChartId: true,
+            stock: true,
+            reservedStock: true,
+          },
+        },
         reviews: {
           take: 10,
           orderBy: {

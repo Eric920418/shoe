@@ -124,7 +124,6 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       cm: '',
       footLength: 0,
       footWidth: '標準',
-      stock: 10, // 預設庫存為 10
       isActive: true,
     })
     // 滾動到表單位置
@@ -148,11 +147,6 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       return
     }
 
-    if (editingSize.stock === undefined || editingSize.stock < 0) {
-      toast.error('請輸入有效的庫存數量')
-      return
-    }
-
     try {
       if (editingSize.id) {
         // 更新現有尺碼
@@ -166,7 +160,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
               cm: editingSize.cm,
               footLength: Number(editingSize.footLength),
               footWidth: editingSize.footWidth || null,
-              stock: Number(editingSize.stock),
+              stock: 0, // 庫存統一在 SKU 矩陣管理
               isActive: editingSize.isActive ?? true,
             },
           },
@@ -184,7 +178,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
               cm: editingSize.cm,
               footLength: Number(editingSize.footLength),
               footWidth: editingSize.footWidth || null,
-              stock: Number(editingSize.stock),
+              stock: 0, // 庫存統一在 SKU 矩陣管理
             },
           },
         })
@@ -237,7 +231,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
               productId,
               variantId: null,
               ...size,
-              stock: 10, // 預設庫存為 10
+              stock: 0, // 庫存統一在 SKU 矩陣管理
             },
           },
         })
@@ -246,9 +240,9 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       await Promise.all(promises)
       setShowBatchImport(false)
       toast.success(
-        `已成功導入 ${newSizes.length} 個${gender === 'men' ? '男款' : '女款'}尺碼，每個尺碼庫存預設為 10 件！${
+        `已成功導入 ${newSizes.length} 個${gender === 'men' ? '男款' : '女款'}尺碼！${
           skippedCount > 0 ? `（已跳過 ${skippedCount} 個重複尺碼）` : ''
-        }`
+        }請到「庫存管理」設定庫存數量。`
       )
       refetch()
     } catch (error: any) {
@@ -350,7 +344,6 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">厘米 (CM)</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">腳長 (cm)</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">腳寬</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">庫存</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">狀態</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">操作</th>
               </tr>
@@ -358,7 +351,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
             <tbody className="divide-y divide-gray-200">
               {sizeCharts.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     暫無尺碼數據，請新增或批量導入
                   </td>
                 </tr>
@@ -371,19 +364,6 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
                     <td className="px-4 py-3 text-gray-700">{size.cm}</td>
                     <td className="px-4 py-3 text-gray-700">{size.footLength}</td>
                     <td className="px-4 py-3 text-gray-700">{size.footWidth || '-'}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`font-semibold ${
-                          size.stock === 0
-                            ? 'text-red-600'
-                            : size.stock <= 10
-                            ? 'text-orange-600'
-                            : 'text-green-600'
-                        }`}
-                      >
-                        {size.stock} 件
-                      </span>
-                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`inline-block px-2 py-1 text-xs font-medium rounded ${
@@ -418,28 +398,29 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       </div>
 
       {/* 統計資訊 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <p className="text-sm text-gray-600">總尺碼數</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{sizeCharts.length}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">總庫存</p>
+          <p className="text-sm text-gray-600">啟用尺碼</p>
           <p className="text-2xl font-bold text-green-600 mt-1">
-            {sizeCharts.reduce((sum, size) => sum + size.stock, 0)} 件
+            {sizeCharts.filter((size) => size.isActive).length}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">缺貨尺碼</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">
-            {sizeCharts.filter((size) => size.stock === 0).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">低庫存尺碼</p>
-          <p className="text-2xl font-bold text-orange-600 mt-1">
-            {sizeCharts.filter((size) => size.stock > 0 && size.stock <= 10).length}
-          </p>
+      </div>
+
+      {/* 庫存管理提示 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-blue-900">庫存在「庫存管理」統一管理</p>
+            <p className="text-xs text-blue-700 mt-1">每個「顏色 × 尺碼」組合有獨立庫存，請切換到「庫存管理」標籤頁進行設定</p>
+          </div>
         </div>
       </div>
 
@@ -538,19 +519,6 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
                 <option value="標準">標準</option>
                 <option value="寬版">寬版</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                庫存 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={editingSize.stock}
-                onChange={(e) => updateEditingField('stock', Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                min="0"
-              />
             </div>
 
             <div>

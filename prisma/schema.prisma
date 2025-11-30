@@ -212,6 +212,7 @@ model Product {
   category      Category         @relation(fields: [categoryId], references: [id])
   reviews       Review[]
   sizeCharts    SizeChart[]
+  skus          ProductSku[]
   wishlistItems WishlistItem[]
 
   @@index([slug])
@@ -238,8 +239,8 @@ model ProductVariant {
   material        String?
   pattern         String?
   priceAdjustment Decimal      @default(0) @db.Decimal(10, 2)
-  stock           Int          @default(0)
-  reservedStock   Int          @default(0)
+  stock           Int          @default(0)      // 暫時保留，遷移後移除
+  reservedStock   Int          @default(0)      // 暫時保留，遷移後移除
   images          Json         @default("[]")
   weight          Decimal?     @db.Decimal(8, 2)
   isActive        Boolean      @default(true)
@@ -252,31 +253,61 @@ model ProductVariant {
   cartItems       CartItem[]
   orderItems      OrderItem[]
   product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skus            ProductSku[]
 
+  @@index([productId])
   @@map("product_variants")
 }
 
 model SizeChart {
-  id         String     @id @default(cuid())
+  id         String       @id @default(cuid())
   productId  String
-  variantId  String?
+  variantId  String?      // 暫時保留，遷移後移除
   eu         String
   us         String
   uk         String
   cm         String
-  footLength Decimal    @db.Decimal(5, 2)
+  footLength Decimal      @db.Decimal(5, 2)
   footWidth  String?
-  stock      Int        @default(0)
-  isActive   Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  stock      Int          @default(0)  // 暫時保留，遷移後移除
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   cartItems  CartItem[]
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skus       ProductSku[]
 
   @@unique([productId, variantId, eu])
   @@index([productId])
   @@index([stock])
   @@map("size_charts")
+}
+
+// 庫存管理 - 顏色 × 尺碼 組合
+model ProductSku {
+  id            String          @id @default(cuid())
+  productId     String
+  variantId     String          // 顏色變體 ID
+  sizeChartId   String          // 尺碼 ID
+  sku           String?         // 可選的 SKU 編號
+  stock         Int             @default(0)
+  reservedStock Int             @default(0)  // 預留庫存（購物車中）
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relations
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant       ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  sizeChart     SizeChart       @relation(fields: [sizeChartId], references: [id], onDelete: Cascade)
+  cartItems     CartItem[]
+
+  @@unique([productId, variantId, sizeChartId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([sizeChartId])
+  @@index([stock])
+  @@map("product_skus")
 }
 
 model Cart {
@@ -303,6 +334,7 @@ model CartItem {
   cartId          String
   price           Decimal         @db.Decimal(10, 2)
   sizeChartId     String?
+  skuId           String?         // 新增：SKU ID（顏色×尺碼組合）
   bundleId        String?
   isBundleItem    Boolean         @default(false)
   bundleItemPrice Decimal?        @db.Decimal(10, 2)
@@ -311,6 +343,7 @@ model CartItem {
   cart            Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   sizeChart       SizeChart?      @relation(fields: [sizeChartId], references: [id])
+  sku             ProductSku?     @relation(fields: [skuId], references: [id])
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
@@ -318,6 +351,7 @@ model CartItem {
   @@index([cartId])
   @@index([userId])
   @@index([productId])
+  @@index([skuId])
   @@index([bundleId])
   @@index([cartId, productId, variantId, sizeChartId])
   @@index([userId, productId])
@@ -408,6 +442,7 @@ model OrderItem {
   variantName  String?
   sizeEu       String?
   color        String?
+  skuId        String?         // 新增：SKU ID（用於庫存追蹤）
   order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      Product         @relation(fields: [productId], references: [id])
   variant      ProductVariant? @relation(fields: [variantId], references: [id])
@@ -415,6 +450,7 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+  @@index([skuId])
   @@index([productId, orderId])
   @@map("order_items")
 }

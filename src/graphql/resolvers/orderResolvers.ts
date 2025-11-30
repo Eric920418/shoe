@@ -9,6 +9,56 @@ import {
   calculatePointsEarned,
 } from '@/lib/membership'
 
+/**
+ * 扣減 SKU 庫存
+ * @param orderId 訂單ID
+ */
+async function deductSkuStock(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  })
+
+  if (!order) return
+
+  for (const item of order.items) {
+    if (item.skuId) {
+      await prisma.productSku.update({
+        where: { id: item.skuId },
+        data: {
+          stock: { decrement: item.quantity },
+        },
+      })
+      console.log(`📦 扣減庫存: SKU ${item.skuId}, 數量 -${item.quantity}`)
+    }
+  }
+}
+
+/**
+ * 恢復 SKU 庫存（訂單取消時）
+ * @param orderId 訂單ID
+ */
+async function restoreSkuStock(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  })
+
+  if (!order) return
+
+  for (const item of order.items) {
+    if (item.skuId) {
+      await prisma.productSku.update({
+        where: { id: item.skuId },
+        data: {
+          stock: { increment: item.quantity },
+        },
+      })
+      console.log(`📦 恢復庫存: SKU ${item.skuId}, 數量 +${item.quantity}`)
+    }
+  }
+}
+
 interface GraphQLContext {
   user?: {
     userId: string
@@ -363,6 +413,7 @@ export const orderResolvers = {
                 },
               },
               variant: true,
+              sku: true, // 加入 SKU 關聯
             },
           })
 
@@ -372,9 +423,22 @@ export const orderResolvers = {
             })
           }
 
-          // 將數據庫購物車轉換為統一格式（添加 addedPrice 字段）
+          // 驗證 SKU 庫存是否足夠
+          for (const item of dbCartItems) {
+            if (item.sku) {
+              if (item.sku.stock < item.quantity) {
+                throw new GraphQLError(
+                  `${item.product.name} 庫存不足（可用: ${item.sku.stock}, 需求: ${item.quantity}）`,
+                  { extensions: { code: 'BAD_USER_INPUT' } }
+                )
+              }
+            }
+          }
+
+          // 將數據庫購物車轉換為統一格式（添加 addedPrice 和 skuId 字段）
           cartItems = dbCartItems.map((item) => ({
             ...item,
+            skuId: item.skuId, // 保留 SKU ID
             addedPrice: item.variant
               ? item.product.price.toNumber() + item.variant.priceAdjustment.toNumber()
               : item.product.price.toNumber(),
@@ -410,13 +474,32 @@ export const orderResolvers = {
               })
             }
 
-            // 檢查庫存
-            if (product.stock < item.quantity) {
+            // 查找 SKU 並檢查庫存
+            let sku = null
+            if (item.variantId && item.sizeChartId) {
+              sku = await prisma.productSku.findUnique({
+                where: {
+                  productId_variantId_sizeChartId: {
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    sizeChartId: item.sizeChartId,
+                  },
+                },
+              })
+
+              if (sku && sku.stock < item.quantity) {
+                throw new GraphQLError(
+                  `${product.name} 庫存不足（可用: ${sku.stock}, 需求: ${item.quantity}）`,
+                  { extensions: { code: 'BAD_USER_INPUT' } }
+                )
+              }
+            }
+
+            // 向後相容：如果沒有 SKU，使用舊的 product.stock 檢查
+            if (!sku && product.stock < item.quantity) {
               throw new GraphQLError(
                 `${product.name} 庫存不足（可用: ${product.stock}, 需求: ${item.quantity}）`,
-                {
-                  extensions: { code: 'BAD_USER_INPUT' },
-                }
+                { extensions: { code: 'BAD_USER_INPUT' } }
               )
             }
 
@@ -425,6 +508,8 @@ export const orderResolvers = {
               product,
               variantId: item.variantId,
               variant,
+              sizeChartId: item.sizeChartId,
+              skuId: sku?.id || null, // 加入 SKU ID
               quantity: item.quantity,
               sizeEu: item.sizeEu,
               addedPrice: variant ? product.price.toNumber() + variant.priceAdjustment.toNumber() : product.price,
@@ -580,6 +665,7 @@ export const orderResolvers = {
                 price: item.addedPrice,
                 subtotal: (typeof item.addedPrice === 'number' ? item.addedPrice : item.addedPrice.toNumber()) * item.quantity,
                 sku: item.variant?.sku || item.product.sku,
+                skuId: item.skuId || null, // 關聯 SKU
               })),
             },
           },
@@ -657,6 +743,9 @@ export const orderResolvers = {
         })
       }
 
+      // 如果訂單已付款，需要恢復 SKU 庫存
+      const wasPaid = order.paymentStatus === 'PAID'
+
       // 更新訂單狀態
       const updatedOrder = await prisma.order.update({
         where: { id },
@@ -674,6 +763,12 @@ export const orderResolvers = {
           },
         },
       })
+
+      // 恢復 SKU 庫存（僅當訂單已付款時）
+      if (wasPaid) {
+        await restoreSkuStock(id)
+        console.log(`✅ 訂單 ${id} 已取消，SKU 庫存已恢復`)
+      }
 
       return updatedOrder
     },

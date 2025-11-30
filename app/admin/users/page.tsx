@@ -93,6 +93,7 @@ export default function UsersManagementPage() {
   const [page, setPage] = useState(1)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [formData, setFormData] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const limit = 20
 
   const { data: tiersData } = useQuery(GET_MEMBERSHIP_TIERS, {
@@ -142,15 +143,31 @@ export default function UsersManagementPage() {
   const availableTiers = tiersData?.membershipTiers || []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">用戶管理</h1>
-        <p className="mt-2 text-gray-600">管理所有用戶、會員等級、積分與權限</p>
+        <h1 className="text-xl lg:text-3xl font-bold text-gray-900">用戶管理</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          共 <span className="font-semibold">{total}</span> 位用戶
+        </p>
       </div>
 
-      {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* 手機版統計摘要 */}
+      <div className="lg:hidden grid grid-cols-2 gap-2">
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-xl font-bold text-gray-900">{total}</p>
+          <p className="text-xs text-gray-600 mt-1">總用戶</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-xl font-bold text-green-600">
+            {users.filter((u: any) => u.isActive).length}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">活躍用戶</p>
+        </div>
+      </div>
+
+      {/* 統計卡片 - 桌面版 */}
+      <div className="hidden lg:grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -179,53 +196,61 @@ export default function UsersManagementPage() {
       </div>
 
       {/* 篩選區域 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">搜尋</label>
+      <div className="bg-white p-3 lg:p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex gap-2 mb-3 lg:mb-0">
+          <div className="flex-1">
             <input
               type="text"
               placeholder="搜尋姓名、Email、電話..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">角色</label>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center gap-1"
+          >
+            <span className="text-sm">篩選</span>
+            {(roleFilter || tierFilter || statusFilter) && (
+              <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {(roleFilter ? 1 : 0) + (tierFilter ? 1 : 0) + (statusFilter ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* 篩選選項 */}
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-200">
+            <div className="hidden lg:block"></div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">全部</option>
+              <option value="">全部角色</option>
               <option value="USER">用戶</option>
               <option value="ADMIN">管理員</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">會員等級</label>
             <select
               value={tierFilter}
               onChange={(e) => setTierFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">全部</option>
+              <option value="">全部等級</option>
               {availableTiers.map((tier: any) => (
                 <option key={tier.id} value={tier.id}>
-                  {tier.icon ? `${tier.icon} ` : ''}{tier.name}
+                  {tier.name}
                 </option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">狀態</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">全部</option>
+              <option value="">全部狀態</option>
               <option value="active">啟用</option>
               <option value="inactive">停用</option>
             </select>
@@ -233,8 +258,124 @@ export default function UsersManagementPage() {
         </div>
       </div>
 
-      {/* 用戶列表 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* 手機版用戶卡片列表 */}
+      <div className="lg:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">載入中...</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">沒有找到符合條件的用戶</p>
+          </div>
+        ) : (
+          users.map((user: any) => (
+            <div
+              key={user.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+            >
+              <div className="p-4">
+                {/* 用戶資訊 */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                      <span
+                        className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          roleLabels[user.role]?.color || 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {roleLabels[user.role]?.label || user.role}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 truncate mt-0.5">{user.email}</p>
+                    {user.phone && <p className="text-xs text-gray-400 mt-0.5">{user.phone}</p>}
+                  </div>
+                  <button
+                    onClick={() =>
+                      handleUpdateUser(user.id, {
+                        isActive: !user.isActive,
+                      })
+                    }
+                    className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
+                      user.isActive
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {user.isActive ? '啟用' : '停用'}
+                  </button>
+                </div>
+
+                {/* 用戶數據 */}
+                <div className="flex items-center gap-4 text-sm">
+                  {user.membershipTierConfig && (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: user.membershipTierConfig.color ? `${user.membershipTierConfig.color}20` : '#F3F4F6',
+                        color: user.membershipTierConfig.color || '#1F2937'
+                      }}
+                    >
+                      {user.membershipTierConfig.name}
+                    </span>
+                  )}
+                  <span className="text-gray-600">
+                    {user.totalOrders} 筆訂單
+                  </span>
+                  <span className="text-gray-900 font-medium">
+                    ${parseFloat(user.totalSpent).toFixed(0)}
+                  </span>
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      setEditingUser(user)
+                      setFormData({
+                        membershipTierId: user.membershipTierConfig?.id,
+                        membershipPoints: user.membershipPoints,
+                        role: user.role,
+                      })
+                    }}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium text-center"
+                  >
+                    編輯
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* 手機版分頁 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between py-3">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+            >
+              上一頁
+            </button>
+            <span className="text-sm text-gray-600">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+            >
+              下一頁
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 桌面版用戶列表 */}
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

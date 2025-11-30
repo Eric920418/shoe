@@ -1339,6 +1339,77 @@ export const DELETE_SIZE_CHART = gql`
 `
 
 // ============================================
+// 產品變體（顏色）管理相關查詢（管理員）
+// ============================================
+
+export const GET_PRODUCT_VARIANTS = gql`
+  query GetProductVariants($productId: ID!) {
+    productVariants(productId: $productId) {
+      id
+      productId
+      name
+      color
+      colorHex
+      colorImage
+      priceAdjustment
+      stock
+      images
+      isActive
+      isDefault
+      sortOrder
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const CREATE_PRODUCT_VARIANT = gql`
+  mutation CreateProductVariant($input: CreateProductVariantInput!) {
+    createProductVariant(input: $input) {
+      id
+      productId
+      name
+      color
+      colorHex
+      colorImage
+      priceAdjustment
+      stock
+      images
+      isActive
+      isDefault
+      sortOrder
+      createdAt
+    }
+  }
+`
+
+export const UPDATE_PRODUCT_VARIANT = gql`
+  mutation UpdateProductVariant($id: ID!, $input: UpdateProductVariantInput!) {
+    updateProductVariant(id: $id, input: $input) {
+      id
+      productId
+      name
+      color
+      colorHex
+      colorImage
+      priceAdjustment
+      stock
+      images
+      isActive
+      isDefault
+      sortOrder
+      updatedAt
+    }
+  }
+`
+
+export const DELETE_PRODUCT_VARIANT = gql`
+  mutation DeleteProductVariant($id: ID!) {
+    deleteProductVariant(id: $id)
+  }
+`
+
+// ============================================
 // Dashboard 儀表板相關查詢（管理員專用）
 // ============================================
 
@@ -1368,6 +1439,90 @@ export const GET_RECENT_ORDERS = gql`
       total
       status
       createdAt
+    }
+  }
+`
+
+// ============================================
+// SKU 庫存管理相關查詢（管理員專用）
+// ============================================
+
+export const GET_SKU_MATRIX = gql`
+  query GetSkuMatrix($productId: ID!) {
+    skuMatrix(productId: $productId) {
+      productId
+      productName
+      variants {
+        id
+        name
+        color
+        colorHex
+        isActive
+        sortOrder
+      }
+      sizes {
+        id
+        eu
+        us
+        uk
+        cm
+        isActive
+      }
+      skus {
+        id
+        productId
+        variantId
+        sizeChartId
+        stock
+        reservedStock
+        isActive
+      }
+      totalStock
+      totalVariants
+      totalSizes
+    }
+  }
+`
+
+export const GENERATE_SKUS = gql`
+  mutation GenerateSkus($productId: ID!) {
+    generateSkus(productId: $productId) {
+      created
+      skipped
+      skus {
+        id
+        variantId
+        sizeChartId
+        stock
+      }
+    }
+  }
+`
+
+export const UPDATE_SKU_STOCK = gql`
+  mutation UpdateSkuStock($skuId: ID!, $stock: Int!) {
+    updateSkuStock(skuId: $skuId, stock: $stock) {
+      id
+      stock
+      variant {
+        id
+        color
+      }
+      sizeChart {
+        id
+        eu
+      }
+    }
+  }
+`
+
+export const BATCH_UPDATE_SKU_STOCK = gql`
+  mutation BatchUpdateSkuStock($productId: ID!, $updates: [SkuStockInput!]!) {
+    batchUpdateSkuStock(productId: $productId, updates: $updates) {
+      id
+      stock
+      variantId
+      sizeChartId
     }
   }
 `

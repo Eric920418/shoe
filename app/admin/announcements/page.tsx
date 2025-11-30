@@ -224,12 +224,12 @@ export default function AnnouncementsPage() {
   const total = data?.announcements?.total || 0
 
   return (
-    <div className="p-6">
+    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">公告管理</h1>
-          <p className="text-gray-600 mt-1">管理系統公告和通知訊息</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">公告管理</h1>
+          <p className="text-sm text-gray-600 mt-1">管理系統公告和通知訊息</p>
         </div>
         <button
           onClick={() => {
@@ -237,14 +237,36 @@ export default function AnnouncementsPage() {
             setEditingAnnouncement(null)
             setShowCreateModal(true)
           }}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="w-full sm:w-auto px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
         >
           + 新增公告
         </button>
       </div>
 
-      {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* 手機版統計摘要 */}
+      <div className="lg:hidden bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div className="grid grid-cols-3 divide-x divide-gray-200">
+          <div className="text-center px-2">
+            <p className="text-lg font-bold text-gray-900">{total}</p>
+            <p className="text-xs text-gray-500">總公告</p>
+          </div>
+          <div className="text-center px-2">
+            <p className="text-lg font-bold text-green-600">
+              {announcements.filter((a: any) => a.isActive).length}
+            </p>
+            <p className="text-xs text-gray-500">啟用中</p>
+          </div>
+          <div className="text-center px-2">
+            <p className="text-lg font-bold text-gray-500">
+              {announcements.filter((a: any) => !a.isActive).length}
+            </p>
+            <p className="text-xs text-gray-500">已停用</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 桌面版統計卡片 */}
+      <div className="hidden lg:grid grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
@@ -286,8 +308,112 @@ export default function AnnouncementsPage() {
         </div>
       </div>
 
-      {/* 公告列表 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* 手機版卡片列表 */}
+      <div className="lg:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center text-gray-500">
+            載入中...
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center text-gray-500">
+            尚無公告
+          </div>
+        ) : (
+          announcements.map((announcement: any) => {
+            const typeInfo = getTypeDisplay(announcement.type)
+            return (
+              <div key={announcement.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                {/* 標題列 */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="font-medium text-gray-900 flex-1 line-clamp-2">{announcement.title}</h3>
+                  <span
+                    className={`shrink-0 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                      announcement.isActive
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {announcement.isActive ? '啟用' : '停用'}
+                  </span>
+                </div>
+
+                {/* 內容預覽 */}
+                <p className="text-sm text-gray-500 line-clamp-2 mb-3">{announcement.content}</p>
+
+                {/* 標籤區 */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${typeInfo.color}`}>
+                    {typeInfo.label}
+                  </span>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    優先級: {announcement.priority}
+                  </span>
+                </div>
+
+                {/* 時間資訊 */}
+                <div className="text-xs text-gray-500 space-y-1 mb-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">開始:</span>
+                    <span>{new Date(announcement.startDate).toLocaleString('zh-TW')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">結束:</span>
+                    <span>
+                      {announcement.endDate
+                        ? new Date(announcement.endDate).toLocaleString('zh-TW')
+                        : '無期限'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => handleEdit(announcement)}
+                    className="flex-1 px-3 py-2 text-sm text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                  >
+                    編輯
+                  </button>
+                  <button
+                    onClick={() => handleDelete(announcement.id)}
+                    className="flex-1 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    刪除
+                  </button>
+                </div>
+              </div>
+            )
+          })
+        )}
+
+        {/* 手機版分頁 */}
+        {total > limit && (
+          <div className="flex flex-col gap-2">
+            <div className="text-xs text-gray-500 text-center">
+              顯示 {skip + 1} - {Math.min(skip + limit, total)} / 共 {total} 筆
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                className="flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                上一頁
+              </button>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={!data?.announcements?.hasMore}
+                className="flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                下一頁
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 桌面版表格列表 */}
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -390,7 +516,7 @@ export default function AnnouncementsPage() {
           </table>
         </div>
 
-        {/* 分頁 */}
+        {/* 桌面版分頁 */}
         {total > limit && (
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-700">
@@ -418,15 +544,28 @@ export default function AnnouncementsPage() {
 
       {/* 創建/編輯公告 Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                 {editingAnnouncement ? '編輯公告' : '新增公告'}
               </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setEditingAnnouncement(null)
+                  resetForm()
+                }}
+                className="sm:hidden p-2 text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               {/* 標題 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -436,7 +575,7 @@ export default function AnnouncementsPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                   placeholder="請輸入公告標題"
                   required
                 />
@@ -450,21 +589,21 @@ export default function AnnouncementsPage() {
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  rows={4}
+                  className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                   placeholder="請輸入公告內容"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* 類型 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">類型</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                   >
                     {ANNOUNCEMENT_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
@@ -477,20 +616,20 @@ export default function AnnouncementsPage() {
                 {/* 優先級 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    優先級（數字越大越優先）
+                    優先級 <span className="text-gray-400 text-xs">(數字越大越優先)</span>
                   </label>
                   <input
                     type="number"
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                     min="0"
                     max="100"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* 開始時間 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
@@ -498,35 +637,35 @@ export default function AnnouncementsPage() {
                     type="datetime-local"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                   />
                 </div>
 
                 {/* 結束時間 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    結束時間（選填）
+                    結束時間 <span className="text-gray-400 text-xs">(選填)</span>
                   </label>
                   <input
                     type="datetime-local"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* 行動連結 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    行動連結（選填）
+                    行動連結 <span className="text-gray-400 text-xs">(選填)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.actionUrl}
                     onChange={(e) => setFormData({ ...formData, actionUrl: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                     placeholder="/products"
                   />
                 </div>
@@ -534,26 +673,26 @@ export default function AnnouncementsPage() {
                 {/* 行動按鈕文字 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    按鈕文字（選填）
+                    按鈕文字 <span className="text-gray-400 text-xs">(選填)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.actionLabel}
                     onChange={(e) => setFormData({ ...formData, actionLabel: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base sm:text-sm"
                     placeholder="查看更多"
                   />
                 </div>
               </div>
 
               {/* 狀態 */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 py-2">
                 <input
                   type="checkbox"
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="w-5 h-5 sm:w-4 sm:h-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
                   立即啟用
@@ -561,11 +700,11 @@ export default function AnnouncementsPage() {
               </div>
 
               {/* 按鈕 */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 pb-safe">
                 <button
                   type="submit"
                   disabled={creating || updating}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-3 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 font-medium"
                 >
                   {creating || updating ? '處理中...' : editingAnnouncement ? '更新' : '創建'}
                 </button>
@@ -576,7 +715,7 @@ export default function AnnouncementsPage() {
                     setEditingAnnouncement(null)
                     resetForm()
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
                   取消
                 </button>

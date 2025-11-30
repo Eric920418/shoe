@@ -22,6 +22,8 @@ import {
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
 import SizeManagement from '@/components/admin/SizeManagement'
+import ColorManagement from '@/components/admin/ColorManagement'
+import SkuMatrixManagement from '@/components/admin/SkuMatrixManagement'
 
 interface ProductFormData {
   name: string
@@ -65,7 +67,7 @@ export default function EditProductPage() {
   const params = useParams()
   const productId = params.id as string
 
-  const [activeTab, setActiveTab] = useState<'info' | 'sizes'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'sizes' | 'colors' | 'stock'>('info')
   const [formData, setFormData] = useState<ProductFormData | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -321,6 +323,28 @@ export default function EditProductPage() {
             }`}
           >
             尺碼管理
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('colors')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'colors'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            顏色管理
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('stock')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'stock'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            庫存管理
           </button>
         </nav>
       </div>
@@ -757,9 +781,17 @@ export default function EditProductPage() {
           </button>
         </div>
       </form>
-      ) : (
+      ) : activeTab === 'sizes' ? (
         <div className="space-y-6">
           <SizeManagement productId={productId} />
+        </div>
+      ) : activeTab === 'colors' ? (
+        <div className="space-y-6">
+          <ColorManagement productId={productId} />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <SkuMatrixManagement productId={productId} />
         </div>
       )}
     </div>

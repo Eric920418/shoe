@@ -30,6 +30,7 @@ const CART_INCLUDE = {
       },
       variant: true,
       sizeChart: true,
+      sku: true, // 加入 SKU 關聯
     },
   },
 } as const
@@ -151,7 +152,7 @@ export const cartResolvers = {
 
         console.log('✅ 找到產品:', product.name)
 
-        // 驗證尺碼是否存在且有庫存
+        // 驗證尺碼是否存在
         const sizeChart = await prisma.sizeChart.findUnique({
           where: { id: sizeChartId },
         })
@@ -160,10 +161,27 @@ export const cartResolvers = {
           throw new Error(`尺碼不存在 (ID: ${sizeChartId})`)
         }
 
-        console.log('✅ 找到尺碼:', sizeChart.eu, '庫存:', sizeChart.stock)
+        console.log('✅ 找到尺碼:', sizeChart.eu)
 
-        if (sizeChart.stock < quantity) {
-          throw new Error(`庫存不足，目前僅剩 ${sizeChart.stock} 件`)
+        // 查找對應的 SKU（顏色 × 尺碼組合）
+        const sku = await prisma.productSku.findUnique({
+          where: {
+            productId_variantId_sizeChartId: {
+              productId,
+              variantId: variantId || '',
+              sizeChartId,
+            },
+          },
+        })
+
+        if (!sku) {
+          throw new Error(`此顏色尺碼組合暫無庫存 (顏色ID: ${variantId}, 尺碼ID: ${sizeChartId})`)
+        }
+
+        console.log('✅ 找到 SKU:', sku.id, '庫存:', sku.stock)
+
+        if (sku.stock < quantity) {
+          throw new Error(`庫存不足，目前僅剩 ${sku.stock} 件`)
         }
 
         // 獲取或創建購物車
@@ -180,13 +198,14 @@ export const cartResolvers = {
 
         console.log('✅ 購物車 ID:', cart.id)
 
-        // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼）
+        // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼、SKU）
         const existingItem = await prisma.cartItem.findFirst({
           where: {
             cartId: cart.id,
             productId,
             variantId: variantId || null,
             sizeChartId,
+            skuId: sku.id,
           },
         })
 
@@ -194,8 +213,8 @@ export const cartResolvers = {
           // 如果已存在，更新數量
           const newQuantity = existingItem.quantity + quantity
 
-          if (sizeChart.stock < newQuantity) {
-            throw new Error(`庫存不足，目前僅剩 ${sizeChart.stock} 件`)
+          if (sku.stock < newQuantity) {
+            throw new Error(`庫存不足，目前僅剩 ${sku.stock} 件`)
           }
 
           console.log('🔄 更新購物車項目數量:', existingItem.quantity, '->', newQuantity)
@@ -226,6 +245,7 @@ export const cartResolvers = {
               productId,
               variantId: variantId || null,
               sizeChartId,
+              skuId: sku.id, // 關聯 SKU
               quantity,
               price: itemPrice,
               bundleId: bundleId || null,
@@ -260,6 +280,7 @@ export const cartResolvers = {
         include: {
           cart: true,
           sizeChart: true,
+          sku: true, // 加入 SKU
         },
       })
 
@@ -271,9 +292,10 @@ export const cartResolvers = {
         throw new Error('無權操作此購物車項目')
       }
 
-      // 檢查庫存
-      if (cartItem.sizeChart.stock < quantity) {
-        throw new Error(`庫存不足，目前僅剩 ${cartItem.sizeChart.stock} 件`)
+      // 檢查 SKU 庫存（優先使用 SKU，向後相容使用 sizeChart）
+      const availableStock = cartItem.sku?.stock ?? cartItem.sizeChart.stock
+      if (availableStock < quantity) {
+        throw new Error(`庫存不足，目前僅剩 ${availableStock} 件`)
       }
 
       // 更新數量
@@ -463,6 +485,18 @@ export const cartResolvers = {
     // addedPrice 欄位（等同於 price，但前端代碼期望這個欄位名稱）
     addedPrice: (parent: any) => {
       return parent.price
+    },
+    // SKU 關聯解析
+    sku: async (parent: any) => {
+      if (parent.sku) return parent.sku
+      if (!parent.skuId) return null
+      return await prisma.productSku.findUnique({
+        where: { id: parent.skuId },
+        include: {
+          variant: true,
+          sizeChart: true,
+        },
+      })
     },
   },
 }

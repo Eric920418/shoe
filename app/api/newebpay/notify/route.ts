@@ -331,6 +331,29 @@ async function updatePaymentRecord(
 
       console.log(`訂單 ${payment.order.orderNumber} 支付成功`);
 
+      // 扣減 SKU 庫存
+      try {
+        const orderItems = await prisma.orderItem.findMany({
+          where: { orderId: payment.orderId },
+        });
+
+        for (const item of orderItems) {
+          if (item.skuId) {
+            await prisma.productSku.update({
+              where: { id: item.skuId },
+              data: {
+                stock: { decrement: item.quantity },
+              },
+            });
+            console.log(`📦 扣減庫存: SKU ${item.skuId}, 數量 -${item.quantity}`);
+          }
+        }
+        console.log(`✅ 訂單 ${payment.order.orderNumber} SKU 庫存已扣減`);
+      } catch (stockError) {
+        // 庫存扣減失敗不影響訂單狀態，但要記錄錯誤
+        console.error('❌ 扣減 SKU 庫存失敗:', stockError);
+      }
+
       // 發送訂單確認通知（Email/LINE）
       try {
         // 獲取完整訂單資訊

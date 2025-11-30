@@ -30,6 +30,7 @@ export default function ProductsPage() {
   const [filterCategory, setFilterCategory] = useState('')
   const [filterBrand, setFilterBrand] = useState('')
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(false)
 
   // 獲取產品列表
   const { data: productsData, loading: productsLoading, error: productsError, refetch } = useQuery(GET_PRODUCTS, {
@@ -145,43 +146,72 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">產品管理</h1>
-          <p className="text-gray-600 mt-1">
-            管理您的產品庫存、價格和詳細資訊
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">產品管理</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            共 <span className="font-semibold">{products.length}</span> 個產品
           </p>
         </div>
         <Link
           href="/admin/products/new"
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          className="px-3 py-2 lg:px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm lg:text-base"
         >
-          + 新增產品
+          + 新增
         </Link>
       </div>
 
+      {/* 手機版統計摘要 */}
+      <div className="lg:hidden grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-xl font-bold text-green-600">{activeProducts.length}</p>
+          <p className="text-xs text-gray-600 mt-1">在售</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-xl font-bold text-red-600">{outOfStockProducts.length}</p>
+          <p className="text-xs text-gray-600 mt-1">缺貨</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-xl font-bold text-orange-600">{lowStockProducts.length}</p>
+          <p className="text-xs text-gray-600 mt-1">低庫存</p>
+        </div>
+      </div>
+
       {/* 搜尋和篩選 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* 搜尋框 */}
-          <div className="md:col-span-2">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 lg:p-4">
+        <div className="flex gap-2 mb-3 lg:mb-0">
+          <div className="flex-1">
             <input
               type="text"
               placeholder="搜尋產品名稱..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             />
           </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center gap-1"
+          >
+            <span className="text-sm">篩選</span>
+            {(filterBrand || filterCategory) && (
+              <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {(filterBrand ? 1 : 0) + (filterCategory ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
 
-          {/* 品牌篩選 */}
-          <div>
+        {/* 篩選選項 */}
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-200">
+            <div className="lg:col-span-2"></div>
             <select
               value={filterBrand}
               onChange={(e) => setFilterBrand(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="">全部品牌</option>
               {brandsData?.brands?.map((brand: any) => (
@@ -190,14 +220,10 @@ export default function ProductsPage() {
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* 分類篩選 */}
-          <div>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             >
               <option value="">全部分類</option>
               {categoriesData?.categories?.map((category: any) => (
@@ -233,8 +259,120 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* 產品表格 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* 手機版產品卡片列表 */}
+      <div className="lg:hidden space-y-3">
+        {products.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">
+              {searchQuery || filterCategory || filterBrand
+                ? '沒有符合條件的產品'
+                : '暫無產品數據，請先新增產品'}
+            </p>
+          </div>
+        ) : (
+          products.map((product: any) => {
+            let images: string[] = []
+            if (product.images) {
+              if (typeof product.images === 'string') {
+                try {
+                  images = JSON.parse(product.images)
+                } catch {
+                  images = []
+                }
+              } else if (Array.isArray(product.images)) {
+                images = product.images
+              }
+            }
+            const firstImage = images[0] || '/images/placeholder-product.svg'
+            const status = product.totalStock === 0 ? 'OUT_OF_STOCK' : 'ACTIVE'
+
+            return (
+              <div
+                key={product.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+              >
+                <div className="p-4">
+                  <div className="flex gap-3">
+                    {/* 產品圖片 */}
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <Image
+                        src={firstImage}
+                        alt={product.name}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {/* 產品資訊 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {product.brand?.name} {product.category?.name && `· ${product.category.name}`}
+                          </p>
+                        </div>
+                        <span
+                          className={`ml-2 flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded ${
+                            statusLabels[status as keyof typeof statusLabels].color
+                          }`}
+                        >
+                          {statusLabels[status as keyof typeof statusLabels].label}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-900">
+                            ${product.price.toLocaleString()}
+                          </span>
+                          <span
+                            className={`text-sm ${
+                              product.totalStock === 0
+                                ? 'text-red-600'
+                                : product.totalStock <= 10
+                                ? 'text-orange-600'
+                                : 'text-green-600'
+                            }`}
+                          >
+                            庫存 {product.totalStock}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* 操作按鈕 */}
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
+                      className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium text-center"
+                    >
+                      編輯
+                    </Link>
+                    {product.totalStock > 0 && (
+                      <Link
+                        href={`/products/${encodeURIComponent(product.slug)}`}
+                        target="_blank"
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
+                      >
+                        查看
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => handleDelete(product.id, product.name)}
+                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium"
+                    >
+                      刪除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* 桌面版產品表格 */}
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -368,7 +506,7 @@ export default function ProductsPage() {
                           {product.totalStock === 0 ? (
                             <button
                               onClick={() => {
-                                toast.error('此產品無庫存，無法在前台展示。請先前往「編輯」→「尺碼管理」設定庫存。', {
+                                toast.error('此產品無庫存，無法在前台展示。請先前往「編輯」→「庫存管理」設定庫存。', {
                                   duration: 5000,
                                 })
                               }}
@@ -419,8 +557,8 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 統計卡片 - 僅桌面版顯示 */}
+      <div className="hidden lg:grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <p className="text-sm text-gray-600">總產品數</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">

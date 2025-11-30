@@ -103,6 +103,7 @@ export default function CreditsManagementPage() {
   const [editingCredit, setEditingCredit] = useState<any>(null)
   const [userSearch, setUserSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const limit = 20
 
   const { data, loading, refetch } = useQuery(GET_CREDITS, {
@@ -229,31 +230,43 @@ export default function CreditsManagementPage() {
   const usedAmount = totalAmount - totalBalance
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">購物金管理</h1>
-          <p className="mt-2 text-gray-600">管理用戶購物金、發放獎勵與調整餘額</p>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">購物金管理</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            共 <span className="font-semibold">{total}</span> 筆記錄
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowBatchModal(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-          >
-            + 批量發放
-          </button>
+        <div className="flex gap-2">
           <button
             onClick={() => setShowGrantModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
           >
-            + 發放購物金
+            + 發放
           </button>
         </div>
       </div>
 
-      {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* 手機版統計摘要 */}
+      <div className="lg:hidden grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-lg font-bold text-gray-900">${totalAmount.toFixed(0)}</p>
+          <p className="text-xs text-gray-600 mt-1">總發放</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-lg font-bold text-green-600">${totalBalance.toFixed(0)}</p>
+          <p className="text-xs text-gray-600 mt-1">剩餘</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+          <p className="text-lg font-bold text-blue-600">${usedAmount.toFixed(0)}</p>
+          <p className="text-xs text-gray-600 mt-1">已使用</p>
+        </div>
+      </div>
+
+      {/* 統計卡片 - 桌面版 */}
+      <div className="hidden lg:grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -293,31 +306,48 @@ export default function CreditsManagementPage() {
       </div>
 
       {/* 篩選區域 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">來源</label>
+      <div className="bg-white p-3 lg:p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex gap-2 mb-3 lg:mb-0">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center justify-center gap-1"
+          >
+            <span className="text-sm">篩選</span>
+            {(sourceFilter || statusFilter) && (
+              <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {(sourceFilter ? 1 : 0) + (statusFilter ? 1 : 0)}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="lg:hidden px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium"
+          >
+            批量發放
+          </button>
+        </div>
+
+        {/* 篩選選項 */}
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-2 lg:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-200">
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">全部</option>
+              <option value="">全部來源</option>
               <option value="CAMPAIGN">活動獎勵</option>
               <option value="REFUND">退款</option>
               <option value="ADMIN_GRANT">管理員發放</option>
               <option value="BIRTHDAY">生日禮金</option>
               <option value="REVIEW">評論獎勵</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">狀態</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">全部</option>
+              <option value="">全部狀態</option>
               <option value="active">啟用</option>
               <option value="inactive">停用</option>
             </select>
@@ -325,8 +355,121 @@ export default function CreditsManagementPage() {
         </div>
       </div>
 
-      {/* 購物金列表 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* 手機版購物金卡片列表 */}
+      <div className="lg:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">載入中...</p>
+          </div>
+        ) : credits.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">沒有找到符合條件的購物金記錄</p>
+          </div>
+        ) : (
+          credits.map((credit: any) => (
+            <div
+              key={credit.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+            >
+              <div className="p-4">
+                {/* 用戶資訊 */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">{credit.user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{credit.user.email}</p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      updateCredit({
+                        variables: {
+                          id: credit.id,
+                          input: { isActive: !credit.isActive },
+                        },
+                      })
+                    }
+                    className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
+                      credit.isActive
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {credit.isActive ? '啟用' : '停用'}
+                  </button>
+                </div>
+
+                {/* 購物金詳情 */}
+                <div className="flex items-center gap-3 mb-2">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      sourceLabels[credit.source]?.color || 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {sourceLabels[credit.source]?.icon} {sourceLabels[credit.source]?.label || credit.source}
+                  </span>
+                  <span className="text-sm font-bold text-gray-900">
+                    ${parseFloat(credit.amount).toFixed(0)}
+                  </span>
+                  <span className="text-sm text-green-600">
+                    餘額 ${parseFloat(credit.balance).toFixed(0)}
+                  </span>
+                </div>
+
+                {/* 有效期 */}
+                <div className="text-xs text-gray-500">
+                  {format(new Date(credit.validFrom), 'yyyy/MM/dd')} ~ {format(new Date(credit.validUntil), 'yyyy/MM/dd')}
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => setEditingCredit(credit)}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium text-center"
+                  >
+                    調整餘額
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('確定要停用此購物金嗎？')) {
+                        deleteCredit({ variables: { id: credit.id } })
+                      }
+                    }}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium"
+                  >
+                    停用
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* 手機版分頁 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between py-3">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+            >
+              上一頁
+            </button>
+            <span className="text-sm text-gray-600">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+            >
+              下一頁
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 桌面版購物金列表 */}
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

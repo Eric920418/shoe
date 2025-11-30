@@ -1092,6 +1092,24 @@ export default function NewProductPage() {
           )}
         </div>
 
+        {/* 顏色管理提示 */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-amber-800">顏色管理</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                產品創建完成後，您可以在編輯頁面的「顏色管理」標籤中為產品添加多種顏色選項。
+                每個顏色可以設定專屬的色碼、價格調整和庫存。
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* 提交按鈕 */}
         <div className="flex items-center justify-end gap-4">
           <Link

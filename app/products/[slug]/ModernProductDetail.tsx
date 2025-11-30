@@ -49,6 +49,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState<any>(null)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
+  const [sizeSystem, setSizeSystem] = useState<'EU' | 'US' | 'UK' | 'CM'>('CM')
 
   const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART)
 
@@ -63,15 +64,56 @@ export default function ModernProductDetail({ product }: { product: any }) {
     [product.features]
   )
 
-  // ✅ 檢查是否有可用庫存
+  // ✅ SKU 庫存查詢輔助函數
+  const getSkuStock = (variantId: string | undefined, sizeChartId: string): number => {
+    if (!product.skus || !variantId) {
+      // 向後相容：如果沒有 SKU 數據，使用 sizeChart.stock
+      const size = product.sizeCharts?.find((s: any) => s.id === sizeChartId)
+      return size?.stock ?? 0
+    }
+    const sku = product.skus.find(
+      (s: any) => s.variantId === variantId && s.sizeChartId === sizeChartId
+    )
+    return sku?.stock ?? 0
+  }
+
+  // ✅ 獲取當前選擇顏色的某個尺碼庫存
+  const getSizeStock = (size: any): number => {
+    return getSkuStock(selectedVariant?.id, size.id)
+  }
+
+  // ✅ 檢查是否有可用庫存（根據當前選擇的顏色）
   const hasAvailableStock = useMemo(() => {
     if (!product.sizeCharts || product.sizeCharts.length === 0) return false
+    // 如果有 SKU 數據，檢查當前顏色的 SKU 庫存
+    if (product.skus && product.skus.length > 0 && selectedVariant) {
+      return product.sizeCharts.some((size: any) =>
+        getSkuStock(selectedVariant.id, size.id) > 0
+      )
+    }
+    // 向後相容：使用 sizeChart.stock
     return product.sizeCharts.some((size: any) => size.stock > 0)
-  }, [product.sizeCharts])
+  }, [product.sizeCharts, product.skus, selectedVariant])
 
   const finalPrice = selectedVariant
     ? product.price + Number(selectedVariant.priceAdjustment || 0)
     : product.price
+
+  // 獲取尺碼標籤
+  const getSizeLabel = (size: any) => {
+    switch (sizeSystem) {
+      case 'EU':
+        return size.eu
+      case 'US':
+        return size.us
+      case 'UK':
+        return size.uk
+      case 'CM':
+        return size.cm
+      default:
+        return size.cm
+    }
+  }
 
   const handleAddToCart = async () => {
     if (!selectedSize) {
@@ -106,10 +148,11 @@ export default function ModernProductDetail({ product }: { product: any }) {
           variantId: selectedVariant?.id || null,
           variantName: selectedVariant?.color || null,
           sizeEu: selectedSize.eu,
+          sizeChartId: selectedSize.id, // 添加 sizeChartId 用於 SKU 查詢
           color: selectedVariant?.color || null,
           quantity,
           price: finalPrice,
-          stock: selectedSize.stock,
+          stock: getSizeStock(selectedSize), // 使用 SKU 庫存
         })
         toast.success('已加入購物車，正在前往購物車...')
         // 跳轉到購物車頁面
@@ -225,9 +268,9 @@ export default function ModernProductDetail({ product }: { product: any }) {
             {product.variants && product.variants.length > 0 && (
               <div>
                 <h3 className="text-sm font-bold text-black mb-3 uppercase">
-                  選擇顏色
+                  選擇顏色 {selectedVariant?.color && <span className="text-gray-600 font-normal ml-2">- {selectedVariant.color}</span>}
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {product.variants.map((variant: any) => (
                     <button
                       key={variant.id}
@@ -235,27 +278,62 @@ export default function ModernProductDetail({ product }: { product: any }) {
                       className={`group relative`}
                       title={variant.color}
                     >
-                      <div
-                        className={`w-12 h-12 rounded-full border-2 transition-all ${
-                          selectedVariant?.id === variant.id
-                            ? 'border-black scale-110'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                        style={{ backgroundColor: variant.colorHex || '#ccc' }}
-                      />
-                      {selectedVariant?.id === variant.id && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6 text-white drop-shadow-lg"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                      {/* 如果有顏色圖片，顯示圖片；否則顯示色塊 */}
+                      {variant.colorImage ? (
+                        <div
+                          className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                            selectedVariant?.id === variant.id
+                              ? 'border-black ring-2 ring-black ring-offset-2'
+                              : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                        >
+                          <Image
+                            src={variant.colorImage}
+                            alt={variant.color}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                          {selectedVariant?.id === variant.id && (
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                              <svg
+                                className="w-6 h-6 text-white drop-shadow-lg"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                            selectedVariant?.id === variant.id
+                              ? 'border-black scale-110'
+                              : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                          style={{ backgroundColor: variant.colorHex || '#ccc' }}
+                        >
+                          {selectedVariant?.id === variant.id && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <svg
+                                className="w-6 h-6 text-white drop-shadow-lg"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
                         </div>
                       )}
                     </button>
@@ -271,31 +349,44 @@ export default function ModernProductDetail({ product }: { product: any }) {
                   <h3 className="text-sm font-bold text-black uppercase">
                     選擇尺碼
                   </h3>
-                  <button className="text-sm text-gray-600 hover:text-black underline">
-                    尺碼指南
-                  </button>
+                  {/* 尺碼系統切換 */}
+                  <div className="flex gap-1">
+                    {(['CM', 'EU', 'US', 'UK'] as const).map((system) => (
+                      <button
+                        key={system}
+                        onClick={() => setSizeSystem(system)}
+                        className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                          sizeSystem === system
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {system}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {product.sizeCharts.map((size: any) => (
                     <button
                       key={size.id}
                       onClick={() => setSelectedSize(size)}
-                      disabled={size.stock === 0}
+                      disabled={getSizeStock(size) === 0}
                       className={`py-3 text-sm font-medium border transition-all ${
                         selectedSize?.id === size.id
                           ? 'bg-black text-white border-black'
-                          : size.stock === 0
+                          : getSizeStock(size) === 0
                           ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
                           : 'bg-white text-black border-gray-300 hover:border-black'
                       }`}
                     >
-                      EU {size.eu}
+                      {getSizeLabel(size)}
                     </button>
                   ))}
                 </div>
 
-                {/* ✅ 全部缺貨提示 */}
-                {product.sizeCharts.every((size: any) => size.stock === 0) && (
+                {/* ✅ 全部缺貨提示（根據當前選擇顏色的 SKU 庫存） */}
+                {product.sizeCharts.every((size: any) => getSizeStock(size) === 0) && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <div className="flex items-start gap-3">
                       <svg
