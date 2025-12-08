@@ -1,9 +1,12 @@
 /**
  * Review Resolvers
+ *
+ * 安全措施：對用戶輸入進行 HTML 清理，防止 XSS
  */
 
 import { GraphQLError } from 'graphql'
 import { prisma } from '@/lib/prisma'
+import { sanitizeHtml } from '@/lib/security'
 
 interface GraphQLContext {
   user?: {
@@ -98,13 +101,17 @@ export const reviewResolvers = {
           }
         }
 
+        // 安全措施：清理用戶輸入，防止 XSS
+        const sanitizedTitle = input.title ? sanitizeHtml(input.title) : null
+        const sanitizedContent = sanitizeHtml(input.content)
+
         const review = await prisma.review.create({
           data: {
             userId: user.userId,
             productId: input.productId,
             rating: input.rating,
-            title: input.title || null,
-            content: input.content,
+            title: sanitizedTitle,
+            content: sanitizedContent,
             images: input.images || [],
             orderId: input.orderId || null,
             sizeFit: input.sizeFit || null,

@@ -26,7 +26,7 @@ export default function RewardsPage() {
   const earnMethods = [
     { title: '購物消費', desc: '每$100獲得10積分', icon: '🛒' },
     { title: '商品評價', desc: '每則評價獲得50積分', icon: '⭐' },
-    { title: '邀請好友', desc: '好友首購獲得200積分', icon: '👥' },
+    { title: '邀請好友', desc: '好友每次消費獲得200積分', icon: '👥' },
     { title: '生日月', desc: '生日月消費積分2倍', icon: '🎉' }
   ]
 

@@ -48,7 +48,7 @@ export default function SuperDealsPage() {
 
   const referralBenefits = [
     { icon: '💰', title: '邀請獎勵', desc: '每邀請一位好友購買，獲得$100購物金' },
-    { icon: '🎁', title: '首購優惠', desc: '好友首次購買享85折優惠' },
+    { icon: '🎁', title: '持續獎勵', desc: '好友每次購買你都能獲得獎勵' },
     { icon: '📈', title: '累積獎勵', desc: '邀請越多，獎勵越豐厚' },
     { icon: '♾️', title: '永久有效', desc: '邀請碼永不過期，持續賺取獎勵' }
   ]

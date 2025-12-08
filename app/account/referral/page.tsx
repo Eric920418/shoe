@@ -276,7 +276,7 @@ export default function ReferralPage() {
               { num: '01', title: '複製連結', desc: '點擊「複製」按鈕獲取你的專屬邀請連結' },
               { num: '02', title: '分享給好友', desc: '通過社群媒體、Email 或 LINE 分享連結' },
               { num: '03', title: '好友訪問', desc: '好友通過你的連結訪問網站' },
-              { num: '04', title: '完成訂單', desc: '好友在網站上完成首次購物訂單' },
+              { num: '04', title: '完成訂單', desc: '好友在網站上完成任意購物訂單' },
               { num: '05', title: '自動發放', desc: `你將自動獲得 $${referralCode?.referrerReward} 購物金獎勵` },
               { num: '06', title: '無限獎勵', desc: '好友每次下單你都能持續獲得獎勵！' },
             ].map((step) => (

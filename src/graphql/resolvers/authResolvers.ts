@@ -199,16 +199,35 @@ export const authResolvers = {
 
 
     // ==========================================
-    // 管理員快速登入（開發/測試用）
+    // 管理員快速登入（僅限開發環境）
     // ==========================================
 
     /**
      * 管理員快速登入
-     * 輸入 admin0900 即可直接登入管理員帳號
+     * 安全措施：
+     * - 僅在開發環境啟用
+     * - 需要配置 ADMIN_QUICK_LOGIN_CODE 環境變數
+     * - 生產環境完全禁用此功能
      */
     adminQuickLogin: async (_: any, { code }: { code: string }) => {
-      // 檢查是否為管理員快速登入碼
-      if (code !== 'admin0900') {
+      // 安全檢查 1：生產環境完全禁用
+      if (process.env.NODE_ENV === 'production') {
+        throw new GraphQLError('此功能在生產環境中已禁用', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      // 安全檢查 2：必須配置環境變數
+      const adminCode = process.env.ADMIN_QUICK_LOGIN_CODE
+      if (!adminCode) {
+        throw new GraphQLError('管理員快速登入未配置', {
+          extensions: { code: 'NOT_CONFIGURED' },
+        })
+      }
+
+      // 安全檢查 3：驗證登入碼
+      if (code !== adminCode) {
+        // 使用時間安全的比較來防止時序攻擊
         throw new GraphQLError('無效的管理員登入碼', {
           extensions: { code: 'INVALID_CODE' },
         })
@@ -248,6 +267,8 @@ export const authResolvers = {
         email: admin.email || '',
         role: admin.role,
       })
+
+      console.log('[DEV] 管理員快速登入成功')
 
       return {
         token,

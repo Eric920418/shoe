@@ -1,5 +1,9 @@
 /**
  * 圖片服務 API - 提供上傳圖片的訪問
+ *
+ * 安全措施：
+ * - 路徑遍歷防護：驗證最終路徑必須在 public 目錄內
+ * - 只允許訪問特定的圖片目錄
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -7,18 +11,40 @@ import { readFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 
+// 允許訪問的目錄白名單
+const ALLOWED_DIRECTORIES = ['uploads', 'images', 'assets']
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    // 從 URL 參數中獲取檔案路徑
-    const filePath = params.path.join('/')
-    console.log('請求的檔案路徑:', filePath)
+    // 從 URL 參數中獲取檔案路徑（Next.js 16 params 為 Promise）
+    const { path: pathSegments } = await params
+    const filePath = pathSegments.join('/')
+
+    // 安全檢查 1：檢查是否包含路徑遍歷字符
+    if (filePath.includes('..') || filePath.includes('\0')) {
+      console.warn('安全警告：檢測到路徑遍歷嘗試:', filePath)
+      return new NextResponse('禁止訪問', { status: 403 })
+    }
+
+    // 安全檢查 2：驗證第一層目錄是否在白名單中
+    const firstDir = pathSegments[0]
+    if (!ALLOWED_DIRECTORIES.includes(firstDir)) {
+      console.warn('安全警告：嘗試訪問未授權目錄:', firstDir)
+      return new NextResponse('禁止訪問', { status: 403 })
+    }
 
     // 構建完整的檔案路徑
-    const fullPath = path.join(process.cwd(), 'public', filePath)
-    console.log('完整路徑:', fullPath)
+    const publicDir = path.resolve(process.cwd(), 'public')
+    const fullPath = path.resolve(publicDir, filePath)
+
+    // 安全檢查 3：確保解析後的路徑仍在 public 目錄內（防止符號連結攻擊）
+    if (!fullPath.startsWith(publicDir + path.sep)) {
+      console.warn('安全警告：路徑逃逸嘗試:', fullPath)
+      return new NextResponse('禁止訪問', { status: 403 })
+    }
 
     // 檢查檔案是否存在
     if (!existsSync(fullPath)) {

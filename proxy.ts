@@ -3,13 +3,22 @@ import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 /**
- * Next.js Middleware - 路由層級權限檢查
+ * Next.js 16 Proxy - 路由層級權限檢查
  * 使用 jose 庫（Edge Runtime 兼容）
+ *
+ * 安全措施：強制要求 JWT_SECRET 環境變數
+ *
+ * 注意：Next.js 16 將 middleware 重命名為 proxy
  */
 
+// 注意：Edge Runtime 中不能使用 throw 來阻止啟動
+// 但如果 JWT_SECRET 未設定，驗證會失敗，用戶會被重定向到登入頁
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key'
+  process.env.JWT_SECRET || ''
 )
+
+// 標記是否正確配置
+const IS_JWT_CONFIGURED = !!process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
 
 interface JWTPayload {
   userId: string
@@ -18,6 +27,12 @@ interface JWTPayload {
 }
 
 async function verifyToken(token: string): Promise<JWTPayload | null> {
+  // 安全檢查：如果 JWT_SECRET 未正確配置，拒絕所有驗證
+  if (!IS_JWT_CONFIGURED) {
+    console.error('安全錯誤：JWT_SECRET 未設定或過短')
+    return null
+  }
+
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return payload as JWTPayload
@@ -26,7 +41,7 @@ async function verifyToken(token: string): Promise<JWTPayload | null> {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 獲取 token（從 Cookie 或 Header）
@@ -78,7 +93,7 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
- * 配置 Middleware 匹配的路由
+ * 配置 Proxy 匹配的路由
  */
 export const config = {
   matcher: [

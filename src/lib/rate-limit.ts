@@ -14,13 +14,17 @@ interface RateLimitConfig {
  * @param identifier 標識符（IP 或 用户ID）
  * @param config 速率限制配置
  * @returns 是否允許請求
+ *
+ * 安全措施：預設啟用速率限制，只能通過明確的環境變數禁用
  */
 export async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig = { maxRequests: 100, windowMs: 60000 }
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
-  // 開發環境：跳過 rate limiting
-  if (process.env.NODE_ENV !== 'production') {
+  // 只有明確設定 DISABLE_RATE_LIMIT=true 時才跳過
+  // 這確保即使 NODE_ENV 設定錯誤，速率限制仍然生效
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    console.warn('警告：速率限制已禁用 (DISABLE_RATE_LIMIT=true)')
     return {
       allowed: true,
       remaining: config.maxRequests,

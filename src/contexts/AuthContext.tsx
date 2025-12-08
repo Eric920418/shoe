@@ -20,8 +20,8 @@ interface AuthContextType {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (token: string, user: User) => void
-  logout: () => void
+  login: (token: string, user: User) => Promise<void>
+  logout: () => Promise<void>
   updateUser: (user: User) => void
   getAuthenticatedClient: () => ReturnType<typeof createAuthenticatedClient> | null
 }
@@ -89,18 +89,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 登入
-  const login = (newToken: string, newUser: User) => {
+  const login = async (newToken: string, newUser: User) => {
     setToken(newToken)
     setUser(newUser)
     localStorage.setItem('token', newToken)
     localStorage.setItem('user', JSON.stringify(newUser))
 
-    // 設置 Cookie 給 middleware 使用
-    document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 天
+    // 通過 API 設置安全的 HttpOnly Cookie（防 XSS）
+    try {
+      await fetch('/api/auth/set-cookie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: newToken }),
+      })
+    } catch (error) {
+      console.error('設置安全 Cookie 失敗:', error)
+      // 降級方案：使用普通 Cookie（但仍設置 SameSite）
+      document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+    }
   }
 
   // 登出
-  const logout = () => {
+  const logout = async () => {
     setToken(null)
     setUser(null)
     localStorage.removeItem('token')
@@ -108,7 +118,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('cart')
     sessionStorage.clear()
 
-    // 清除 Cookie
+    // 通過 API 清除安全的 HttpOnly Cookie
+    try {
+      await fetch('/api/auth/set-cookie', {
+        method: 'DELETE',
+      })
+    } catch (error) {
+      console.error('清除安全 Cookie 失敗:', error)
+    }
+    // 同時清除普通 Cookie（確保完全登出）
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
   }
 

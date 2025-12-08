@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma'
 import { Context } from '../context'
 import { GraphQLError } from 'graphql'
+import { ProductCache } from '@/lib/cache'
 
 // 驗證管理員權限
 function requireAdmin(context: Context) {
@@ -118,7 +119,7 @@ export const skuResolvers = {
         throw new GraphQLError('庫存不能為負數')
       }
 
-      return await prisma.productSku.update({
+      const sku = await prisma.productSku.update({
         where: { id: skuId },
         data: { stock },
         include: {
@@ -126,6 +127,11 @@ export const skuResolvers = {
           sizeChart: true,
         },
       })
+
+      // ✅ 清除產品快取，確保產品列表顯示最新庫存
+      await ProductCache.invalidate(sku.productId)
+
+      return sku
     },
 
     // 批量更新 SKU 庫存
@@ -156,6 +162,9 @@ export const skuResolvers = {
           })
         )
       )
+
+      // ✅ 清除產品快取，確保產品列表顯示最新庫存
+      await ProductCache.invalidate(productId)
 
       return updatedSkus
     },
@@ -230,6 +239,9 @@ export const skuResolvers = {
         }
       }
 
+      // ✅ 清除產品快取，確保產品列表顯示最新 SKU 資訊
+      await ProductCache.invalidate(productId)
+
       return {
         created,
         skipped,
@@ -241,9 +253,20 @@ export const skuResolvers = {
     deleteSku: async (_: any, { id }: { id: string }, context: Context) => {
       requireAdmin(context)
 
+      // 先獲取 productId 以便清除快取
+      const sku = await prisma.productSku.findUnique({
+        where: { id },
+        select: { productId: true },
+      })
+
       await prisma.productSku.delete({
         where: { id },
       })
+
+      // ✅ 清除產品快取
+      if (sku) {
+        await ProductCache.invalidate(sku.productId)
+      }
 
       return true
     },

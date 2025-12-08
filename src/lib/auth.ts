@@ -1,7 +1,21 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+// 安全措施：強制要求設定 JWT_SECRET 環境變數
+const JWT_SECRET = process.env.JWT_SECRET
+
+if (!JWT_SECRET) {
+  throw new Error(
+    '安全錯誤：JWT_SECRET 環境變數未設定。' +
+    '請在 .env 檔案中設定一個強密鑰（建議至少 32 個字符的隨機字串）。' +
+    '生成方式：node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+  )
+}
+
+// 驗證密鑰強度（生產環境）
+if (process.env.NODE_ENV === 'production' && JWT_SECRET.length < 32) {
+  console.warn('安全警告：JWT_SECRET 過短，建議使用至少 32 個字符的強密鑰')
+}
 
 export interface JWTPayload {
   userId: string

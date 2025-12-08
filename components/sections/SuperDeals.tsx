@@ -45,7 +45,7 @@ const SuperDeals = () => {
     {
       id: 1,
       title: '邀請好友',
-      subtitle: '好友首購送購物金',
+      subtitle: '好友下單送購物金',
       image: '/api/placeholder/400/200',
       bgColor: 'from-purple-500 to-pink-500',
       link: '/account/referral'

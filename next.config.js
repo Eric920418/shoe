@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 图片优化配置
+  // 图片优化配置（Next.js 16 移除了 domains，使用 remotePatterns）
   images: {
-    domains: ['localhost', 'via.placeholder.com', 'images.unsplash.com'],
     // 支持所有本地路徑和遠端模式
     remotePatterns: [
       {
@@ -17,23 +16,22 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
+    // Next.js 16 默認 minimumCacheTTL 改為 4 小時
+    minimumCacheTTL: 14400,
   },
 
   // 性能优化
   compress: true, // 启用 gzip 压缩
-  swcMinify: true, // 使用 SWC 压缩代码（更快）
+  // 注意：Next.js 16 移除了 swcMinify 選項，默認使用 Turbopack
 
   // 生产环境优化
   productionBrowserSourceMaps: false, // 禁用源码映射以减少构建大小
   poweredByHeader: false, // 移除 X-Powered-By 头部（安全）
 
-  // 跳过类型检查和 ESLint 检查（生产构建）
+  // 跳过类型检查（生产构建）
+  // 注意：Next.js 16 移除了 eslint 配置，改為使用獨立的 ESLint
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // 实验性功能
@@ -54,6 +52,8 @@ const nextConfig = {
   },
 
   // 性能分析（开发环境）
+  // 注意：Next.js 16 默認使用 Turbopack，如需使用 webpack 配置，
+  // 請執行 `ANALYZE=true pnpm dev --webpack` 或 `ANALYZE=true pnpm build --webpack`
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config) => {
       const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')()

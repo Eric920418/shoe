@@ -1,9 +1,12 @@
 /**
  * 聊天室 Resolvers - 處理客服聊天功能
+ *
+ * 安全措施：對用戶輸入進行 HTML 清理，防止 XSS
  */
 
 import { GraphQLError } from 'graphql'
 import { prisma } from '@/lib/prisma'
+import { sanitizeHtml } from '@/lib/security'
 
 interface GraphQLContext {
   user?: {
@@ -161,16 +164,20 @@ export const chatResolvers = {
         })
       }
 
+      // 安全措施：清理用戶輸入，防止 XSS
+      const sanitizedSubject = subject ? sanitizeHtml(subject) : '新的諮詢'
+      const sanitizedMessage = sanitizeHtml(message)
+
       // 創建對話
       const conversation = await prisma.conversation.create({
         data: {
           userId: user.userId,
-          subject: subject || '新的諮詢',
+          subject: sanitizedSubject,
           messages: {
             create: {
               senderId: user.userId,
               senderType: 'USER',
-              content: message,
+              content: sanitizedMessage,
             },
           },
         },
@@ -219,13 +226,16 @@ export const chatResolvers = {
         })
       }
 
+      // 安全措施：清理用戶輸入，防止 XSS
+      const sanitizedContent = sanitizeHtml(content)
+
       // 創建訊息
       const message = await prisma.message.create({
         data: {
           conversationId,
           senderId: user.userId,
           senderType: user.role === 'ADMIN' ? 'ADMIN' : 'USER',
-          content,
+          content: sanitizedContent,
         },
       })
 

@@ -1,5 +1,10 @@
 /**
  * 圖片上傳 API - 儲存到本地 /public/uploads 資料夾
+ *
+ * 安全措施：
+ * - 資料夾白名單驗證：只允許上傳到指定目錄
+ * - 移除 SVG 支援：防止 XSS 攻擊
+ * - 路徑遍歷防護：驗證最終路徑在允許範圍內
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -7,11 +12,39 @@ import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 
+// 允許上傳的資料夾白名單
+const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews']
+
+// 允許的檔案類型（移除 SVG 防止 XSS）
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+
+// 允許的副檔名
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const folder = (formData.get('folder') as string) || 'products' // 預設為 products
+    const folderInput = (formData.get('folder') as string) || 'products'
+
+    // 安全檢查 1：驗證資料夾參數（只允許白名單內的值）
+    const folder = folderInput.toLowerCase().trim()
+    if (!ALLOWED_FOLDERS.includes(folder)) {
+      console.warn('安全警告：嘗試上傳到未授權資料夾:', folderInput)
+      return NextResponse.json(
+        { error: '無效的上傳目錄' },
+        { status: 400 }
+      )
+    }
+
+    // 安全檢查 2：防止路徑遍歷
+    if (folder.includes('..') || folder.includes('/') || folder.includes('\\')) {
+      console.warn('安全警告：檢測到路徑遍歷嘗試:', folderInput)
+      return NextResponse.json(
+        { error: '無效的上傳目錄' },
+        { status: 400 }
+      )
+    }
 
     if (!file) {
       return NextResponse.json(
@@ -20,11 +53,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 驗證文件類型
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml']
-    if (!allowedTypes.includes(file.type)) {
+    // 驗證文件類型（移除 SVG 支援，防止 XSS）
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: '僅支援 JPG、PNG、WebP、SVG 格式的圖片' },
+        { error: '僅支援 JPG、PNG、WebP 格式的圖片（基於安全考量不支援 SVG）' },
         { status: 400 }
       )
     }
@@ -38,16 +70,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 獲取文件擴展名
-    const ext = path.extname(file.name)
+    // 獲取並驗證文件擴展名
+    const ext = path.extname(file.name).toLowerCase()
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return NextResponse.json(
+        { error: '不支援的檔案格式' },
+        { status: 400 }
+      )
+    }
 
-    // 生成唯一文件名：timestamp_random.ext
+    // 生成唯一文件名：timestamp_random.ext（只使用安全字符）
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(2, 15)
     const fileName = `${timestamp}_${randomStr}${ext}`
 
-    // 確保上傳目錄存在（根據 folder 參數動態創建）
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder)
+    // 確保上傳目錄存在
+    const uploadsBase = path.resolve(process.cwd(), 'public', 'uploads')
+    const uploadDir = path.resolve(uploadsBase, folder)
+
+    // 安全檢查 3：再次確認路徑在允許範圍內
+    if (!uploadDir.startsWith(uploadsBase)) {
+      console.warn('安全警告：路徑逃逸嘗試')
+      return NextResponse.json(
+        { error: '無效的上傳目錄' },
+        { status: 400 }
+      )
+    }
+
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true })
     }

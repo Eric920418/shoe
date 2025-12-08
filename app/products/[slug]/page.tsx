@@ -16,9 +16,10 @@ import { getProductBySlug } from '@/lib/server-queries'
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }): Promise<Metadata> {
-  const product = await getProductBySlug(params.slug)
+  const { slug } = await params
+  const product = await getProductBySlug(slug)
 
   if (!product) {
     return {
@@ -36,9 +37,10 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const product = await getProductBySlug(params.slug)
+  const { slug } = await params
+  const product = await getProductBySlug(slug)
 
   if (!product) {
     notFound()
