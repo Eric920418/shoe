@@ -2,9 +2,10 @@
 
 /**
  * 尺碼管理組件 - 頁面內編輯版本（無彈窗）
+ * 支援自動尺碼換算：輸入公分自動計算 EU/US/UK
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import {
   GET_PRODUCT_SIZE_CHARTS,
@@ -13,6 +14,7 @@ import {
   DELETE_SIZE_CHART,
 } from '@/graphql/queries'
 import toast from 'react-hot-toast'
+import { convertSizeFromCm, type GenderType } from '@/lib/sizeConversion'
 
 interface SizeChart {
   id: string
@@ -58,6 +60,8 @@ const defaultWomenSizes: Omit<SizeChart, 'id' | 'productId' | 'variantId' | 'sto
 export default function SizeManagement({ productId }: SizeManagementProps) {
   const [editingSize, setEditingSize] = useState<Partial<SizeChart> | null>(null)
   const [showBatchImport, setShowBatchImport] = useState(false)
+  const [selectedGender, setSelectedGender] = useState<GenderType>('MEN')
+  const [isManualMode, setIsManualMode] = useState(false) // 手動編輯模式
 
   // 查詢尺碼數據
   const { data, loading, error, refetch } = useQuery(GET_PRODUCT_SIZE_CHARTS, {
@@ -126,11 +130,61 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
       footWidth: '標準',
       isActive: true,
     })
+    setIsManualMode(false) // 新增時預設為自動換算模式
     // 滾動到表單位置
     setTimeout(() => {
       document.getElementById('size-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 100)
   }
+
+  // 處理公分輸入並自動換算
+  const handleCmChange = useCallback((cmValue: string) => {
+    const cmNum = parseFloat(cmValue)
+
+    // 更新 cm 和 footLength
+    setEditingSize((prev) => {
+      if (!prev) return null
+
+      const updated: Partial<SizeChart> = {
+        ...prev,
+        cm: cmValue,
+        footLength: isNaN(cmNum) ? 0 : cmNum,
+      }
+
+      // 只有在非手動模式且有有效的公分數時才自動換算
+      if (!isManualMode && !isNaN(cmNum) && cmNum > 0) {
+        const converted = convertSizeFromCm(cmNum, selectedGender)
+        if (converted) {
+          updated.eu = converted.eu
+          updated.us = converted.us
+          updated.uk = converted.uk
+        }
+      }
+
+      return updated
+    })
+  }, [isManualMode, selectedGender])
+
+  // 當性別改變時重新換算
+  const handleGenderChange = useCallback((gender: GenderType) => {
+    setSelectedGender(gender)
+
+    // 如果有輸入公分數，重新換算
+    if (editingSize?.cm && !isManualMode) {
+      const cmNum = parseFloat(editingSize.cm)
+      if (!isNaN(cmNum) && cmNum > 0) {
+        const converted = convertSizeFromCm(cmNum, gender)
+        if (converted) {
+          setEditingSize((prev) => prev ? {
+            ...prev,
+            eu: converted.eu,
+            us: converted.us,
+            uk: converted.uk,
+          } : null)
+        }
+      }
+    }
+  }, [editingSize?.cm, isManualMode])
 
   // 保存尺碼
   const handleSave = async () => {
@@ -441,73 +495,145 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
             </button>
           </div>
 
+          {/* 自動換算提示 */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-green-900">智能尺碼換算</p>
+                <p className="text-xs text-green-700 mt-1">
+                  只需輸入腳長公分數，系統會自動計算對應的 EU、US、UK 尺碼。
+                  {!isManualMode && ' 如需手動調整，請切換到手動模式。'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 性別選擇和模式切換 */}
+          <div className="flex flex-wrap items-center gap-4 mb-6 pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">換算規則：</span>
+              <div className="flex gap-1">
+                {(['MEN', 'WOMEN', 'KIDS'] as GenderType[]).map((gender) => (
+                  <button
+                    key={gender}
+                    type="button"
+                    onClick={() => handleGenderChange(gender)}
+                    disabled={isManualMode}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      selectedGender === gender
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    } ${isManualMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {gender === 'MEN' ? '男款' : gender === 'WOMEN' ? '女款' : '童款'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isManualMode}
+                  onChange={(e) => setIsManualMode(e.target.checked)}
+                />
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+                <span className="ml-2 text-sm font-medium text-gray-700">手動編輯</span>
+              </label>
+            </div>
+          </div>
+
+          {/* 主要輸入區域 - 公分輸入 */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              腳長公分數 (CM) <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 max-w-xs">
+                <input
+                  type="number"
+                  value={editingSize.cm}
+                  onChange={(e) => handleCmChange(e.target.value)}
+                  className="w-full px-4 py-3 text-lg font-semibold border-2 border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="輸入公分數，例如：26"
+                  step="0.5"
+                  min="15"
+                  max="35"
+                />
+              </div>
+              <div className="text-gray-600">
+                <span className="text-sm">公分 (cm)</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              輸入腳長公分數後，系統會自動換算對應的國際尺碼
+            </p>
+          </div>
+
+          {/* 換算結果顯示 */}
+          {editingSize.cm && parseFloat(editingSize.cm) > 0 && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-blue-600 font-medium mb-1">歐碼 (EU)</div>
+                <div className="text-2xl font-bold text-blue-700">{editingSize.eu || '-'}</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-purple-600 font-medium mb-1">美碼 (US)</div>
+                <div className="text-2xl font-bold text-purple-700">{editingSize.us || '-'}</div>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-orange-600 font-medium mb-1">英碼 (UK)</div>
+                <div className="text-2xl font-bold text-orange-700">{editingSize.uk || '-'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* 手動編輯區域（僅在手動模式下顯示） */}
+          {isManualMode && (
+            <div className="border border-gray-200 rounded-lg p-4 mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">手動調整尺碼：</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">歐碼 (EU)</label>
+                  <input
+                    type="text"
+                    value={editingSize.eu}
+                    onChange={(e) => updateEditingField('eu', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="42"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">美碼 (US)</label>
+                  <input
+                    type="text"
+                    value={editingSize.us}
+                    onChange={(e) => updateEditingField('us', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="8.5"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">英碼 (UK)</label>
+                  <input
+                    type="text"
+                    value={editingSize.uk}
+                    onChange={(e) => updateEditingField('uk', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="7.5"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 其他選項 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                歐碼 (EU) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={editingSize.eu}
-                onChange={(e) => updateEditingField('eu', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: 42"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                美碼 (US) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={editingSize.us}
-                onChange={(e) => updateEditingField('us', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: 8.5"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                英碼 (UK) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={editingSize.uk}
-                onChange={(e) => updateEditingField('uk', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: 7.5"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                厘米 (CM) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={editingSize.cm}
-                onChange={(e) => updateEditingField('cm', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: 26"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                腳長 (cm) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={editingSize.footLength}
-                onChange={(e) => updateEditingField('footLength', Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="26.0"
-                step="0.5"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">腳寬</label>
               <select

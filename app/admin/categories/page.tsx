@@ -51,9 +51,10 @@ export default function CategoriesPage() {
   })
 
   const [deleteCategory, { loading: deleting }] = useMutation(DELETE_CATEGORY, {
+    refetchQueries: [{ query: GET_CATEGORIES }],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       toast.success('分類刪除成功')
-      refetch()
     },
     onError: (error) => {
       toast.error(`刪除失敗：${error.message}`)

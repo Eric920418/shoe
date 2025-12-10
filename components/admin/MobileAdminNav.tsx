@@ -44,7 +44,7 @@ const fullNavItems = [
   {
     title: "客戶管理",
     items: [
-      { name: "用戶列表", href: "/admin/users", icon: "👥" },
+      { name: "客戶", href: "/admin/users", icon: "👥" },
       { name: "會員等級", href: "/admin/membership-tiers", icon: "⭐" },
     ],
   },

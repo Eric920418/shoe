@@ -11,6 +11,7 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   // 確保 images 始終是陣列
   const safeImages = Array.isArray(images) ? images : []
@@ -96,42 +97,77 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
 
       {safeImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {safeImages.map((url, index) => (
-            <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-              {index === 0 && (
-                <div className="absolute top-2 left-2 z-10 bg-primary-600 text-white text-xs px-2 py-1 rounded">主圖</div>
-              )}
-              {/* 對於上傳的圖片，使用標準 img 標籤避免 Next.js Image 優化問題 */}
-              {url.includes('/uploads/') || url.includes('/api/images/') ? (
-                <img
-                  src={url}
-                  alt={'產品圖片 ' + (index + 1)}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <Image
-                  src={url}
-                  alt={'產品圖片 ' + (index + 1)}
-                  fill
-                  className="object-cover"
-                  sizes="200px"
-                />
-              )}
-              <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                {index > 0 && (
-                  <button type="button" onClick={() => handleReorder(index, index - 1)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors" title="左移">←</button>
+          {safeImages.map((url, index) => {
+            const isSelected = selectedIndex === index
+            return (
+              <div
+                key={index}
+                className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200"
+                onClick={() => setSelectedIndex(isSelected ? null : index)}
+              >
+                {index === 0 && (
+                  <div className="absolute top-2 left-2 z-10 bg-primary-600 text-white text-xs px-2 py-1 rounded">主圖</div>
                 )}
-                <button type="button" onClick={() => handleRemove(index)} className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors" title="刪除">×</button>
-                {index < safeImages.length - 1 && (
-                  <button type="button" onClick={() => handleReorder(index, index + 1)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors" title="右移">→</button>
+                {/* 對於上傳的圖片，使用標準 img 標籤避免 Next.js Image 優化問題 */}
+                {url.includes('/uploads/') || url.includes('/api/images/') ? (
+                  <img
+                    src={url}
+                    alt={'產品圖片 ' + (index + 1)}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={url}
+                    alt={'產品圖片 ' + (index + 1)}
+                    fill
+                    className="object-cover"
+                    sizes="200px"
+                  />
                 )}
+                {/* 桌面版：hover 顯示；手機版：點擊後顯示 */}
+                <div className={`absolute inset-0 bg-black bg-opacity-50 transition-opacity flex items-center justify-center gap-2 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleReorder(index, index - 1); setSelectedIndex(index - 1); }}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center text-lg"
+                      title="左移"
+                    >
+                      ←
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRemove(index); setSelectedIndex(null); }}
+                    className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 active:bg-red-800 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center text-lg"
+                    title="刪除"
+                  >
+                    ×
+                  </button>
+                  {index < safeImages.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleReorder(index, index + 1); setSelectedIndex(index + 1); }}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center text-lg"
+                      title="右移"
+                    >
+                      →
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {safeImages.length === 0 && <p className="text-sm text-gray-500">尚未上傳任何圖片</p>}
+
+      {safeImages.length > 1 && (
+        <p className="text-xs text-gray-500 md:hidden">
+          點擊圖片可顯示排序按鈕，第一張為主圖
+        </p>
+      )}
     </div>
   )
 }
