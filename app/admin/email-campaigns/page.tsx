@@ -582,21 +582,6 @@ export default function EmailCampaignsPage() {
         </table>
       </div>
 
-      {/* 環境變數提示 */}
-      <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="font-semibold text-yellow-800 mb-2">⚠️ 配置提示</h3>
-        <p className="text-sm text-yellow-700 mb-2">
-          使用郵件功能前，請在 <code className="bg-yellow-100 px-1">.env</code> 中設定：
-        </p>
-        <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-          <li>SMTP_HOST - SMTP 伺服器地址（例如：smtp.gmail.com）</li>
-          <li>SMTP_PORT - SMTP 端口（通常為 587）</li>
-          <li>SMTP_USER - SMTP 帳號</li>
-          <li>SMTP_PASSWORD - SMTP 密碼</li>
-          <li>SMTP_FROM_EMAIL - 發件人郵件地址</li>
-          <li>SMTP_FROM_NAME - 發件人名稱</li>
-        </ul>
-      </div>
     </div>
   )
 }
