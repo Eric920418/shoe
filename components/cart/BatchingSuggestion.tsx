@@ -1,5 +1,20 @@
 'use client'
 
+/**
+ * 智能配送建議組件 - 暫時關閉
+ *
+ * 此功能用於貨到付款時的數量限制提示：
+ * - 單獨包裝：限購 1 件
+ * - 合併包裝：取所有商品 maxCombinedQuantity 的最小值
+ *
+ * 相關檔案：
+ * - src/lib/cart-batching.ts - 後端邏輯
+ * - src/graphql/resolvers/cartResolvers.ts - GraphQL Mutations
+ * - src/graphql/schema.ts - GraphQL 類型定義
+ *
+ * 啟用方式：在 app/cart/page.tsx 中取消註解 import 和組件使用
+ */
+
 import { useState } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { gql } from '@apollo/client'

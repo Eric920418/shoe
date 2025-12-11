@@ -14,7 +14,8 @@
       "Bash(sudo -u postgres psql:*)",
       "Bash(find:*)",
       "Bash(sudo tail:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(pnpm prisma db push:*)"
     ],
     "deny": [],
     "ask": []

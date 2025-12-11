@@ -8,10 +8,12 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery } from '@apollo/client'
-import { CREATE_PRODUCT, CREATE_SIZE_CHART, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS } from '@/graphql/queries'
+import { CREATE_PRODUCT, CREATE_SIZE_CHART, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS, GET_ALL_PRODUCT_OPTIONS } from '@/graphql/queries'
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
+import ProductOptionManager from '@/components/admin/ProductOptionManager'
 import { convertSizeFromCm, type GenderType } from '@/lib/sizeConversion'
+import { Settings } from 'lucide-react'
 
 interface ProductFormData {
   name: string
@@ -76,17 +78,12 @@ const initialFormData: ProductFormData = {
   minPackagingUnits: 1,
 }
 
-// 可選的鞋子特性
-const availableFeatures = [
-  '防水',
-  '透氣',
-  '防滑',
-  '減震',
-  '輕量',
-  '耐磨',
-  '抗菌',
-  '快乾',
-]
+interface ProductOption {
+  id: string
+  name: string
+  sortOrder: number
+  isActive: boolean
+}
 
 // 預設尺碼對照表（男鞋）
 const defaultMenSizes: Omit<TempSizeChart, 'isActive'>[] = [
@@ -128,6 +125,18 @@ export default function NewProductPage() {
   const { data: brandsData, loading: brandsLoading, error: brandsError } = useQuery(GET_BRANDS)
   // 獲取分類列表
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES)
+  // 獲取產品選項（鞋型、閉合方式、產品特性）
+  const { data: optionsData, loading: optionsLoading, refetch: refetchOptions } = useQuery(GET_ALL_PRODUCT_OPTIONS)
+
+  // 從 API 獲取的選項
+  const shoeTypeOptions: ProductOption[] = optionsData?.shoeTypeOptions || []
+  const closureOptions: ProductOption[] = optionsData?.closureOptions || []
+  const featureOptions: ProductOption[] = optionsData?.featureOptions || []
+
+  // 選項管理彈窗狀態
+  const [showShoeTypeManager, setShowShoeTypeManager] = useState(false)
+  const [showClosureManager, setShowClosureManager] = useState(false)
+  const [showFeatureManager, setShowFeatureManager] = useState(false)
 
   // 創建尺碼表 mutation
   const [createSizeChart] = useMutation(CREATE_SIZE_CHART)
@@ -694,24 +703,43 @@ export default function NewProductPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 鞋型 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                鞋型
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  鞋型
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowShoeTypeManager(!showShoeTypeManager)}
+                  className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                >
+                  <Settings className="w-3 h-3" />
+                  管理選項
+                </button>
+              </div>
               <select
                 value={formData.shoeType}
                 onChange={(e) => updateField('shoeType', e.target.value)}
+                disabled={optionsLoading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">請選擇鞋型</option>
-                <option value="運動鞋">運動鞋</option>
-                <option value="跑步鞋">跑步鞋</option>
-                <option value="籃球鞋">籃球鞋</option>
-                <option value="皮鞋">皮鞋</option>
-                <option value="休閒鞋">休閒鞋</option>
-                <option value="涼鞋">涼鞋</option>
-                <option value="靴子">靴子</option>
-                <option value="拖鞋">拖鞋</option>
+                <option value="">{optionsLoading ? '載入中...' : '請選擇鞋型'}</option>
+                {shoeTypeOptions.map((option) => (
+                  <option key={option.id} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
               </select>
+              {showShoeTypeManager && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <ProductOptionManager
+                    type="SHOE_TYPE"
+                    options={shoeTypeOptions}
+                    onOptionCreated={() => refetchOptions()}
+                    onOptionUpdated={() => refetchOptions()}
+                    onOptionDeleted={() => refetchOptions()}
+                  />
+                </div>
+              )}
             </div>
 
             {/* 性別 */}
@@ -769,21 +797,43 @@ export default function NewProductPage() {
 
             {/* 閉合方式 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                閉合方式
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  閉合方式
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowClosureManager(!showClosureManager)}
+                  className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                >
+                  <Settings className="w-3 h-3" />
+                  管理選項
+                </button>
+              </div>
               <select
                 value={formData.closure}
                 onChange={(e) => updateField('closure', e.target.value)}
+                disabled={optionsLoading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">請選擇閉合方式</option>
-                <option value="系帶">系帶</option>
-                <option value="魔術貼">魔術貼</option>
-                <option value="拉鍊">拉鍊</option>
-                <option value="套腳">套腳</option>
-                <option value="扣環">扣環</option>
+                <option value="">{optionsLoading ? '載入中...' : '請選擇閉合方式'}</option>
+                {closureOptions.map((option) => (
+                  <option key={option.id} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
               </select>
+              {showClosureManager && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <ProductOptionManager
+                    type="CLOSURE"
+                    options={closureOptions}
+                    onOptionCreated={() => refetchOptions()}
+                    onOptionUpdated={() => refetchOptions()}
+                    onOptionDeleted={() => refetchOptions()}
+                  />
+                </div>
+              )}
             </div>
 
             {/* 鞋底材質 */}
@@ -803,24 +853,51 @@ export default function NewProductPage() {
 
           {/* 產品特性 */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              產品特性
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                產品特性
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFeatureManager(!showFeatureManager)}
+                className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                <Settings className="w-3 h-3" />
+                管理選項
+              </button>
+            </div>
+            {showFeatureManager && (
+              <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <ProductOptionManager
+                  type="FEATURE"
+                  options={featureOptions}
+                  onOptionCreated={() => refetchOptions()}
+                  onOptionUpdated={() => refetchOptions()}
+                  onOptionDeleted={() => refetchOptions()}
+                />
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
-              {availableFeatures.map((feature) => (
-                <button
-                  key={feature}
-                  type="button"
-                  onClick={() => toggleFeature(feature)}
-                  className={`px-3 py-1 rounded-lg border-2 text-sm font-medium transition-colors ${
-                    formData.features.includes(feature)
-                      ? 'bg-primary-50 border-primary-500 text-primary-700'
-                      : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  {feature}
-                </button>
-              ))}
+              {optionsLoading ? (
+                <p className="text-sm text-gray-500">載入中...</p>
+              ) : featureOptions.length === 0 ? (
+                <p className="text-sm text-gray-500">尚無可選特性，請點擊「管理選項」新增</p>
+              ) : (
+                featureOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleFeature(option.name)}
+                    className={`px-3 py-1 rounded-lg border-2 text-sm font-medium transition-colors ${
+                      formData.features.includes(option.name)
+                        ? 'bg-primary-50 border-primary-500 text-primary-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    {option.name}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

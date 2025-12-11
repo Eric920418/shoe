@@ -1458,6 +1458,28 @@ enum PopularAlgorithm {
   TRENDING
 }
 
+// 產品選項類型
+enum ProductOptionType {
+  SHOE_TYPE    // 鞋型
+  CLOSURE      // 閉合方式
+  FEATURE      // 產品特性
+}
+
+// 產品選項管理（鞋型、閉合方式、產品特性）
+model ProductOption {
+  id        String            @id @default(cuid())
+  type      ProductOptionType
+  name      String
+  sortOrder Int               @default(0)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([type, name])
+  @@index([type, isActive, sortOrder])
+  @@map("product_options")
+}
+
 enum EmailCampaignStatus {
   DRAFT
   SCHEDULED

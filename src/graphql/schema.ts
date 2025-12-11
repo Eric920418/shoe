@@ -1215,6 +1215,36 @@ export const typeDefs = gql`
     TRENDING
   }
 
+  # 產品選項類型（鞋型、閉合方式、產品特性）
+  enum ProductOptionType {
+    SHOE_TYPE    # 鞋型
+    CLOSURE      # 閉合方式
+    FEATURE      # 產品特性
+  }
+
+  # 產品選項（動態管理鞋型、閉合方式、產品特性）
+  type ProductOption {
+    id: ID!
+    type: ProductOptionType!
+    name: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input CreateProductOptionInput {
+    type: ProductOptionType!
+    name: String!
+    sortOrder: Int
+  }
+
+  input UpdateProductOptionInput {
+    name: String
+    sortOrder: Int
+    isActive: Boolean
+  }
+
   # Input 類型定義
   input HomepageConfigOrder {
     componentId: String!
@@ -1789,6 +1819,12 @@ export const typeDefs = gql`
 
     # 智能分單建議
     analyzeCartForBatching: CartBatchingAnalysis!
+
+    # 產品選項管理
+    productOptions(type: ProductOptionType): [ProductOption!]!
+    shoeTypeOptions: [ProductOption!]!
+    closureOptions: [ProductOption!]!
+    featureOptions: [ProductOption!]!
   }
 
   # 退貨列表響應
@@ -2034,6 +2070,11 @@ export const typeDefs = gql`
     # 用戶郵件訂閱管理
     updateEmailSubscription(subscribed: Boolean!): User!
     unsubscribeEmail(token: String!): Boolean!
+
+    # 產品選項管理（Admin）
+    createProductOption(input: CreateProductOptionInput!): ProductOption!
+    updateProductOption(id: ID!, input: UpdateProductOptionInput!): ProductOption!
+    deleteProductOption(id: ID!): Boolean!
   }
 
   # ==================== Response 類型 ====================

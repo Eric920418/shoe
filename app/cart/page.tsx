@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import MembershipBenefitsBanner from '@/components/common/MembershipBenefitsBanner'
 import Breadcrumb from '@/components/common/Breadcrumb'
-import CartBatchingSuggestion from '@/components/cart/BatchingSuggestion'
+// import CartBatchingSuggestion from '@/components/cart/BatchingSuggestion' // 暫時關閉智能配送建議功能
 
 // ✅ 解析圖片陣列（提取為獨立函數）
 const parseImages = (images: string[] | string): string[] => {
@@ -259,13 +259,19 @@ export default function CartPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        {/* 智能分單建議 - 只在登入且有商品時顯示 */}
-        {isAuthenticated && cartItems.length > 0 && (
-          <CartBatchingSuggestion
-            isAuthenticated={isAuthenticated}
-            onBatchingOptimized={() => refetch()}
-          />
-        )}
+        {/*
+          智能配送建議功能 - 暫時關閉
+          此功能用於貨到付款時的數量限制提示
+          - 單獨包裝：限購 1 件
+          - 合併包裝：取所有商品 maxCombinedQuantity 的最小值
+
+          {isAuthenticated && cartItems.length > 0 && (
+            <CartBatchingSuggestion
+              isAuthenticated={isAuthenticated}
+              onBatchingOptimized={() => refetch()}
+            />
+          )}
+        */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* 左側：商品列表 */}

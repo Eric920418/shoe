@@ -1526,3 +1526,105 @@ export const BATCH_UPDATE_SKU_STOCK = gql`
     }
   }
 `
+
+// ============================================
+// 產品選項管理（鞋型、閉合方式、產品特性）
+// ============================================
+
+export const GET_SHOE_TYPE_OPTIONS = gql`
+  query GetShoeTypeOptions {
+    shoeTypeOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const GET_CLOSURE_OPTIONS = gql`
+  query GetClosureOptions {
+    closureOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const GET_FEATURE_OPTIONS = gql`
+  query GetFeatureOptions {
+    featureOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const GET_ALL_PRODUCT_OPTIONS = gql`
+  query GetAllProductOptions {
+    shoeTypeOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+    closureOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+    featureOptions {
+      id
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const GET_PRODUCT_OPTIONS_BY_TYPE = gql`
+  query GetProductOptionsByType($type: ProductOptionType!) {
+    productOptions(type: $type) {
+      id
+      type
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const CREATE_PRODUCT_OPTION = gql`
+  mutation CreateProductOption($input: CreateProductOptionInput!) {
+    createProductOption(input: $input) {
+      id
+      type
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const UPDATE_PRODUCT_OPTION = gql`
+  mutation UpdateProductOption($id: ID!, $input: UpdateProductOptionInput!) {
+    updateProductOption(id: $id, input: $input) {
+      id
+      type
+      name
+      sortOrder
+      isActive
+    }
+  }
+`
+
+export const DELETE_PRODUCT_OPTION = gql`
+  mutation DeleteProductOption($id: ID!) {
+    deleteProductOption(id: $id)
+  }
+`

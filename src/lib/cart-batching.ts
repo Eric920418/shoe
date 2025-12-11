@@ -1,11 +1,18 @@
 /**
- * 購物車智能配送服務
+ * 購物車智能配送服務 - 暫時關閉
  * 處理7-11超商取貨（貨到付款）的包裝限制
  *
  * 規則：
  * 1. 限制只適用於「貨到付款」（7-11取貨付款），其他付款方式沒有限制
  * 2. 單獨包裝 + 貨到付款：只能一件（一雙鞋）
  * 3. 合併包裝 + 貨到付款：取購物車中所有商品的「合併包裝最大數量」的最小值
+ *
+ * 相關檔案：
+ * - components/cart/BatchingSuggestion.tsx - 前端組件
+ * - src/graphql/resolvers/cartResolvers.ts - GraphQL Mutations
+ * - src/graphql/schema.ts - GraphQL 類型定義
+ *
+ * 啟用方式：在 app/cart/page.tsx 中取消註解相關代碼
  */
 
 import { PrismaClient, CartItem, Product } from '@prisma/client'
