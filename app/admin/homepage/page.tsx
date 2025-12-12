@@ -7,6 +7,7 @@ import {
   Save, Plus, Trash2, Edit, Clock, Image as ImageIcon,
   Tag, ShoppingBag, Star, Gift, Megaphone, Package
 } from 'lucide-react'
+import SingleImageUpload from '@/components/admin/SingleImageUpload'
 
 // GraphQL 查詢和變更
 const GET_HOMEPAGE_DATA = gql`
@@ -16,6 +17,7 @@ const GET_HOMEPAGE_DATA = gql`
       title
       subtitle
       description
+      image
       link
       cta
       bgColor
@@ -227,6 +229,7 @@ export default function HomepageManagement() {
     title: '',
     subtitle: '',
     description: '',
+    image: '',
     link: '/flash-sale',
     cta: '立即搶購',
     bgColor: 'from-red-500 to-orange-500',
@@ -309,10 +312,11 @@ export default function HomepageManagement() {
         title: '',
         subtitle: '',
         description: '',
-        linkUrl: '/flash-sale',
-        buttonText: '立即搶購',
+        image: '',
+        link: '/flash-sale',
+        cta: '立即搶購',
         bgColor: 'from-red-500 to-orange-500',
-        tag: '限時特賣'
+        isActive: true
       })
       refetch()
     } catch (error) {
@@ -695,10 +699,26 @@ export default function HomepageManagement() {
             <div className="space-y-3 mb-6">
               {data?.heroSlides?.map((slide) => (
                 <div key={slide.id} className="border rounded-lg p-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">{slide.title}</h3>
-                    <p className="text-sm text-gray-600">{slide.subtitle}</p>
-                    <p className="text-xs text-gray-500 mt-1">{slide.description}</p>
+                  <div className="flex items-center gap-4">
+                    {/* 縮圖預覽 */}
+                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      {slide.image ? (
+                        <img
+                          src={slide.image}
+                          alt={slide.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-r ${slide.bgColor || 'from-gray-400 to-gray-500'} flex items-center justify-center`}>
+                          <ImageIcon size={20} className="text-white/50" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{slide.title}</h3>
+                      <p className="text-sm text-gray-600">{slide.subtitle}</p>
+                      <p className="text-xs text-gray-500 mt-1">{slide.description}</p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -735,6 +755,20 @@ export default function HomepageManagement() {
               <h3 className="font-semibold mb-4">
                 {editingSlide ? '編輯輪播圖' : '新增輪播圖'}
               </h3>
+
+              {/* 背景圖片上傳 */}
+              <div className="mb-6">
+                <SingleImageUpload
+                  value={slideForm.image}
+                  onChange={(url) => setSlideForm({ ...slideForm, image: url })}
+                  label="背景圖片（建議尺寸：1920x600 像素）"
+                  folder="banners"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  如果沒有上傳背景圖片，將使用下方選擇的背景顏色
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -798,7 +832,7 @@ export default function HomepageManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    背景顏色
+                    背景顏色（無圖片時使用）
                   </label>
                   <select
                     value={slideForm.bgColor}
@@ -828,10 +862,11 @@ export default function HomepageManagement() {
                         title: '',
                         subtitle: '',
                         description: '',
-                        linkUrl: '/flash-sale',
-                        buttonText: '立即搶購',
+                        image: '',
+                        link: '/flash-sale',
+                        cta: '立即搶購',
                         bgColor: 'from-red-500 to-orange-500',
-                        tag: '限時特賣'
+                        isActive: true
                       })
                     }}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"

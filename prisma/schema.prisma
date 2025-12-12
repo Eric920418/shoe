@@ -953,6 +953,7 @@ model HeroSlide {
   title          String
   subtitle       String?
   description    String?
+  image          String?      // 背景圖片 URL
   cta            String
   link           String
   sortOrder      Int          @default(0)

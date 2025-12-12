@@ -954,6 +954,7 @@ export const typeDefs = gql`
     title: String!
     subtitle: String
     description: String
+    image: String
     cta: String!
     ctaSecondary: String
     link: String!
@@ -974,6 +975,7 @@ export const typeDefs = gql`
     title: String!
     subtitle: String
     description: String
+    image: String
     cta: String!
     ctaSecondary: String
     link: String!
@@ -992,6 +994,7 @@ export const typeDefs = gql`
     title: String
     subtitle: String
     description: String
+    image: String
     cta: String
     ctaSecondary: String
     link: String

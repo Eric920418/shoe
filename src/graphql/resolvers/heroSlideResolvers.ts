@@ -17,9 +17,10 @@ interface CreateHeroSlideInput {
   title: string
   subtitle?: string
   description?: string
-  image: string
+  image?: string
   cta: string
   link: string
+  bgColor?: string
   sortOrder?: number
   isActive?: boolean
 }
@@ -31,6 +32,7 @@ interface UpdateHeroSlideInput {
   image?: string
   cta?: string
   link?: string
+  bgColor?: string
   sortOrder?: number
   isActive?: boolean
 }
@@ -115,9 +117,10 @@ export const heroSlideResolvers = {
           title: input.title,
           subtitle: input.subtitle || null,
           description: input.description || null,
-          image: input.image,
+          image: input.image || null,
           cta: input.cta,
           link: input.link,
+          bgColor: input.bgColor || null,
           sortOrder,
           isActive: input.isActive ?? true,
         },
@@ -151,9 +154,10 @@ export const heroSlideResolvers = {
       if (input.title !== undefined) updateData.title = input.title
       if (input.subtitle !== undefined) updateData.subtitle = input.subtitle || null
       if (input.description !== undefined) updateData.description = input.description || null
-      if (input.image !== undefined) updateData.image = input.image
+      if (input.image !== undefined) updateData.image = input.image || null
       if (input.cta !== undefined) updateData.cta = input.cta
       if (input.link !== undefined) updateData.link = input.link
+      if (input.bgColor !== undefined) updateData.bgColor = input.bgColor || null
       if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder
       if (input.isActive !== undefined) updateData.isActive = input.isActive
 
