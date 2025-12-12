@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { gql, useMutation, useQuery } from '@apollo/client'
 import Link from 'next/link'
 import AccountHeader from '@/components/navigation/AccountHeader'
+import { Copy, Check, Gift, ChevronRight } from 'lucide-react'
 
 // GraphQL
 const GET_USER_PROFILE = gql`
@@ -42,6 +43,15 @@ const UPDATE_PROFILE = gql`
       name
       email
       phone
+    }
+  }
+`
+
+const GET_MY_REFERRAL_CODE = gql`
+  query GetMyReferralCode {
+    myReferralCode {
+      code
+      referrerReward
     }
   }
 `
@@ -117,6 +127,7 @@ const getMembershipTierStyles = (tier: string | null | undefined) => {
 export default function AccountPage() {
   const { user: authUser, updateUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -132,6 +143,10 @@ export default function AccountPage() {
         phone: data.me.phone || '',
       })
     },
+  })
+
+  const { data: referralData } = useQuery(GET_MY_REFERRAL_CODE, {
+    skip: !authUser,
   })
 
   const [updateProfile, { loading: updating }] = useMutation(UPDATE_PROFILE, {
@@ -165,6 +180,22 @@ export default function AccountPage() {
         input: formData,
       },
     })
+  }
+
+  // 生成邀請連結
+  const referralCode = referralData?.myReferralCode
+  const referralUrl = typeof window !== 'undefined' && referralCode?.code
+    ? `${window.location.origin}?ref=${referralCode.code}`
+    : ''
+
+  const handleCopyReferral = async () => {
+    try {
+      await navigator.clipboard.writeText(referralUrl)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      alert('複製失敗，請手動複製')
+    }
   }
 
   if (loading) {
@@ -215,6 +246,71 @@ export default function AccountPage() {
                   >
                     立即綁定
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* 分享邀請連結賺購物金 */}
+            {referralCode && (
+              <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl shadow-lg p-4 sm:p-6 border-2 border-emerald-300">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex-shrink-0 hidden sm:block">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <Gift className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2 flex items-center gap-2">
+                      <Gift className="w-5 h-5 sm:hidden" />
+                      分享連結賺購物金
+                    </h3>
+                    <p className="text-white/90 text-sm mb-4">
+                      分享你的專屬連結給好友，好友完成訂單後，你將獲得
+                      <span className="font-bold text-yellow-200"> NT${referralCode.referrerReward} </span>
+                      購物金！無上限、永不過期
+                    </p>
+
+                    {/* 邀請連結複製區 */}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div className="flex-1 min-w-0 px-3 py-2 bg-white/20 rounded-lg overflow-hidden">
+                          <p className="text-white/80 text-xs mb-1">你的專屬連結</p>
+                          <p className="text-white font-mono text-xs sm:text-sm truncate">
+                            {referralUrl}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleCopyReferral}
+                          className={`w-full sm:w-auto flex-shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
+                            copySuccess
+                              ? 'bg-green-500 text-white'
+                              : 'bg-white text-emerald-600 hover:bg-emerald-50 shadow-lg hover:shadow-xl'
+                          }`}
+                        >
+                          {copySuccess ? (
+                            <>
+                              <Check className="w-5 h-5" />
+                              <span>已複製</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-5 h-5" />
+                              <span>複製連結</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 查看詳情連結 */}
+                    <Link
+                      href="/account/referral"
+                      className="inline-flex items-center gap-1 mt-3 text-white/80 hover:text-white text-sm font-medium transition-colors"
+                    >
+                      查看邀請記錄與詳情
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}

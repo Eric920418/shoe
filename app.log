@@ -1,0 +1,35 @@
+
+> shoe-store@1.0.0 start /var/www/shoe
+> next start
+
+   ▲ Next.js 16.0.7
+   - Local:         http://localhost:3000
+   - Network:       http://172.26.9.78:3000
+
+ ✓ Starting...
+ ✓ Ready in 321ms
+[2025-12-12T06:07:13.872Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+Processing GraphQL Parameters
+Processing GraphQL Parameters done.
+[2025-12-12T06:07:14.053Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+[2025-12-12T06:07:14.054Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+Processing GraphQL Parameters
+Processing GraphQL Parameters
+[2025-12-12T06:07:14.063Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+Processing GraphQL Parameters
+Processing GraphQL Parameters done.
+Processing GraphQL Parameters done.
+Processing GraphQL Parameters done.
+[2025-12-12T06:08:35.071Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+Processing GraphQL Parameters
+Processing GraphQL Parameters done.
+[2025-12-12T06:08:38.344Z] GraphQL Request: POST /api/graphql
+Parsing request to extract GraphQL parameters
+Processing GraphQL Parameters
+Processing GraphQL Parameters done.
+ ELIFECYCLE  Command failed.

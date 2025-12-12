@@ -15,7 +15,8 @@
       "Bash(find:*)",
       "Bash(sudo tail:*)",
       "Bash(python3:*)",
-      "Bash(pnpm prisma db push:*)"
+      "Bash(pnpm prisma db push:*)",
+      "Bash(sudo tee:*)"
     ],
     "deny": [],
     "ask": []
