@@ -1,5 +1,8 @@
 /**
- * 圖片上傳 API - 儲存到本地 /public/uploads 資料夾
+ * 圖片上傳 API
+ *
+ * 生產環境：使用 Cloudflare R2
+ * 開發環境：使用本地 /public/uploads 資料夾
  *
  * 安全措施：
  * - 資料夾白名單驗證：只允許上傳到指定目錄
@@ -11,15 +14,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
+import { uploadToR2 } from '@/lib/r2'
 
 // 允許上傳的資料夾白名單
-const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews']
+const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews', 'returns', 'hero', 'payments']
 
 // 允許的檔案類型（移除 SVG 防止 XSS）
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 // 允許的副檔名
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+
+// 是否使用 R2（生產環境）
+const useR2 = () => {
+  return process.env.NODE_ENV === 'production' || process.env.USE_R2 === 'true'
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,33 +93,40 @@ export async function POST(request: NextRequest) {
     const randomStr = Math.random().toString(36).substring(2, 15)
     const fileName = `${timestamp}_${randomStr}${ext}`
 
-    // 確保上傳目錄存在
-    const uploadsBase = path.resolve(process.cwd(), 'public', 'uploads')
-    const uploadDir = path.resolve(uploadsBase, folder)
-
-    // 安全檢查 3：再次確認路徑在允許範圍內
-    if (!uploadDir.startsWith(uploadsBase)) {
-      console.warn('安全警告：路徑逃逸嘗試')
-      return NextResponse.json(
-        { error: '無效的上傳目錄' },
-        { status: 400 }
-      )
-    }
-
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
     // 將文件轉換為 Buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // 保存文件
-    const filePath = path.join(uploadDir, fileName)
-    await writeFile(filePath, buffer)
+    let fileUrl: string
 
-    // 返回可訪問的 URL 路徑
-    const fileUrl = `/uploads/${folder}/${fileName}`
+    if (useR2()) {
+      // 生產環境：上傳到 R2
+      const key = `uploads/${folder}/${fileName}`
+      fileUrl = await uploadToR2(buffer, key, file.type)
+    } else {
+      // 開發環境：儲存到本地
+      const uploadsBase = path.resolve(process.cwd(), 'public', 'uploads')
+      const uploadDir = path.resolve(uploadsBase, folder)
+
+      // 安全檢查 3：再次確認路徑在允許範圍內
+      if (!uploadDir.startsWith(uploadsBase)) {
+        console.warn('安全警告：路徑逃逸嘗試')
+        return NextResponse.json(
+          { error: '無效的上傳目錄' },
+          { status: 400 }
+        )
+      }
+
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true })
+      }
+
+      // 保存文件
+      const filePath = path.join(uploadDir, fileName)
+      await writeFile(filePath, buffer)
+
+      fileUrl = `/uploads/${folder}/${fileName}`
+    }
 
     return NextResponse.json({
       success: true,
@@ -119,10 +135,11 @@ export async function POST(request: NextRequest) {
       size: file.size,
       type: file.type,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : '未知錯誤'
     console.error('圖片上傳失敗:', error)
     return NextResponse.json(
-      { error: `圖片上傳失敗：${error.message}` },
+      { error: `圖片上傳失敗：${errorMessage}` },
       { status: 500 }
     )
   }

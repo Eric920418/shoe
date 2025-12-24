@@ -71,7 +71,8 @@ export default function SingleImageUpload({
 
       {value ? (
         <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 group">
-          {value.includes('/uploads/') || value.includes('/api/images/') ? (
+          {/* 相對路徑用 img，絕對 URL（含 R2）用 Next.js Image 優化 */}
+          {value.startsWith('/') && !value.startsWith('//') ? (
             <img
               src={value}
               alt={label}

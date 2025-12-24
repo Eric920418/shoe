@@ -17,7 +17,8 @@
       "Bash(python3:*)",
       "Bash(pnpm prisma db push:*)",
       "Bash(sudo tee:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(PGPASSWORD=\"npg_bZsHC6edq3ac\" pg_restore:*)"
     ],
     "deny": [],
     "ask": []

@@ -663,40 +663,133 @@ mutation CreateOrder($input: CreateOrderInput!) {
 
 ## 🚀 部署
 
-### 生產環境檢查清單
+### 部署架構（推薦）
 
-- [ ] 設定生產環境變數
-- [ ] 創建生產資料庫
-- [ ] 執行資料庫遷移
-- [ ] 啟動 Redis 服務器
-- [ ] 驗證快取命中率 > 70%
-- [ ] 配置 Prisma 連接池
-- [ ] 配置 CDN（圖片）
-- [ ] 設定 HTTPS
-- [ ] 配置監控和日誌（Sentry/Datadog）
-- [ ] 壓力測試（確保支持 500+ req/s）
+| 服務 | 平台 | 說明 |
+|------|------|------|
+| **應用程式** | Vercel | Next.js 原生支援，自動 CI/CD |
+| **資料庫** | Neon | Serverless PostgreSQL，自動擴展 |
+| **圖片儲存** | Cloudflare R2 | S3 相容，無出口費用 |
+| **快取** | Upstash Redis | Serverless Redis（選用） |
 
-### 資料庫備份
+### Vercel 部署步驟
+
+#### 1. Neon 資料庫設定
 
 ```bash
-# 備份資料庫
+# 1. 在 Neon Console 創建專案並取得連線字串
+# 2. 還原本地備份到 Neon
+pg_restore -h ep-xxx.region.aws.neon.tech -p 5432 -U neondb_owner \
+  -d neondb -v backups/shoe_store_backup.dump
+```
+
+**環境變數**（Vercel Dashboard 設定）：
+```env
+# Neon 連線字串（帶 -pooler 的用於應用程式）
+DATABASE_URL="postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require"
+# 直連（不帶 -pooler，用於 Prisma Migrate）
+DIRECT_URL="postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require"
+```
+
+#### 2. Cloudflare R2 設定
+
+```bash
+# 1. 在 Cloudflare Dashboard 創建 R2 Bucket
+# 2. 創建 API Token（R2 > Manage R2 API Tokens）
+# 3. 開啟公開存取（Settings > Public access）或設定自訂域名
+```
+
+**環境變數**：
+```env
+R2_ACCOUNT_ID="你的 Cloudflare Account ID"
+R2_ACCESS_KEY_ID="R2 API Token Access Key ID"
+R2_SECRET_ACCESS_KEY="R2 API Token Secret Access Key"
+R2_BUCKET_NAME="你的 Bucket 名稱"
+R2_PUBLIC_DOMAIN="cdn.yourdomain.com"  # 或使用 r2.dev 域名
+USE_R2="true"
+```
+
+#### 3. Vercel 部署
+
+```bash
+# 安裝 Vercel CLI
+pnpm add -g vercel
+
+# 連接專案
+vercel link
+
+# 設定環境變數（或在 Dashboard 設定）
+vercel env add DATABASE_URL
+vercel env add DIRECT_URL
+vercel env add R2_ACCOUNT_ID
+# ... 其他環境變數
+
+# 部署
+vercel --prod
+```
+
+#### 4. 資料庫遷移
+
+```bash
+# 首次部署後執行遷移
+pnpm prisma migrate deploy
+```
+
+### Vercel 環境變數完整列表
+
+| 變數 | 必填 | 說明 |
+|------|------|------|
+| `DATABASE_URL` | ✅ | Neon 連接池連線字串 |
+| `DIRECT_URL` | ✅ | Neon 直連字串（遷移用） |
+| `JWT_SECRET` | ✅ | JWT 簽名密鑰 |
+| `R2_ACCOUNT_ID` | ✅ | Cloudflare Account ID |
+| `R2_ACCESS_KEY_ID` | ✅ | R2 API Token |
+| `R2_SECRET_ACCESS_KEY` | ✅ | R2 API Secret |
+| `R2_BUCKET_NAME` | ✅ | R2 Bucket 名稱 |
+| `R2_PUBLIC_DOMAIN` | - | 自訂 CDN 域名 |
+| `USE_R2` | ✅ | 設為 `true` |
+| `REDIS_URL` | - | Upstash Redis URL |
+| `LINE_CHANNEL_ID` | ✅ | LINE Login |
+| `LINE_CHANNEL_SECRET` | ✅ | LINE Login |
+| `LINE_CALLBACK_URL` | ✅ | LINE 回調 URL |
+| `NEWEBPAY_*` | ✅ | 藍新金流相關 |
+| `SMTP_*` | - | 郵件發送相關 |
+
+### 資料庫備份與還原
+
+```bash
+# 備份本地資料庫
 mkdir -p backups
 pg_dump -h localhost -p 5432 -U postgres -F c -b -v \
   -f backups/shoe_store_backup_$(date +%Y%m%d_%H%M%S).dump \
   shoe_store
 
-# 還原資料庫
-pg_restore -h localhost -p 5432 -U postgres \
-  -d shoe_store_production \
-  -v backups/shoe_store_backup_YYYYMMDD_HHMMSS.dump
+# 還原到 Neon
+pg_restore -h ep-xxx.region.aws.neon.tech -p 5432 -U neondb_owner \
+  -d neondb -v --no-owner --no-privileges \
+  backups/shoe_store_backup.dump
 ```
 
-### 建議部署平台
+### 遷移現有圖片到 R2
 
-- **全端應用**: Vercel / Netlify
-- **資料庫**: Supabase / Railway / Neon
-- **Redis**: Upstash / Redis Cloud
-- **圖片 CDN**: Cloudflare R2 / AWS S3 / Vercel Blob
+如果有現有的本地圖片需要遷移到 R2：
+
+```bash
+# 使用 rclone 或 aws cli 批量上傳
+# 配置 rclone 後：
+rclone copy public/uploads r2:your-bucket/uploads --progress
+```
+
+### 部署檢查清單
+
+- [ ] Neon 資料庫已創建並還原資料
+- [ ] R2 Bucket 已創建並設定公開存取
+- [ ] Vercel 環境變數已全部設定
+- [ ] `pnpm prisma migrate deploy` 已執行
+- [ ] LINE Login 回調 URL 已更新為生產域名
+- [ ] 藍新金流回調 URL 已更新為生產域名
+- [ ] 測試圖片上傳功能正常
+- [ ] 測試付款流程正常
 
 ---
 

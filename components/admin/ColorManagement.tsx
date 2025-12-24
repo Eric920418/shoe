@@ -390,7 +390,8 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
                     <td className="px-4 py-3">
                       {variant.colorImage ? (
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                          {variant.colorImage.includes('/uploads/') || variant.colorImage.includes('/api/images/') ? (
+                          {/* 相對路徑用 img，絕對 URL（含 R2）用 Next.js Image 優化 */}
+                          {variant.colorImage.startsWith('/') && !variant.colorImage.startsWith('//') ? (
                             <img
                               src={variant.colorImage}
                               alt={variant.color}
@@ -607,7 +608,8 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
               {editingVariant.colorImage ? (
                 <div className="relative group">
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-200">
-                    {editingVariant.colorImage.includes('/uploads/') || editingVariant.colorImage.includes('/api/images/') ? (
+                    {/* 相對路徑用 img，絕對 URL（含 R2）用 Next.js Image 優化 */}
+                    {editingVariant.colorImage.startsWith('/') && !editingVariant.colorImage.startsWith('//') ? (
                       <img
                         src={editingVariant.colorImage}
                         alt="顏色圖片"

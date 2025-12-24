@@ -108,8 +108,8 @@ export default function ImageUpload({ images, onChange, maxImages = 5 }: ImageUp
                 {index === 0 && (
                   <div className="absolute top-2 left-2 z-10 bg-primary-600 text-white text-xs px-2 py-1 rounded">主圖</div>
                 )}
-                {/* 對於上傳的圖片，使用標準 img 標籤避免 Next.js Image 優化問題 */}
-                {url.includes('/uploads/') || url.includes('/api/images/') ? (
+                {/* 相對路徑用 img，絕對 URL（含 R2）用 Next.js Image 優化 */}
+                {url.startsWith('/') && !url.startsWith('//') ? (
                   <img
                     src={url}
                     alt={'產品圖片 ' + (index + 1)}
