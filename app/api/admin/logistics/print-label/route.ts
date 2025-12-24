@@ -3,6 +3,9 @@
  * POST /api/admin/logistics/print-label
  */
 
+// 強制使用 Node.js runtime（需要 crypto 模組）
+export const runtime = 'nodejs'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
