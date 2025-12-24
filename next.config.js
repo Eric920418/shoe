@@ -28,12 +28,10 @@ const nextConfig = {
   productionBrowserSourceMaps: false, // 禁用源码映射以减少构建大小
   poweredByHeader: false, // 移除 X-Powered-By 头部（安全）
 
-  // 跳过类型检查和 ESLint（生产构建）
+  // 跳过类型检查（生产构建）
+  // 注意：Next.js 16 移除了 eslint 配置
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // 实验性功能
