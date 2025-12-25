@@ -23,7 +23,13 @@ const { handleRequest } = createYoga({
   // 安全配置：CORS限制
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      ? [
+          process.env.NEXT_PUBLIC_SITE_URL || 'https://xn--cjzl80byf571b.tw',
+          'https://www.xn--cjzl80byf571b.tw',
+          'https://xn--cjzl80byf571b.tw',
+          // Vercel 預覽網址
+          /\.vercel\.app$/,
+        ]
       : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
     methods: ['POST', 'GET', 'OPTIONS'],
