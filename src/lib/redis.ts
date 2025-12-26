@@ -1,23 +1,52 @@
 import { createClient } from 'redis'
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
+// 只有明確設定 REDIS_URL 時才啟用 Redis
+const REDIS_URL = process.env.REDIS_URL
 
 let redisClient: ReturnType<typeof createClient> | null = null
+let isRedisAvailable = false
+
+/**
+ * 檢查 Redis 是否可用
+ */
+export function isRedisEnabled(): boolean {
+  return !!REDIS_URL && isRedisAvailable
+}
 
 /**
  * 獲取 Redis 客戶端
+ * 如果 Redis 未配置或不可用，返回 null
  */
 export async function getRedisClient() {
+  // 如果沒有設定 REDIS_URL，不嘗試連接
+  if (!REDIS_URL) {
+    return null
+  }
+
   if (!redisClient) {
-    redisClient = createClient({
-      url: REDIS_URL,
-    })
+    try {
+      redisClient = createClient({
+        url: REDIS_URL,
+      })
 
-    redisClient.on('error', (err) => {
-      console.error('Redis Client Error:', err)
-    })
+      redisClient.on('error', (err) => {
+        console.error('Redis Client Error:', err)
+        isRedisAvailable = false
+      })
 
-    await redisClient.connect()
+      redisClient.on('connect', () => {
+        console.log('Redis connected successfully')
+        isRedisAvailable = true
+      })
+
+      await redisClient.connect()
+      isRedisAvailable = true
+    } catch (error) {
+      console.error('Failed to connect to Redis:', error)
+      redisClient = null
+      isRedisAvailable = false
+      return null
+    }
   }
 
   return redisClient
@@ -29,6 +58,7 @@ export async function getRedisClient() {
 export async function cacheSet(key: string, value: any, ttl: number = 3600) {
   try {
     const client = await getRedisClient()
+    if (!client) return // Redis 不可用，靜默跳過
     await client.setEx(key, ttl, JSON.stringify(value))
   } catch (error) {
     console.error('Redis set error:', error)
@@ -41,6 +71,7 @@ export async function cacheSet(key: string, value: any, ttl: number = 3600) {
 export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
     const client = await getRedisClient()
+    if (!client) return null // Redis 不可用，返回 null
     const data = await client.get(key)
     return data ? JSON.parse(data) : null
   } catch (error) {
@@ -59,6 +90,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 export async function cacheDel(key: string) {
   try {
     const client = await getRedisClient()
+    if (!client) return // Redis 不可用，靜默跳過
 
     // 如果包含通配符，使用 SCAN 命令（非阻塞）
     if (key.includes('*')) {
@@ -100,6 +132,7 @@ export async function cacheDel(key: string) {
 export async function cacheFlush() {
   try {
     const client = await getRedisClient()
+    if (!client) return // Redis 不可用，靜默跳過
     await client.flushAll()
   } catch (error) {
     console.error('Redis flush error:', error)
@@ -109,10 +142,12 @@ export async function cacheFlush() {
 /**
  * 增加產品瀏覽次數（緩衝到 Redis）
  * ✅ 性能優化：避免每次查詢都寫入資料庫
+ * 如果 Redis 不可用，直接跳過（瀏覽次數不是關鍵功能）
  */
 export async function incrementViewCount(productId: string): Promise<void> {
   try {
     const client = await getRedisClient()
+    if (!client) return // Redis 不可用，靜默跳過
     const key = `viewcount:${productId}`
     await client.incr(key)
     // 設定 TTL 為 1 小時，確保即使批次寫入失敗也不會無限累積
@@ -129,6 +164,8 @@ export async function incrementViewCount(productId: string): Promise<void> {
 export async function flushViewCounts(prisma: any): Promise<number> {
   try {
     const client = await getRedisClient()
+    if (!client) return 0 // Redis 不可用，返回 0
+
     const keysToFlush: string[] = []
     let cursor = 0
 

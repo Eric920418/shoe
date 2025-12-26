@@ -36,6 +36,16 @@ export async function checkRateLimit(
 
   try {
     const client = await getRedisClient()
+
+    // 如果 Redis 不可用，允許所有請求（降級模式）
+    if (!client) {
+      return {
+        allowed: true,
+        remaining: config.maxRequests,
+        resetAt: Date.now() + config.windowMs,
+      }
+    }
+
     const now = Date.now()
     const windowStart = now - config.windowMs
 
