@@ -18,7 +18,10 @@
       "Bash(pnpm prisma db push:*)",
       "Bash(sudo tee:*)",
       "Bash(mkdir:*)",
-      "Bash(PGPASSWORD=\"npg_bZsHC6edq3ac\" pg_restore:*)"
+      "Bash(PGPASSWORD=\"npg_bZsHC6edq3ac\" pg_restore:*)",
+      "Bash(PGPASSWORD=\"npg_bZsHC6edq3ac\" psql:*)",
+      "Bash(node -e:*)",
+      "Bash(# 測試 R2 圖片是否可以訪問 curl -I \"\"https://pub-255d7bef84ad4918a06b3575880ce109.r2.dev/uploads/products/\"\")"
     ],
     "deny": [],
     "ask": []
