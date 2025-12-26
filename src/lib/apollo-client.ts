@@ -59,9 +59,9 @@ const authLink = setContext((_, { headers }) => {
   }
 })
 
-// HTTP Link
+// HTTP Link - 使用相對路徑避免跨域問題
 const httpLink = new HttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/api/graphql',
+  uri: '/api/graphql',
   credentials: 'same-origin',
 })
 
@@ -98,7 +98,7 @@ export const apolloClient = new ApolloClient({
 // 帶認證的 Apollo Client（用於需要登入的操作）
 export function createAuthenticatedClient(token: string) {
   const authLink = new HttpLink({
-    uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/api/graphql',
+    uri: '/api/graphql',
     credentials: 'same-origin',
     headers: {
       authorization: token ? `Bearer ${token}` : '',
