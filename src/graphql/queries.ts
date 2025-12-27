@@ -48,13 +48,8 @@ export const GET_PRODUCT_BY_SLUG = gql`
       }
       sizeCharts {
         id
-        eu
-        us
-        uk
-        cm
-        footLength
-        footWidth
-        stock
+        size
+        sortOrder
         isActive
       }
       reviews {
@@ -1163,11 +1158,8 @@ export const GET_MY_WISHLIST = gql`
         }
         sizeCharts {
           id
-          eu
-          us
-          uk
-          cm
-          stock
+          size
+          sortOrder
           isActive
         }
       }
@@ -1275,17 +1267,11 @@ export const GET_SHIPPED_ORDERS = gql`
 
 export const GET_PRODUCT_SIZE_CHARTS = gql`
   query GetProductSizeCharts($productId: ID!, $variantId: ID) {
-    productSizeChart(productId: $productId, variantId: $variantId) {
+    productSizeChart(productId: $productId) {
       id
       productId
-      variantId
-      eu
-      us
-      uk
-      cm
-      footLength
-      footWidth
-      stock
+      size
+      sortOrder
       isActive
       createdAt
       updatedAt
@@ -1298,14 +1284,8 @@ export const CREATE_SIZE_CHART = gql`
     createSizeChart(input: $input) {
       id
       productId
-      variantId
-      eu
-      us
-      uk
-      cm
-      footLength
-      footWidth
-      stock
+      size
+      sortOrder
       isActive
       createdAt
       updatedAt
@@ -1318,14 +1298,8 @@ export const UPDATE_SIZE_CHART = gql`
     updateSizeChart(id: $id, input: $input) {
       id
       productId
-      variantId
-      eu
-      us
-      uk
-      cm
-      footLength
-      footWidth
-      stock
+      size
+      sortOrder
       isActive
       updatedAt
     }

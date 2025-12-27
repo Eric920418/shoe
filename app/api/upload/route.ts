@@ -1,8 +1,12 @@
 /**
- * 圖片上傳 API
+ * 媒體上傳 API（圖片 + 影片）
  *
  * 生產環境：使用 Cloudflare R2
  * 開發環境：使用本地 /public/uploads 資料夾
+ *
+ * 支援格式：
+ * - 圖片：JPG、PNG、WebP（最大 5MB）
+ * - 影片：MP4、WebM（最大 50MB）
  *
  * 安全措施：
  * - 資料夾白名單驗證：只允許上傳到指定目錄
@@ -19,11 +23,30 @@ import { uploadToR2 } from '@/lib/r2'
 // 允許上傳的資料夾白名單
 const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews', 'returns', 'hero', 'payments']
 
-// 允許的檔案類型（移除 SVG 防止 XSS）
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+// 允許的圖片類型（移除 SVG 防止 XSS）
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
-// 允許的副檔名
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+// 允許的影片類型
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm']
+
+// 所有允許的檔案類型
+const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES]
+
+// 允許的圖片副檔名
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+
+// 允許的影片副檔名
+const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.webm']
+
+// 所有允許的副檔名
+const ALLOWED_EXTENSIONS = [...ALLOWED_IMAGE_EXTENSIONS, ...ALLOWED_VIDEO_EXTENSIONS]
+
+// 檔案大小限制
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
+
+// 判斷是否為影片類型
+const isVideoType = (mimeType: string) => ALLOWED_VIDEO_TYPES.includes(mimeType)
 
 // 是否使用 R2（生產環境）
 const useR2 = () => {
@@ -65,16 +88,20 @@ export async function POST(request: NextRequest) {
     // 驗證文件類型（移除 SVG 支援，防止 XSS）
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: '僅支援 JPG、PNG、WebP 格式的圖片（基於安全考量不支援 SVG）' },
+        { error: '僅支援 JPG、PNG、WebP 格式的圖片，以及 MP4、WebM 格式的影片' },
         { status: 400 }
       )
     }
 
-    // 驗證文件大小（限制 5MB）
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    // 根據文件類型決定大小限制
+    const isVideo = isVideoType(file.type)
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
+    const sizeLabel = isVideo ? '50MB' : '5MB'
+    const typeLabel = isVideo ? '影片' : '圖片'
+
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: '圖片大小不能超過 5MB' },
+        { error: `${typeLabel}大小不能超過 ${sizeLabel}` },
         { status: 400 }
       )
     }
@@ -134,12 +161,13 @@ export async function POST(request: NextRequest) {
       fileName,
       size: file.size,
       type: file.type,
+      isVideo,
     })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : '未知錯誤'
-    console.error('圖片上傳失敗:', error)
+    console.error('媒體上傳失敗:', error)
     return NextResponse.json(
-      { error: `圖片上傳失敗：${errorMessage}` },
+      { error: `上傳失敗：${errorMessage}` },
       { status: 500 }
     )
   }

@@ -616,3 +616,30 @@ export const getCategoryDisplays = cache(async () => {
     return []
   }
 })
+
+/**
+ * 獲取所有活躍產品的 slug（用於 generateStaticParams 靜態生成）
+ * 優先返回熱門產品，限制數量以避免構建時間過長
+ */
+export const getProductSlugsForStaticGeneration = cache(async (limit: number = 100) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        slug: true,
+      },
+      orderBy: [
+        { soldCount: 'desc' },
+        { viewCount: 'desc' },
+      ],
+      take: limit,
+    })
+
+    return products.map((p) => p.slug)
+  } catch (error) {
+    console.error('Failed to fetch product slugs:', error)
+    return []
+  }
+})

@@ -392,19 +392,13 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # 尺码表（鞋店核心）
+  # 尺码表（簡化版 - 直接輸入廠商尺寸）
   type SizeChart {
     id: ID!
     productId: String!
     product: Product!
-    variantId: String
-    eu: String!
-    us: String!
-    uk: String!
-    cm: String!
-    footLength: Decimal!
-    footWidth: String
-    stock: Int!  # 暫時保留，向後兼容
+    size: String!       # 簡化：只有一個尺寸欄位
+    sortOrder: Int!     # 排序順序
     isActive: Boolean!
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -1792,8 +1786,8 @@ export const typeDefs = gql`
     # 產品變體（顏色）
     productVariants(productId: ID!): [ProductVariant!]!
 
-    # 尺码表
-    productSizeChart(productId: ID!, variantId: ID): [SizeChart!]!
+    # 尺码表（簡化版）
+    productSizeChart(productId: ID!): [SizeChart!]!
 
     # SKU 庫存管理
     productSkus(productId: ID!): [ProductSku!]!
@@ -2265,24 +2259,13 @@ export const typeDefs = gql`
 
   input CreateSizeChartInput {
     productId: ID!
-    variantId: ID
-    eu: String!
-    us: String!
-    uk: String!
-    cm: String!
-    footLength: Decimal!
-    footWidth: String
-    stock: Int!
+    size: String!       # 簡化：只輸入尺寸
+    sortOrder: Int
   }
 
   input UpdateSizeChartInput {
-    eu: String
-    us: String
-    uk: String
-    cm: String
-    footLength: Decimal
-    footWidth: String
-    stock: Int
+    size: String
+    sortOrder: Int
     isActive: Boolean
   }
 

@@ -199,15 +199,14 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
     if (!editingVariant) return
 
     // 驗證必填欄位
-    if (!editingVariant.name?.trim()) {
-      toast.error('請填寫顏色名稱')
-      return
-    }
-
     if (!editingVariant.color?.trim()) {
       toast.error('請填寫顏色')
       return
     }
+
+    // 確保 name 與 color 同步
+    const colorValue = editingVariant.color.trim()
+    editingVariant.name = colorValue
 
     if (!editingVariant.colorHex || !/^#[0-9A-Fa-f]{6}$/.test(editingVariant.colorHex)) {
       toast.error('請選擇有效的顏色代碼')
@@ -361,7 +360,6 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">圖片</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">名稱</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">色碼</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">價格調整</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">狀態</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">預設</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">操作</th>
@@ -370,7 +368,7 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
             <tbody className="divide-y divide-gray-200">
               {variants.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     暫無顏色數據，請新增顏色讓客戶選擇
                   </td>
                 </tr>
@@ -413,14 +411,6 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
                     </td>
                     <td className="px-4 py-3 font-semibold text-gray-900">{variant.color}</td>
                     <td className="px-4 py-3 text-gray-700 font-mono text-sm">{variant.colorHex}</td>
-                    <td className="px-4 py-3">
-                      {variant.priceAdjustment !== 0 && (
-                        <span className={variant.priceAdjustment > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {variant.priceAdjustment > 0 ? '+' : ''}${variant.priceAdjustment}
-                        </span>
-                      )}
-                      {variant.priceAdjustment === 0 && <span className="text-gray-400">-</span>}
-                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`inline-block px-2 py-1 text-xs font-medium rounded ${
@@ -508,25 +498,15 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                顏色名稱 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={editingVariant.name || ''}
-                onChange={(e) => updateEditingField('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: 經典黑"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 顏色 <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={editingVariant.color || ''}
-                onChange={(e) => updateEditingField('color', e.target.value)}
+                onChange={(e) => {
+                  updateEditingField('color', e.target.value)
+                  updateEditingField('name', e.target.value)
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="例如: 黑色"
               />
@@ -551,21 +531,6 @@ export default function ColorManagement({ productId }: ColorManagementProps) {
                   placeholder="#000000"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">價格調整</label>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={editingVariant.priceAdjustment || 0}
-                  onChange={(e) => updateEditingField('priceAdjustment', Number(e.target.value))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="0"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">正數為加價，負數為減價</p>
             </div>
 
             <div>

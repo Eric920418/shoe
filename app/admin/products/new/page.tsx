@@ -12,7 +12,7 @@ import { CREATE_PRODUCT, CREATE_SIZE_CHART, GET_BRANDS, GET_CATEGORIES, GET_PROD
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
 import ProductOptionManager from '@/components/admin/ProductOptionManager'
-import { convertSizeFromCm, type GenderType } from '@/lib/sizeConversion'
+// 尺碼系統已簡化 - 移除尺碼轉換功能
 import { Settings } from 'lucide-react'
 
 interface ProductFormData {
@@ -42,15 +42,12 @@ interface ProductFormData {
 }
 
 interface TempSizeChart {
-  eu: string
-  us: string
-  uk: string
-  cm: string
-  footLength: number
-  footWidth: string
-  stock: number
+  size: string
+  sortOrder: number
   isActive: boolean
 }
+
+type GenderType = 'MEN' | 'WOMEN' | 'KIDS'
 
 const initialFormData: ProductFormData = {
   name: '',
@@ -527,9 +524,9 @@ export default function NewProductPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 圖片上傳 */}
+        {/* 圖片/影片上傳 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片/影片</h2>
           <ImageUpload
             images={formData.images}
             onChange={(images) => updateField('images', images)}

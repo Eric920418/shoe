@@ -238,15 +238,14 @@ export const productResolvers = {
       })
     },
 
-    // 獲取產品尺碼表
-    productSizeChart: async (_: any, { productId, variantId }: { productId: string; variantId?: string }) => {
+    // 獲取產品尺碼表（簡化版）
+    productSizeChart: async (_: any, { productId }: { productId: string }) => {
       return await prisma.sizeChart.findMany({
         where: {
           productId,
-          variantId: variantId || null,
           isActive: true,
         },
-        orderBy: { eu: 'asc' },
+        orderBy: { sortOrder: 'asc' },
       })
     },
 

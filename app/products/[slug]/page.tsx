@@ -9,7 +9,16 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import ModernProductDetail from './ModernProductDetail'
-import { getProductBySlug } from '@/lib/server-queries'
+import { getProductBySlug, getProductSlugsForStaticGeneration } from '@/lib/server-queries'
+
+// ISR: 每 10 分鐘重新驗證一次
+export const revalidate = 600
+
+// 預先生成熱門產品頁面（構建時靜態生成）
+export async function generateStaticParams() {
+  const slugs = await getProductSlugsForStaticGeneration(100)
+  return slugs.map((slug) => ({ slug }))
+}
 
 // getProductBySlug 已經使用 React cache，會自動去重
 

@@ -164,7 +164,7 @@ shoe/
 ### 1. 產品系統（鞋店專屬）
 
 **特色功能**：
-- 多國尺碼系統（EUR/US/UK/CM）- `SizeChart` 資料表
+- 簡化尺寸系統 - `SizeChart` 資料表（直接輸入廠商提供的尺寸）
 - 顏色變體系統 - `ProductVariant` 資料表
 - 鞋類專屬屬性（鞋型、性別、季節、材質）
 - 尺碼庫存獨立管理（按顏色 × 尺碼）
@@ -297,10 +297,10 @@ Order (訂單)
 - `closure` - 閉合方式（系帶、魔術貼、拉鏈、套脚）
 - `sole` - 鞋底材質
 
-**SizeChart 尺碼對照表**：
-- `eu`, `us`, `uk`, `cm` - 四種尺碼標準
-- `footLength` - 腳長（厘米）
-- `stock` - 該尺碼的獨立庫存
+**SizeChart 尺寸表（簡化版）**：
+- `size` - 尺寸名稱（直接輸入廠商提供的尺寸，如：36, 37, 38 或 S, M, L）
+- `sortOrder` - 排序順序
+- `isActive` - 是否啟用
 
 **UserCredit 購物金**：
 - `balance` - 餘額（可能被部分使用）
@@ -383,11 +383,10 @@ query GetProduct($slug: String!) {
       stock
     }
     sizeCharts {
-      eu
-      us
-      uk
-      cm
-      stock
+      id
+      size
+      sortOrder
+      isActive
     }
   }
 }

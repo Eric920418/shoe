@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.3.6 | **狀態**: ✅ 生產就緒 | **更新**: 2025-11-17
+**版本**: 2.3.8 | **狀態**: ✅ 生產就緒 | **更新**: 2025-12-27
 
 ---
 
@@ -38,10 +38,11 @@
 - **訂單追蹤與管理** - 訂單編號 + 手機號碼查詢
 
 ### 👟 鞋店專屬
-- **多國尺碼對照** - EUR/US/UK/CM 四種標準
-- **顏色變體 + 尺碼獨立庫存** - 精細化庫存管理
+- **簡化尺寸系統** - 直接輸入廠商提供的尺寸，無需對照標準尺碼表
+- **顏色變體系統** - 支援多顏色選擇
+- **SKU 庫存矩陣** - 顏色 × 尺寸 獨立庫存管理
 - **鞋類專屬屬性** - 鞋型/材質/季節/閉合方式/鞋跟高度
-- **尺碼合適度反饋系統** - 幫助用戶選擇合適尺碼
+- **批量尺寸新增** - 一次輸入多個尺寸，快速設定產品規格
 
 ### 📢 營銷客服
 - **首頁完全客製化** - 後台控制所有組件（輪播圖/促銷倒計時/限時搶購）
@@ -298,12 +299,12 @@ pnpm prisma migrate reset   # 重置資料庫（危險！會清空資料）
 - **核心功能**:
   - 懸停商品卡片顯示「加入購物車」按鈕（僅桌面版）
   - 點擊後彈出 Modal，無需跳轉即可選擇尺碼、顏色、數量
-  - 即時顯示庫存狀態，無庫存尺碼自動禁用
+  - 無限庫存模式：所有尺碼皆可選擇，無需擔心缺貨
   - 支援顏色變體選擇（如果產品有多種顏色）
   - 集成 GraphQL `ADD_TO_CART` mutation
   - 成功後顯示 toast 提示並自動關閉 Modal
   - 自動重新查詢購物車數據，更新導航欄購物車數量
-- **錯誤處理**: 完整顯示所有錯誤訊息（庫存不足、尺碼未選等）
+- **錯誤處理**: 完整顯示所有錯誤訊息（尺碼未選等）
 - **用戶體驗**: 不離開首頁即可快速加入購物車，提升轉換率
 
 ### 💰 購物金與優惠券系統
@@ -506,14 +507,12 @@ query GetProduct($slug: String!) {
       id
       color
       colorHex
-      stock
     }
     sizeCharts {
-      eu
-      us
-      uk
-      cm
-      stock
+      id
+      size
+      sortOrder
+      isActive
     }
   }
 }
@@ -582,10 +581,10 @@ mutation CreateOrder($input: CreateOrderInput!) {
 - `closure` - 閉合方式（系帶、魔術貼、拉鏈、套脚）
 - `sole` - 鞋底材質
 
-**SizeChart 尺碼對照表**：
-- `eu`, `us`, `uk`, `cm` - 四種尺碼標準
-- `footLength` - 腳長（厘米）
-- `stock` - 該尺碼的獨立庫存（真實庫存來源）
+**SizeChart 尺寸表（簡化版）**：
+- `size` - 尺寸名稱（直接輸入廠商提供的尺寸，如：36, 37, 38 或 S, M, L）
+- `sortOrder` - 排序順序（數字越小越前面）
+- `isActive` - 是否啟用
 
 **UserCredit 購物金**：
 - `balance` - 餘額（可能被部分使用）
@@ -659,6 +658,13 @@ mutation CreateOrder($input: CreateOrderInput!) {
 - ✅ 條件式關聯載入（避免過度 include）
 - ✅ API Rate Limiting（100 req/min）
 
+**Vercel 部署優化**：
+- ✅ 區域設定 `hkg1`（香港）- 降低台灣用戶延遲 50-100ms
+- ✅ 產品頁面 ISR 靜態生成 - 熱門 100 個產品預生成
+- ✅ GraphQL API 快取策略 - `s-maxage=60, stale-while-revalidate=300`
+- ✅ Prisma 連線池優化 - Serverless 環境連線管理
+- ✅ 安全標頭配置 - X-Content-Type-Options, X-Frame-Options
+
 ---
 
 ## 🚀 部署
@@ -726,6 +732,21 @@ vercel env add R2_ACCOUNT_ID
 
 # 部署
 vercel --prod
+```
+
+**vercel.json 配置說明**：
+```json
+{
+  "regions": ["hkg1"],  // 香港區域，對台灣用戶更快
+  "headers": [...]      // GraphQL API 快取 + 安全標頭
+}
+```
+
+**資料庫連線池設定**（重要！）：
+```env
+# Neon 連線字串必須加上連線池參數
+DATABASE_URL="postgresql://...?pgbouncer=true&connection_limit=1"
+DIRECT_URL="postgresql://..."  # 不帶連線池，用於 migrate
 ```
 
 #### 4. 資料庫遷移
@@ -805,7 +826,6 @@ rclone copy public/uploads r2:your-bucket/uploads --progress
 | 後台卡在 Loading | 清除瀏覽器快取並重新整理 |
 | 遷移失敗 | `pnpm prisma migrate status` 檢查狀態 |
 | 購物車顯示錯誤數字 | 檢查是否有過期的 JWT Token |
-| 產品庫存顯示不正確 | 產品庫存來自 SizeChart 表，檢查尺碼庫存 |
 | 藍新金流 AES bad decrypt | 檢查 HashKey/HashIV 是否正確，測試/正式環境勿混用 |
 | 藍新金流 TradeSha 驗證失敗 | 確認使用相同環境的憑證，檢查 TradeInfo 格式是否為 hex |
 
@@ -872,6 +892,59 @@ pnpm prisma migrate reset
 ---
 
 ## 📝 最新更新摘要
+
+### 🔥 近期重點更新（2025-12-27）
+
+#### ✅ 分類頁面 Bug 修復（重大）
+- **問題描述**：首頁分類點擊後無法顯示產品（空白頁面）
+- **根本原因**：`CategoryGrid.tsx` 使用 `slug`（如 `sports-shoes`）連結，但分類頁面使用硬編碼的中文 key（如 `運動鞋`），導致資料不匹配
+- **解決方案**：完全重寫 `/app/category/[category]/page.tsx`
+  - 改用 GraphQL 查詢真實資料庫資料
+  - 先透過 `category(slug)` 查詢取得分類資訊
+  - 再透過 `products(categoryId)` 查詢該分類的產品
+  - 新增載入狀態和錯誤處理（分類不存在時顯示友善提示）
+  - 支援性別、品牌、價格篩選和排序功能
+  - 支援網格/列表視圖切換
+  - 手機版篩選面板優化
+
+#### ✅ 產品影片上傳支援
+- 新增產品影片上傳功能，支援 MP4 和 WebM 格式
+- 圖片限制 5MB，影片限制 50MB
+- 後台上傳組件支援圖片和影片混合上傳
+- 前台產品詳情頁支援影片播放（播放/暫停/靜音控制）
+- 影片縮略圖在產品圖片庫中清晰標示
+- 修改範圍：
+  - `app/api/upload/route.ts` - 新增影片格式支援
+  - `components/admin/ImageUpload.tsx` - 後台媒體上傳組件
+  - `components/product/ProductGallery.tsx` - 前台影片播放器
+  - `app/admin/products/new/page.tsx` - 新增產品頁面文案更新
+  - `app/admin/products/[id]/edit/page.tsx` - 編輯產品頁面文案更新
+
+#### ✅ 尺寸系統簡化 + 預設尺寸表格
+- 移除多國尺碼對照（EU/US/UK/CM/腳長），改用單一 `size` 欄位
+- **預設 10-50 號尺寸表格** - 直接點選要新增的尺寸，超方便！
+- 快速範圍選擇按鈕（35-40、36-42、38-44、39-46、40-48）
+- 已新增的尺寸顯示為綠色，一目了然
+- 滑鼠移到已新增的尺寸上可編輯或刪除
+- 修改範圍：
+  - `prisma/schema.prisma` - SizeChart 模型簡化
+  - `src/graphql/schema.ts` - GraphQL 類型更新
+  - `src/graphql/resolvers/sizeResolvers.ts` - Resolver 簡化
+  - `components/admin/SizeManagement.tsx` - 後台尺寸管理（點選式表格）
+  - `components/product/SizeSelector.tsx` - 前端尺寸選擇器簡化
+  - `app/admin/products/[id]/sizes/page.tsx` - 尺寸管理頁面（點選式表格）
+
+#### ✅ 無限庫存模式
+- 移除所有庫存檢查限制，客人可直接購買任何商品
+- SKU 變為可選，不存在也不會阻止購買
+- 適合小型店家，無需精確管理庫存
+- 修改範圍：
+  - `cartResolvers.ts` - 移除購物車加入/更新時的庫存檢查
+  - `orderResolvers.ts` - 移除訂單創建時的庫存驗證
+  - `SizeSelector.tsx` - 移除「售罄」尺碼的禁用狀態
+  - `GuestCartContext.tsx` - 移除訪客購物車的庫存限制
+
+---
 
 ### 🔥 近期重點更新（2025-11-18）
 
@@ -1241,4 +1314,4 @@ const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
 
 ---
 
-**專案狀態**: 生產就緒 ✅ | **版本**: 2.3.6 | **最後更新**: 2025-11-17
+**專案狀態**: 生產就緒 ✅ | **版本**: 2.3.8 | **最後更新**: 2025-12-27

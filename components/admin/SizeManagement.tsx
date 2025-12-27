@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * 尺碼管理組件 - 頁面內編輯版本（無彈窗）
- * 支援自動尺碼換算：輸入公分自動計算 EU/US/UK
+ * 尺碼管理組件
+ * 提供 10-50 號的預設尺寸表格，點選即可新增
  */
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import {
   GET_PRODUCT_SIZE_CHARTS,
@@ -14,19 +14,12 @@ import {
   DELETE_SIZE_CHART,
 } from '@/graphql/queries'
 import toast from 'react-hot-toast'
-import { convertSizeFromCm, type GenderType } from '@/lib/sizeConversion'
 
 interface SizeChart {
   id: string
   productId: string
-  variantId?: string | null
-  eu: string
-  us: string
-  uk: string
-  cm: string
-  footLength: number
-  footWidth: string | null
-  stock: number
+  size: string
+  sortOrder: number
   isActive: boolean
 }
 
@@ -34,34 +27,12 @@ interface SizeManagementProps {
   productId: string
 }
 
-// 預設尺碼對照表（男鞋）
-const defaultMenSizes: Omit<SizeChart, 'id' | 'productId' | 'variantId' | 'stock' | 'isActive'>[] = [
-  { eu: '39', us: '6.5', uk: '6', cm: '24.5', footLength: 24.5, footWidth: '標準' },
-  { eu: '40', us: '7', uk: '6.5', cm: '25', footLength: 25.0, footWidth: '標準' },
-  { eu: '41', us: '8', uk: '7', cm: '25.5', footLength: 25.5, footWidth: '標準' },
-  { eu: '42', us: '8.5', uk: '7.5', cm: '26', footLength: 26.0, footWidth: '標準' },
-  { eu: '43', us: '9.5', uk: '8.5', cm: '27', footLength: 27.0, footWidth: '標準' },
-  { eu: '44', us: '10', uk: '9', cm: '27.5', footLength: 27.5, footWidth: '標準' },
-  { eu: '45', us: '11', uk: '10', cm: '28.5', footLength: 28.5, footWidth: '標準' },
-  { eu: '46', us: '12', uk: '11', cm: '29', footLength: 29.0, footWidth: '標準' },
-]
-
-// 預設尺碼對照表（女鞋）
-const defaultWomenSizes: Omit<SizeChart, 'id' | 'productId' | 'variantId' | 'stock' | 'isActive'>[] = [
-  { eu: '35', us: '5', uk: '2.5', cm: '22', footLength: 22.0, footWidth: '標準' },
-  { eu: '36', us: '6', uk: '3.5', cm: '23', footLength: 23.0, footWidth: '標準' },
-  { eu: '37', us: '6.5', uk: '4', cm: '23.5', footLength: 23.5, footWidth: '標準' },
-  { eu: '38', us: '7', uk: '4.5', cm: '24', footLength: 24.0, footWidth: '標準' },
-  { eu: '39', us: '8', uk: '5.5', cm: '24.5', footLength: 24.5, footWidth: '標準' },
-  { eu: '40', us: '9', uk: '6.5', cm: '25.5', footLength: 25.5, footWidth: '標準' },
-  { eu: '41', us: '10', uk: '7.5', cm: '26', footLength: 26.0, footWidth: '標準' },
-]
+// 預設尺寸範圍：10 到 50 號
+const DEFAULT_SIZES = Array.from({ length: 41 }, (_, i) => String(10 + i))
 
 export default function SizeManagement({ productId }: SizeManagementProps) {
+  const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set())
   const [editingSize, setEditingSize] = useState<Partial<SizeChart> | null>(null)
-  const [showBatchImport, setShowBatchImport] = useState(false)
-  const [selectedGender, setSelectedGender] = useState<GenderType>('MEN')
-  const [isManualMode, setIsManualMode] = useState(false) // 手動編輯模式
 
   // 查詢尺碼數據
   const { data, loading, error, refetch } = useQuery(GET_PRODUCT_SIZE_CHARTS, {
@@ -70,14 +41,10 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
   })
 
   const sizeCharts: SizeChart[] = data?.productSizeChart || []
+  const existingSizes = new Set(sizeCharts.map(s => s.size))
 
   // 創建尺碼
   const [createSizeChart, { loading: creating }] = useMutation(CREATE_SIZE_CHART, {
-    onCompleted: () => {
-      toast.success('尺碼新增成功！')
-      setEditingSize(null)
-      refetch()
-    },
     onError: (error) => {
       console.error('創建尺碼失敗:', error)
       toast.error(`新增失敗：${error.message}`)
@@ -109,142 +76,86 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
     },
   })
 
-  // 打開編輯表單
-  const handleEdit = (size: SizeChart) => {
-    setEditingSize(size)
-    // 滾動到表單位置
-    setTimeout(() => {
-      document.getElementById('size-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }, 100)
+  // 切換選擇尺寸
+  const toggleSize = (size: string) => {
+    // 如果已存在於產品中，不能選擇
+    if (existingSizes.has(size)) return
+
+    const newSelected = new Set(selectedSizes)
+    if (newSelected.has(size)) {
+      newSelected.delete(size)
+    } else {
+      newSelected.add(size)
+    }
+    setSelectedSizes(newSelected)
   }
 
-  // 打開新增表單
-  const handleAdd = () => {
-    setEditingSize({
-      productId,
-      eu: '',
-      us: '',
-      uk: '',
-      cm: '',
-      footLength: 0,
-      footWidth: '標準',
-      isActive: true,
-    })
-    setIsManualMode(false) // 新增時預設為自動換算模式
-    // 滾動到表單位置
-    setTimeout(() => {
-      document.getElementById('size-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }, 100)
-  }
-
-  // 處理公分輸入並自動換算
-  const handleCmChange = useCallback((cmValue: string) => {
-    const cmNum = parseFloat(cmValue)
-
-    // 更新 cm 和 footLength
-    setEditingSize((prev) => {
-      if (!prev) return null
-
-      const updated: Partial<SizeChart> = {
-        ...prev,
-        cm: cmValue,
-        footLength: isNaN(cmNum) ? 0 : cmNum,
-      }
-
-      // 只有在非手動模式且有有效的公分數時才自動換算
-      if (!isManualMode && !isNaN(cmNum) && cmNum > 0) {
-        const converted = convertSizeFromCm(cmNum, selectedGender)
-        if (converted) {
-          updated.eu = converted.eu
-          updated.us = converted.us
-          updated.uk = converted.uk
-        }
-      }
-
-      return updated
-    })
-  }, [isManualMode, selectedGender])
-
-  // 當性別改變時重新換算
-  const handleGenderChange = useCallback((gender: GenderType) => {
-    setSelectedGender(gender)
-
-    // 如果有輸入公分數，重新換算
-    if (editingSize?.cm && !isManualMode) {
-      const cmNum = parseFloat(editingSize.cm)
-      if (!isNaN(cmNum) && cmNum > 0) {
-        const converted = convertSizeFromCm(cmNum, gender)
-        if (converted) {
-          setEditingSize((prev) => prev ? {
-            ...prev,
-            eu: converted.eu,
-            us: converted.us,
-            uk: converted.uk,
-          } : null)
-        }
-      }
-    }
-  }, [editingSize?.cm, isManualMode])
-
-  // 保存尺碼
-  const handleSave = async () => {
-    if (!editingSize) return
-
-    // 驗證必填欄位
-    if (!editingSize.eu || !editingSize.us || !editingSize.uk || !editingSize.cm) {
-      toast.error('請填寫所有必填欄位（EU、US、UK、CM）')
-      return
-    }
-
-    if (!editingSize.footLength || editingSize.footLength <= 0) {
-      toast.error('請輸入有效的腳長')
+  // 批量新增選中的尺寸
+  const handleAddSelected = async () => {
+    if (selectedSizes.size === 0) {
+      toast.error('請先選擇要新增的尺寸')
       return
     }
 
     try {
-      if (editingSize.id) {
-        // 更新現有尺碼
-        await updateSizeChart({
-          variables: {
-            id: editingSize.id,
-            input: {
-              eu: editingSize.eu,
-              us: editingSize.us,
-              uk: editingSize.uk,
-              cm: editingSize.cm,
-              footLength: Number(editingSize.footLength),
-              footWidth: editingSize.footWidth || null,
-              stock: 0, // 庫存統一在 SKU 矩陣管理
-              isActive: editingSize.isActive ?? true,
-            },
-          },
-        })
-      } else {
-        // 新增尺碼
+      toast.loading(`正在新增 ${selectedSizes.size} 個尺寸...`, { id: 'adding-sizes' })
+
+      const sizesArray = Array.from(selectedSizes).sort((a, b) => Number(a) - Number(b))
+      let sortOrder = (sizeCharts.length + 1) * 10
+
+      for (const size of sizesArray) {
         await createSizeChart({
           variables: {
             input: {
               productId,
-              variantId: editingSize.variantId || null,
-              eu: editingSize.eu,
-              us: editingSize.us,
-              uk: editingSize.uk,
-              cm: editingSize.cm,
-              footLength: Number(editingSize.footLength),
-              footWidth: editingSize.footWidth || null,
-              stock: 0, // 庫存統一在 SKU 矩陣管理
+              size,
+              sortOrder,
             },
           },
         })
+        sortOrder += 10
       }
+
+      toast.success(`已新增 ${selectedSizes.size} 個尺寸！`, { id: 'adding-sizes' })
+      setSelectedSizes(new Set())
+      refetch()
     } catch (error) {
-      console.error('保存尺碼時發生錯誤:', error)
+      console.error('批量新增失敗:', error)
+      toast.error('部分尺寸新增失敗', { id: 'adding-sizes' })
     }
   }
 
+  // 快速選擇範圍
+  const selectRange = (start: number, end: number) => {
+    const newSelected = new Set(selectedSizes)
+    for (let i = start; i <= end; i++) {
+      const size = String(i)
+      if (!existingSizes.has(size)) {
+        newSelected.add(size)
+      }
+    }
+    setSelectedSizes(newSelected)
+  }
+
+  // 清除選擇
+  const clearSelection = () => {
+    setSelectedSizes(new Set())
+  }
+
+  // 全選（未新增的）
+  const selectAll = () => {
+    const newSelected = new Set<string>()
+    DEFAULT_SIZES.forEach(size => {
+      if (!existingSizes.has(size)) {
+        newSelected.add(size)
+      }
+    })
+    setSelectedSizes(newSelected)
+  }
+
   // 刪除尺碼
-  const handleDelete = async (id: string, eu: string) => {
-    if (!confirm(`確定要刪除尺碼 EU ${eu} 嗎？此操作無法復原。`)) {
+  const handleDelete = async (id: string, size: string) => {
+    if (!confirm(`確定要刪除尺寸 "${size}" 嗎？`)) {
       return
     }
 
@@ -257,57 +168,29 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
     }
   }
 
-  // 批量導入尺碼
-  const handleBatchImport = async (gender: 'men' | 'women') => {
-    const template = gender === 'men' ? defaultMenSizes : defaultWomenSizes
-
-    // ✅ 檢查已存在的尺碼（根據 EU 碼）
-    const existingEuSizes = new Set(sizeCharts.map((chart) => chart.eu))
-    const newSizes = template.filter((size) => !existingEuSizes.has(size.eu))
-
-    if (newSizes.length === 0) {
-      toast.error(`${gender === 'men' ? '男款' : '女款'}尺碼模板中的所有尺碼都已存在，無需重複導入！`)
-      setShowBatchImport(false)
-      return
-    }
-
-    // 顯示將要導入的尺碼資訊
-    const skippedCount = template.length - newSizes.length
-    if (skippedCount > 0) {
-      toast.success(`跳過 ${skippedCount} 個已存在的尺碼，將導入 ${newSizes.length} 個新尺碼`)
-    }
-
-    try {
-      const promises = newSizes.map((size) =>
-        createSizeChart({
-          variables: {
-            input: {
-              productId,
-              variantId: null,
-              ...size,
-              stock: 0, // 庫存統一在 SKU 矩陣管理
-            },
-          },
-        })
-      )
-
-      await Promise.all(promises)
-      setShowBatchImport(false)
-      toast.success(
-        `已成功導入 ${newSizes.length} 個${gender === 'men' ? '男款' : '女款'}尺碼！${
-          skippedCount > 0 ? `（已跳過 ${skippedCount} 個重複尺碼）` : ''
-        }請到「庫存管理」設定庫存數量。`
-      )
-      refetch()
-    } catch (error: any) {
-      console.error('批量導入失敗:', error)
-      toast.error(`批量導入失敗：${error.message}`)
-    }
-  }
-
-  // 更新編輯中的尺碼欄位
+  // 更新編輯中的欄位
   const updateEditingField = (field: keyof SizeChart, value: any) => {
     setEditingSize((prev) => (prev ? { ...prev, [field]: value } : null))
+  }
+
+  // 保存編輯
+  const handleSaveEdit = async () => {
+    if (!editingSize?.id) return
+
+    try {
+      await updateSizeChart({
+        variables: {
+          id: editingSize.id,
+          input: {
+            size: editingSize.size,
+            sortOrder: editingSize.sortOrder,
+            isActive: editingSize.isActive ?? true,
+          },
+        },
+      })
+    } catch (error) {
+      console.error('保存失敗:', error)
+    }
   }
 
   if (loading) {
@@ -337,132 +220,177 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
 
   return (
     <div className="space-y-6">
-      {/* 操作按鈕 */}
-      <div className="flex gap-3">
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          + 新增尺碼
-        </button>
-        <button
-          onClick={() => setShowBatchImport(!showBatchImport)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {showBatchImport ? '取消批量導入' : '批量導入'}
-        </button>
-      </div>
-
-      {/* 批量導入選擇 */}
-      {showBatchImport && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">批量導入尺碼模板</h3>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>提示：</strong>系統會自動跳過已存在的尺碼，只導入新的尺碼。每個尺碼的庫存預設為 10 件。
+      {/* 預設尺寸選擇表格 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">點選新增尺寸</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              點選要新增的尺寸，已新增的尺寸會顯示為綠色
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex gap-2">
             <button
-              onClick={() => handleBatchImport('men')}
-              disabled={creating}
-              className="px-4 py-3 border-2 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
+              onClick={clearSelection}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              <div className="font-semibold text-blue-700">男款尺碼模板</div>
-              <div className="text-sm text-gray-600 mt-1">包含 EU 39-46 (US 6.5-12)，共 8 個尺碼</div>
+              清除選擇
             </button>
-
             <button
-              onClick={() => handleBatchImport('women')}
-              disabled={creating}
-              className="px-4 py-3 border-2 border-pink-500 rounded-lg hover:bg-pink-50 transition-colors text-left disabled:opacity-50"
+              onClick={selectAll}
+              className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50"
             >
-              <div className="font-semibold text-pink-700">女款尺碼模板</div>
-              <div className="text-sm text-gray-600 mt-1">包含 EU 35-41 (US 5-10)，共 7 個尺碼</div>
+              全選
             </button>
           </div>
         </div>
-      )}
 
-      {/* 尺碼列表 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">歐碼 (EU)</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">美碼 (US)</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">英碼 (UK)</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">厘米 (CM)</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">腳長 (cm)</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">腳寬</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">狀態</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {sizeCharts.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                    暫無尺碼數據，請新增或批量導入
-                  </td>
-                </tr>
-              ) : (
-                sizeCharts.map((size) => (
-                  <tr key={size.id} className={`hover:bg-gray-50 ${editingSize?.id === size.id ? 'bg-primary-50' : ''}`}>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{size.eu}</td>
-                    <td className="px-4 py-3 text-gray-700">{size.us}</td>
-                    <td className="px-4 py-3 text-gray-700">{size.uk}</td>
-                    <td className="px-4 py-3 text-gray-700">{size.cm}</td>
-                    <td className="px-4 py-3 text-gray-700">{size.footLength}</td>
-                    <td className="px-4 py-3 text-gray-700">{size.footWidth || '-'}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                          size.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {size.isActive ? '啟用' : '停用'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(size)}
-                          className="px-3 py-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
-                        >
-                          編輯
-                        </button>
-                        <button
-                          onClick={() => handleDelete(size.id, size.eu)}
-                          className="px-3 py-1 text-sm text-red-600 hover:text-red-700 font-medium"
-                        >
-                          刪除
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* 快速範圍選擇 */}
+        <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-200">
+          <span className="text-sm text-gray-600 mr-2">快速選擇：</span>
+          <button
+            onClick={() => selectRange(35, 40)}
+            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            35-40 號
+          </button>
+          <button
+            onClick={() => selectRange(36, 42)}
+            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            36-42 號
+          </button>
+          <button
+            onClick={() => selectRange(38, 44)}
+            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            38-44 號
+          </button>
+          <button
+            onClick={() => selectRange(39, 46)}
+            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            39-46 號
+          </button>
         </div>
+
+        {/* 尺寸格子 */}
+        <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 gap-2">
+          {DEFAULT_SIZES.map((size) => {
+            const isExisting = existingSizes.has(size)
+            const isSelected = selectedSizes.has(size)
+
+            return (
+              <button
+                key={size}
+                onClick={() => toggleSize(size)}
+                disabled={isExisting}
+                className={`
+                  aspect-square flex items-center justify-center text-sm font-medium rounded-lg border-2 transition-all
+                  ${
+                    isExisting
+                      ? 'bg-green-100 border-green-400 text-green-700 cursor-default'
+                      : isSelected
+                      ? 'bg-blue-500 border-blue-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                  }
+                `}
+              >
+                {size}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* 圖例說明 */}
+        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-200 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded bg-green-100 border-2 border-green-400"></span>
+            <span className="text-gray-600">已新增</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded bg-blue-500 border-2 border-blue-600"></span>
+            <span className="text-gray-600">已選擇（待新增）</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded bg-white border-2 border-gray-300"></span>
+            <span className="text-gray-600">可選擇</span>
+          </div>
+        </div>
+
+        {/* 新增按鈕 */}
+        {selectedSizes.size > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                已選擇 <span className="font-bold text-blue-600">{selectedSizes.size}</span> 個尺寸：
+                <span className="ml-2 text-gray-900">
+                  {Array.from(selectedSizes).sort((a, b) => Number(a) - Number(b)).join(', ')}
+                </span>
+              </div>
+              <button
+                onClick={handleAddSelected}
+                disabled={creating}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {creating ? '新增中...' : `新增 ${selectedSizes.size} 個尺寸`}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 統計資訊 */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">總尺碼數</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{sizeCharts.length}</p>
+      {/* 已新增的尺碼列表 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">已新增的尺寸</h3>
+          <p className="text-sm text-gray-500 mt-1">共 {sizeCharts.length} 個尺寸</p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">啟用尺碼</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {sizeCharts.filter((size) => size.isActive).length}
-          </p>
-        </div>
+
+        {sizeCharts.length === 0 ? (
+          <div className="px-6 py-12 text-center text-gray-500">
+            尚未新增任何尺寸，請在上方點選要新增的尺寸
+          </div>
+        ) : (
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {sizeCharts
+                .sort((a, b) => Number(a.size) - Number(b.size))
+                .map((size) => (
+                  <div
+                    key={size.id}
+                    className={`
+                      group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+                      ${size.isActive
+                        ? 'bg-green-50 border-green-300 text-green-800'
+                        : 'bg-gray-50 border-gray-300 text-gray-500'
+                      }
+                    `}
+                  >
+                    <span className="text-lg font-bold">{size.size}</span>
+                    <button
+                      onClick={() => setEditingSize(size)}
+                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+                      title="編輯"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(size.id, size.size)}
+                      className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity"
+                      title="刪除"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 庫存管理提示 */}
@@ -473,209 +401,70 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
           </svg>
           <div>
             <p className="text-sm font-semibold text-blue-900">庫存在「庫存管理」統一管理</p>
-            <p className="text-xs text-blue-700 mt-1">每個「顏色 × 尺碼」組合有獨立庫存，請切換到「庫存管理」標籤頁進行設定</p>
+            <p className="text-xs text-blue-700 mt-1">每個「顏色 × 尺寸」組合有獨立庫存，請切換到「庫存管理」標籤頁進行設定</p>
           </div>
         </div>
       </div>
 
-      {/* 編輯/新增表單（在頁面中顯示，不使用彈窗） */}
+      {/* 編輯對話框 */}
       {editingSize && (
-        <div id="size-form" className="bg-white rounded-lg shadow-lg border-2 border-primary-500 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">
-              {editingSize.id ? `編輯尺碼 EU ${editingSize.eu}` : '新增尺碼'}
-            </h3>
-            <button
-              onClick={() => setEditingSize(null)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-900">
+                編輯尺寸：{editingSize.size}
+              </h2>
+            </div>
 
-          {/* 自動換算提示 */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
+            <div className="p-6 space-y-4">
               <div>
-                <p className="text-sm font-semibold text-green-900">智能尺碼換算</p>
-                <p className="text-xs text-green-700 mt-1">
-                  只需輸入腳長公分數，系統會自動計算對應的 EU、US、UK 尺碼。
-                  {!isManualMode && ' 如需手動調整，請切換到手動模式。'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 性別選擇和模式切換 */}
-          <div className="flex flex-wrap items-center gap-4 mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">換算規則：</span>
-              <div className="flex gap-1">
-                {(['MEN', 'WOMEN', 'KIDS'] as GenderType[]).map((gender) => (
-                  <button
-                    key={gender}
-                    type="button"
-                    onClick={() => handleGenderChange(gender)}
-                    disabled={isManualMode}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                      selectedGender === gender
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    } ${isManualMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {gender === 'MEN' ? '男款' : gender === 'WOMEN' ? '女款' : '童款'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <label className="relative inline-flex items-center cursor-pointer">
+                <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
                 <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={isManualMode}
-                  onChange={(e) => setIsManualMode(e.target.checked)}
+                  type="text"
+                  value={editingSize.size || ''}
+                  onChange={(e) => updateEditingField('size', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
-                <span className="ml-2 text-sm font-medium text-gray-700">手動編輯</span>
-              </label>
-            </div>
-          </div>
+              </div>
 
-          {/* 主要輸入區域 - 公分輸入 */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              腳長公分數 (CM) <span className="text-red-500">*</span>
-            </label>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 max-w-xs">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">排序順序</label>
                 <input
                   type="number"
-                  value={editingSize.cm}
-                  onChange={(e) => handleCmChange(e.target.value)}
-                  className="w-full px-4 py-3 text-lg font-semibold border-2 border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="輸入公分數，例如：26"
-                  step="0.5"
-                  min="15"
-                  max="35"
+                  value={editingSize.sortOrder || 0}
+                  onChange={(e) => updateEditingField('sortOrder', parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
-              <div className="text-gray-600">
-                <span className="text-sm">公分 (cm)</span>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">狀態</label>
+                <select
+                  value={editingSize.isActive ? 'true' : 'false'}
+                  onChange={(e) => updateEditingField('isActive', e.target.value === 'true')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="true">啟用</option>
+                  <option value="false">停用</option>
+                </select>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              輸入腳長公分數後，系統會自動換算對應的國際尺碼
-            </p>
-          </div>
 
-          {/* 換算結果顯示 */}
-          {editingSize.cm && parseFloat(editingSize.cm) > 0 && (
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <div className="text-xs text-blue-600 font-medium mb-1">歐碼 (EU)</div>
-                <div className="text-2xl font-bold text-blue-700">{editingSize.eu || '-'}</div>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4 text-center">
-                <div className="text-xs text-purple-600 font-medium mb-1">美碼 (US)</div>
-                <div className="text-2xl font-bold text-purple-700">{editingSize.us || '-'}</div>
-              </div>
-              <div className="bg-orange-50 rounded-lg p-4 text-center">
-                <div className="text-xs text-orange-600 font-medium mb-1">英碼 (UK)</div>
-                <div className="text-2xl font-bold text-orange-700">{editingSize.uk || '-'}</div>
-              </div>
-            </div>
-          )}
-
-          {/* 手動編輯區域（僅在手動模式下顯示） */}
-          {isManualMode && (
-            <div className="border border-gray-200 rounded-lg p-4 mb-6">
-              <p className="text-sm font-medium text-gray-700 mb-3">手動調整尺碼：</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">歐碼 (EU)</label>
-                  <input
-                    type="text"
-                    value={editingSize.eu}
-                    onChange={(e) => updateEditingField('eu', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="42"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">美碼 (US)</label>
-                  <input
-                    type="text"
-                    value={editingSize.us}
-                    onChange={(e) => updateEditingField('us', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="8.5"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">英碼 (UK)</label>
-                  <input
-                    type="text"
-                    value={editingSize.uk}
-                    onChange={(e) => updateEditingField('uk', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="7.5"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 其他選項 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">腳寬</label>
-              <select
-                value={editingSize.footWidth || '標準'}
-                onChange={(e) => updateEditingField('footWidth', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingSize(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                <option value="窄版">窄版</option>
-                <option value="標準">標準</option>
-                <option value="寬版">寬版</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">狀態</label>
-              <select
-                value={editingSize.isActive ? 'true' : 'false'}
-                onChange={(e) => updateEditingField('isActive', e.target.value === 'true')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                取消
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={updating}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                <option value="true">啟用</option>
-                <option value="false">停用</option>
-              </select>
+                {updating ? '保存中...' : '保存'}
+              </button>
             </div>
-          </div>
-
-          {/* 儲存按鈕區域 */}
-          <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => setEditingSize(null)}
-              disabled={creating || updating}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={creating || updating}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creating || updating ? '保存中...' : '儲存'}
-            </button>
           </div>
         </div>
       )}

@@ -363,9 +363,9 @@ export default function EditProductPage() {
       {/* Tab 內容 */}
       {activeTab === 'info' ? (
         <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 圖片上傳 */}
+        {/* 圖片/影片上傳 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">產品圖片/影片</h2>
           <ImageUpload
             images={formData.images}
             onChange={(images) => updateField('images', images)}

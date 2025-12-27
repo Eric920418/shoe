@@ -423,17 +423,7 @@ export const orderResolvers = {
             })
           }
 
-          // 驗證 SKU 庫存是否足夠
-          for (const item of dbCartItems) {
-            if (item.sku) {
-              if (item.sku.stock < item.quantity) {
-                throw new GraphQLError(
-                  `${item.product.name} 庫存不足（可用: ${item.sku.stock}, 需求: ${item.quantity}）`,
-                  { extensions: { code: 'BAD_USER_INPUT' } }
-                )
-              }
-            }
-          }
+          // 無限庫存模式：不檢查庫存限制
 
           // 將數據庫購物車轉換為統一格式（添加 addedPrice 和 skuId 字段）
           cartItems = dbCartItems.map((item) => ({
@@ -474,7 +464,7 @@ export const orderResolvers = {
               })
             }
 
-            // 查找 SKU 並檢查庫存
+            // 查找 SKU（可選，用於記錄）
             let sku = null
             if (item.variantId && item.sizeChartId) {
               sku = await prisma.productSku.findUnique({
@@ -486,22 +476,9 @@ export const orderResolvers = {
                   },
                 },
               })
-
-              if (sku && sku.stock < item.quantity) {
-                throw new GraphQLError(
-                  `${product.name} 庫存不足（可用: ${sku.stock}, 需求: ${item.quantity}）`,
-                  { extensions: { code: 'BAD_USER_INPUT' } }
-                )
-              }
             }
 
-            // 向後相容：如果沒有 SKU，使用舊的 product.stock 檢查
-            if (!sku && product.stock < item.quantity) {
-              throw new GraphQLError(
-                `${product.name} 庫存不足（可用: ${product.stock}, 需求: ${item.quantity}）`,
-                { extensions: { code: 'BAD_USER_INPUT' } }
-              )
-            }
+            // 無限庫存模式：不檢查庫存限制
 
             cartItems.push({
               productId: product.id,

@@ -163,7 +163,7 @@ export const cartResolvers = {
 
         console.log('✅ 找到尺碼:', sizeChart.eu)
 
-        // 查找對應的 SKU（顏色 × 尺碼組合）
+        // 查找對應的 SKU（顏色 × 尺碼組合）- SKU 為可選，不存在也允許購買
         const sku = await prisma.productSku.findUnique({
           where: {
             productId_variantId_sizeChartId: {
@@ -174,14 +174,11 @@ export const cartResolvers = {
           },
         })
 
-        if (!sku) {
-          throw new Error(`此顏色尺碼組合暫無庫存 (顏色ID: ${variantId}, 尺碼ID: ${sizeChartId})`)
-        }
-
-        console.log('✅ 找到 SKU:', sku.id, '庫存:', sku.stock)
-
-        if (sku.stock < quantity) {
-          throw new Error(`庫存不足，目前僅剩 ${sku.stock} 件`)
+        // 如果 SKU 存在就記錄，不存在也允許購買（無限庫存模式）
+        if (sku) {
+          console.log('✅ 找到 SKU:', sku.id, '（庫存管理已停用）')
+        } else {
+          console.log('ℹ️ SKU 不存在，使用無限庫存模式')
         }
 
         // 獲取或創建購物車
@@ -198,24 +195,19 @@ export const cartResolvers = {
 
         console.log('✅ 購物車 ID:', cart.id)
 
-        // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼、SKU）
+        // 檢查購物車中是否已有相同的商品（相同產品、變體、尺碼）
         const existingItem = await prisma.cartItem.findFirst({
           where: {
             cartId: cart.id,
             productId,
             variantId: variantId || null,
             sizeChartId,
-            skuId: sku.id,
           },
         })
 
         if (existingItem) {
-          // 如果已存在，更新數量
+          // 如果已存在，更新數量（無庫存限制）
           const newQuantity = existingItem.quantity + quantity
-
-          if (sku.stock < newQuantity) {
-            throw new Error(`庫存不足，目前僅剩 ${sku.stock} 件`)
-          }
 
           console.log('🔄 更新購物車項目數量:', existingItem.quantity, '->', newQuantity)
           await prisma.cartItem.update({
@@ -245,7 +237,7 @@ export const cartResolvers = {
               productId,
               variantId: variantId || null,
               sizeChartId,
-              skuId: sku.id, // 關聯 SKU
+              skuId: sku?.id || null, // SKU 為可選
               quantity,
               price: itemPrice,
               bundleId: bundleId || null,
@@ -292,11 +284,7 @@ export const cartResolvers = {
         throw new Error('無權操作此購物車項目')
       }
 
-      // 檢查 SKU 庫存（優先使用 SKU，向後相容使用 sizeChart）
-      const availableStock = cartItem.sku?.stock ?? cartItem.sizeChart.stock
-      if (availableStock < quantity) {
-        throw new Error(`庫存不足，目前僅剩 ${availableStock} 件`)
-      }
+      // 無限庫存模式：不檢查庫存限制
 
       // 更新數量
       await prisma.cartItem.update({

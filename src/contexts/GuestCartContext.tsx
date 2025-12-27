@@ -83,15 +83,9 @@ export function GuestCartProvider({ children }: { children: ReactNode }) {
       )
 
       if (existingIndex >= 0) {
-        // 已存在，增加數量
+        // 已存在，增加數量（無庫存限制）
         const updated = [...prev]
         const newQuantity = updated[existingIndex].quantity + newItem.quantity
-
-        // 檢查庫存限制
-        if (newQuantity > newItem.stock) {
-          alert(`${newItem.productName} 庫存不足（最多 ${newItem.stock} 件）`)
-          return prev
-        }
 
         updated[existingIndex] = {
           ...updated[existingIndex],
@@ -138,11 +132,7 @@ export function GuestCartProvider({ children }: { children: ReactNode }) {
           item.variantId === variantId &&
           item.sizeEu === sizeEu
         ) {
-          // 檢查庫存限制
-          if (quantity > item.stock) {
-            alert(`${item.productName} 庫存不足（最多 ${item.stock} 件）`)
-            return item
-          }
+          // 無庫存限制
           return { ...item, quantity }
         }
         return item

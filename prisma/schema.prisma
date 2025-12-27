@@ -263,14 +263,8 @@ model ProductVariant {
 model SizeChart {
   id         String       @id @default(cuid())
   productId  String
-  variantId  String?      // 暫時保留，遷移後移除
-  eu         String
-  us         String
-  uk         String
-  cm         String
-  footLength Decimal      @db.Decimal(5, 2)
-  footWidth  String?
-  stock      Int          @default(0)  // 暫時保留，遷移後移除
+  size       String       // 簡化：只有一個尺寸欄位，直接輸入廠商提供的尺寸
+  sortOrder  Int          @default(0)  // 排序順序
   isActive   Boolean      @default(true)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
@@ -278,9 +272,9 @@ model SizeChart {
   product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   skus       ProductSku[]
 
-  @@unique([productId, variantId, eu])
+  @@unique([productId, size])
   @@index([productId])
-  @@index([stock])
+  @@index([productId, isActive, sortOrder])
   @@map("size_charts")
 }
 
