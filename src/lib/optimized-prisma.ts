@@ -276,7 +276,7 @@ export const optimizedQueries = {
       include: {
         variants: true,
         sizeCharts: {
-          orderBy: { eu: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
         reviews: {
           take: 5,

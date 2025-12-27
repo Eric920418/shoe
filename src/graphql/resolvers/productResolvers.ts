@@ -32,7 +32,7 @@ export const productResolvers = {
             category: true,
             brand: true,
             variants: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
-            sizeCharts: { where: { isActive: true }, orderBy: { eu: 'asc' } },
+            sizeCharts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
             reviews: { where: { isApproved: true, isPublic: true }, take: 10, orderBy: { createdAt: 'desc' } },
           },
         })

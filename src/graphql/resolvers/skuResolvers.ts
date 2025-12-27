@@ -27,7 +27,7 @@ export const skuResolvers = {
         },
         orderBy: [
           { variant: { sortOrder: 'asc' } },
-          { sizeChart: { eu: 'asc' } },
+          { sizeChart: { sortOrder: 'asc' } },
         ],
       })
     },
@@ -43,7 +43,7 @@ export const skuResolvers = {
           },
           sizeCharts: {
             where: { isActive: true },
-            orderBy: { eu: 'asc' },
+            orderBy: { sortOrder: 'asc' },
           },
           skus: {
             include: {

@@ -42,7 +42,7 @@ export const wishlistResolvers = {
                 },
                 sizeCharts: {
                   where: { isActive: true },
-                  orderBy: { eu: 'asc' },
+                  orderBy: { sortOrder: 'asc' },
                 },
               },
             },
@@ -149,7 +149,7 @@ export const wishlistResolvers = {
                 },
                 sizeCharts: {
                   where: { isActive: true },
-                  orderBy: { eu: 'asc' },
+                  orderBy: { sortOrder: 'asc' },
                 },
               },
             },
@@ -458,7 +458,7 @@ export const wishlistResolvers = {
           },
           sizeCharts: {
             where: { isActive: true },
-            orderBy: { eu: 'asc' },
+            orderBy: { sortOrder: 'asc' },
           },
         },
       })
