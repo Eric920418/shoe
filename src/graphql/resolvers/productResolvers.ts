@@ -181,18 +181,54 @@ export const productResolvers = {
       return await ProductCache.getList(cacheParams, fetchProducts)
     },
 
-    // 獲取分類
+    // 獲取分類（支援 id、slug、name 查詢）
     category: async (_: any, { id, slug }: { id?: string; slug?: string }) => {
-      return await prisma.category.findUnique({
-        where: id ? { id } : { slug },
-        include: {
-          products: {
-            where: { isActive: true },
-            take: 10,
-            include: { brand: true },
+      // 如果提供 id，直接查詢
+      if (id) {
+        return await prisma.category.findUnique({
+          where: { id },
+          include: {
+            products: {
+              where: { isActive: true },
+              take: 10,
+              include: { brand: true },
+            },
           },
-        },
-      })
+        })
+      }
+
+      // 如果提供 slug，先嘗試 slug 查詢，找不到再嘗試 name 查詢
+      if (slug) {
+        // 先嘗試 slug 精確匹配
+        let category = await prisma.category.findUnique({
+          where: { slug },
+          include: {
+            products: {
+              where: { isActive: true },
+              take: 10,
+              include: { brand: true },
+            },
+          },
+        })
+
+        // 如果 slug 找不到，嘗試用 name 查詢（支援中文分類名稱直接作為 URL）
+        if (!category) {
+          category = await prisma.category.findFirst({
+            where: { name: slug, isActive: true },
+            include: {
+              products: {
+                where: { isActive: true },
+                take: 10,
+                include: { brand: true },
+              },
+            },
+          })
+        }
+
+        return category
+      }
+
+      return null
     },
 
     // 獲取所有分類（帶快取，包含產品數量）

@@ -896,16 +896,21 @@ pnpm prisma migrate reset
 ### 🔥 近期重點更新（2025-12-27）
 
 #### ✅ 分類頁面 Bug 修復（重大）
-- **問題描述**：首頁分類點擊後無法顯示產品（空白頁面）
-- **根本原因**：`CategoryGrid.tsx` 使用 `slug`（如 `sports-shoes`）連結，但分類頁面使用硬編碼的中文 key（如 `運動鞋`），導致資料不匹配
-- **解決方案**：完全重寫 `/app/category/[category]/page.tsx`
-  - 改用 GraphQL 查詢真實資料庫資料
-  - 先透過 `category(slug)` 查詢取得分類資訊
-  - 再透過 `products(categoryId)` 查詢該分類的產品
-  - 新增載入狀態和錯誤處理（分類不存在時顯示友善提示）
-  - 支援性別、品牌、價格篩選和排序功能
-  - 支援網格/列表視圖切換
-  - 手機版篩選面板優化
+- **問題描述**：首頁分類點擊後無法顯示產品（顯示「找不到此分類」）
+- **根本原因**：
+  1. 分類頁面原本使用硬編碼的中文假資料，無法顯示真實產品
+  2. URL 使用中文名稱（如「運動鞋」），但資料庫 slug 可能是拼音格式（如 `yun-dong-xie`），導致查詢失敗
+- **解決方案**：
+  1. 完全重寫 `/app/category/[category]/page.tsx`
+     - 改用 GraphQL 查詢真實資料庫資料
+     - 先透過 `category(slug)` 查詢取得分類資訊
+     - 再透過 `products(categoryId)` 查詢該分類的產品
+     - 支援性別、品牌、價格篩選和排序功能
+     - 支援網格/列表視圖切換
+  2. 修改 `productResolvers.ts` 的 `category` 查詢
+     - 先嘗試用 `slug` 精確匹配
+     - 如果找不到，再嘗試用 `name` 查詢（支援中文分類名稱直接作為 URL）
+     - 確保無論 URL 使用中文或英文 slug 都能正確顯示
 
 #### ✅ 產品影片上傳支援
 - 新增產品影片上傳功能，支援 MP4 和 WebM 格式
@@ -926,6 +931,7 @@ pnpm prisma migrate reset
 - 快速範圍選擇按鈕（35-40、36-42、38-44、39-46、40-48）
 - 已新增的尺寸顯示為綠色，一目了然
 - 滑鼠移到已新增的尺寸上可編輯或刪除
+- **前台產品頁移除尺碼系統切換** - 客戶不再看到 EU/US/UK/CM 選擇按鈕，直接顯示廠商提供的尺寸
 - 修改範圍：
   - `prisma/schema.prisma` - SizeChart 模型簡化
   - `src/graphql/schema.ts` - GraphQL 類型更新
@@ -933,6 +939,8 @@ pnpm prisma migrate reset
   - `components/admin/SizeManagement.tsx` - 後台尺寸管理（點選式表格）
   - `components/product/SizeSelector.tsx` - 前端尺寸選擇器簡化
   - `app/admin/products/[id]/sizes/page.tsx` - 尺寸管理頁面（點選式表格）
+  - `app/products/[slug]/ModernProductDetail.tsx` - 移除尺碼系統切換按鈕
+  - `src/contexts/GuestCartContext.tsx` - 購物車支援 sizeChartId 欄位
 
 #### ✅ 無限庫存模式
 - 移除所有庫存檢查限制，客人可直接購買任何商品

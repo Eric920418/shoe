@@ -13,7 +13,8 @@ export interface GuestCartItem {
   productImage: string | null
   variantId?: string | null
   variantName?: string | null
-  sizeEu: string
+  sizeEu: string          // 顯示用的尺寸名稱
+  sizeChartId?: string    // 尺寸表 ID（用於下單時識別）
   color?: string | null
   quantity: number
   price: number

@@ -49,7 +49,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState<any>(null)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
-  const [sizeSystem, setSizeSystem] = useState<'EU' | 'US' | 'UK' | 'CM'>('CM')
+  // 尺碼系統已簡化，不再需要切換
 
   const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART)
 
@@ -334,26 +334,10 @@ export default function ModernProductDetail({ product }: { product: any }) {
             {/* 尺碼選擇器 */}
             {product.sizeCharts && product.sizeCharts.length > 0 ? (
               <div>
-                <div className="flex justify-between items-center mb-3">
+                <div className="mb-3">
                   <h3 className="text-sm font-bold text-black uppercase">
                     選擇尺碼
                   </h3>
-                  {/* 尺碼系統切換 */}
-                  <div className="flex gap-1">
-                    {(['CM', 'EU', 'US', 'UK'] as const).map((system) => (
-                      <button
-                        key={system}
-                        onClick={() => setSizeSystem(system)}
-                        className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                          sizeSystem === system
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {system}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {product.sizeCharts.map((size: any) => (
