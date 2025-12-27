@@ -248,10 +248,8 @@ export const GET_CART = gql`
           colorHex
         }
         sizeChart {
-          eu
-          us
-          uk
-          cm
+          id
+          size
         }
         bundle {
           id
@@ -1436,10 +1434,8 @@ export const GET_SKU_MATRIX = gql`
       }
       sizes {
         id
-        eu
-        us
-        uk
-        cm
+        size
+        sortOrder
         isActive
       }
       skus {
@@ -1484,7 +1480,7 @@ export const UPDATE_SKU_STOCK = gql`
       }
       sizeChart {
         id
-        eu
+        size
       }
     }
   }

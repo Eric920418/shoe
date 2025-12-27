@@ -59,7 +59,7 @@ async function migrateStockToSku() {
           })
 
           if (existingSku) {
-            console.log(`  - SKU 已存在: ${variant.color || variant.name} × EU ${sizeChart.eu}`)
+            console.log(`  - SKU 已存在: ${variant.color || variant.name} × ${sizeChart.size}`)
             continue
           }
 
@@ -86,7 +86,7 @@ async function migrateStockToSku() {
           })
 
           skuCount++
-          console.log(`  ✓ 建立 SKU: ${variant.color || variant.name} × EU ${sizeChart.eu} = ${stock} 件`)
+          console.log(`  ✓ 建立 SKU: ${variant.color || variant.name} × ${sizeChart.size} = ${stock} 件`)
         }
       }
     }

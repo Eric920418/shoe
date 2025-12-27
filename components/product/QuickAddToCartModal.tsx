@@ -215,8 +215,7 @@ export default function QuickAddToCartModal({
                             }`}
                           >
                             <div className="text-center">
-                              <p className="font-bold text-gray-900">EU {size.eu}</p>
-                              <p className="text-xs text-gray-500">US {size.us}</p>
+                              <p className="font-bold text-gray-900">{size.size}</p>
                             </div>
                             {isOutOfStock && (
                               <div className="absolute inset-0 flex items-center justify-center">

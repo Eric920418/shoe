@@ -99,20 +99,9 @@ export default function ModernProductDetail({ product }: { product: any }) {
     ? product.price + Number(selectedVariant.priceAdjustment || 0)
     : product.price
 
-  // 獲取尺碼標籤
+  // 獲取尺碼標籤（簡化版：直接使用 size 欄位）
   const getSizeLabel = (size: any) => {
-    switch (sizeSystem) {
-      case 'EU':
-        return size.eu
-      case 'US':
-        return size.us
-      case 'UK':
-        return size.uk
-      case 'CM':
-        return size.cm
-      default:
-        return size.cm
-    }
+    return size.size
   }
 
   const handleAddToCart = async () => {
@@ -147,7 +136,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
           productImage: displayImages[0] || null,
           variantId: selectedVariant?.id || null,
           variantName: selectedVariant?.color || null,
-          sizeEu: selectedSize.eu,
+          sizeEu: selectedSize.size,
           sizeChartId: selectedSize.id, // 添加 sizeChartId 用於 SKU 查詢
           color: selectedVariant?.color || null,
           quantity,

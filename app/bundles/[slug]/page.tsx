@@ -412,7 +412,7 @@ export default function BundlePage() {
                                   : 'border-gray-300 hover:border-gray-400'
                               }`}
                             >
-                              EU {size.eu}
+                              {size.size}
                             </button>
                           ))}
                         </div>

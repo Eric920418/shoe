@@ -161,7 +161,7 @@ export const cartResolvers = {
           throw new Error(`尺碼不存在 (ID: ${sizeChartId})`)
         }
 
-        console.log('✅ 找到尺碼:', sizeChart.eu)
+        console.log('✅ 找到尺碼:', sizeChart.size)
 
         // 查找對應的 SKU（顏色 × 尺碼組合）- SKU 為可選，不存在也允許購買
         const sku = await prisma.productSku.findUnique({

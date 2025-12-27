@@ -339,10 +339,7 @@ export default function SkuMatrixManagement({ productId }: SkuMatrixManagementPr
                     key={size.id}
                     className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase border-b border-gray-200 min-w-[80px]"
                   >
-                    <div>EU {size.eu}</div>
-                    <div className="text-[10px] text-gray-400 font-normal">
-                      US {size.us}
-                    </div>
+                    <div>{size.size}</div>
                   </th>
                 ))}
                 <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase border-b border-l border-gray-200 bg-gray-100">
