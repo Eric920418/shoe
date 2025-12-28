@@ -1264,7 +1264,7 @@ export const GET_SHIPPED_ORDERS = gql`
 // ============================================
 
 export const GET_PRODUCT_SIZE_CHARTS = gql`
-  query GetProductSizeCharts($productId: ID!, $variantId: ID) {
+  query GetProductSizeCharts($productId: ID!) {
     productSizeChart(productId: $productId) {
       id
       productId

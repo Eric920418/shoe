@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * 尺碼選擇器组件 - 簡化版
- * 直接顯示廠商提供的尺寸
+ * 尺碼選擇器组件 - 簡化版（無限庫存模式）
+ * 直接顯示廠商提供的尺寸，不檢查庫存
  */
 
 interface SizeChart {
@@ -16,17 +16,14 @@ interface SizeSelectorProps {
   sizeCharts: SizeChart[]
   selectedSize?: string
   onSizeChange: (size: SizeChart) => void
-  // 從 SKU 獲取庫存資訊
-  getStockForSize?: (sizeId: string) => number
 }
 
 export default function SizeSelector({
   sizeCharts,
   selectedSize,
   onSizeChange,
-  getStockForSize,
 }: SizeSelectorProps) {
-  // 按排序順序排列
+  // 按排序順序排列，只顯示啟用的尺寸
   const sortedSizes = [...sizeCharts]
     .filter(s => s.isActive)
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -43,36 +40,25 @@ export default function SizeSelector({
         )}
       </div>
 
-      {/* 尺碼網格 */}
+      {/* 尺碼網格 - 無庫存限制 */}
       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
         {sortedSizes.map((size) => {
           const isSelected = selectedSize === size.size
-          const stock = getStockForSize ? getStockForSize(size.id) : -1  // -1 表示未知
-          const isOutOfStock = stock === 0
-          const isLowStock = stock > 0 && stock <= 5
 
           return (
             <button
               key={size.id}
-              onClick={() => !isOutOfStock && onSizeChange(size)}
-              disabled={isOutOfStock}
+              onClick={() => onSizeChange(size)}
               className={`
                 relative px-4 py-3 text-sm font-medium rounded-lg border-2 transition-all
                 ${
                   isSelected
                     ? 'border-primary-600 bg-primary-50 text-primary-700'
-                    : isOutOfStock
-                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed line-through'
                     : 'border-gray-300 bg-white text-gray-900 hover:border-primary-400'
                 }
               `}
             >
               <span className="block">{size.size}</span>
-              {isLowStock && !isOutOfStock && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-semibold bg-orange-500 text-white rounded">
-                  剩{stock}
-                </span>
-              )}
             </button>
           )
         })}

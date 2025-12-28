@@ -82,18 +82,12 @@ export default function ModernProductDetail({ product }: { product: any }) {
     return getSkuStock(selectedVariant?.id, size.id)
   }
 
-  // ✅ 檢查是否有可用庫存（根據當前選擇的顏色）
+  // ✅ 無限庫存模式：只檢查是否有尺碼設定，不檢查庫存數量
   const hasAvailableStock = useMemo(() => {
+    // 只要有啟用的尺碼就可以購買
     if (!product.sizeCharts || product.sizeCharts.length === 0) return false
-    // 如果有 SKU 數據，檢查當前顏色的 SKU 庫存
-    if (product.skus && product.skus.length > 0 && selectedVariant) {
-      return product.sizeCharts.some((size: any) =>
-        getSkuStock(selectedVariant.id, size.id) > 0
-      )
-    }
-    // 向後相容：使用 sizeChart.stock
-    return product.sizeCharts.some((size: any) => size.stock > 0)
-  }, [product.sizeCharts, product.skus, selectedVariant])
+    return product.sizeCharts.some((size: any) => size.isActive !== false)
+  }, [product.sizeCharts])
 
   const finalPrice = selectedVariant
     ? product.price + Number(selectedVariant.priceAdjustment || 0)
@@ -141,7 +135,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
           color: selectedVariant?.color || null,
           quantity,
           price: finalPrice,
-          stock: getSizeStock(selectedSize), // 使用 SKU 庫存
+          stock: 999999, // 無限庫存模式
         })
         toast.success('已加入購物車，正在前往購物車...')
         // 跳轉到購物車頁面
@@ -331,7 +325,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
               </div>
             )}
 
-            {/* 尺碼選擇器 */}
+            {/* 尺碼選擇器 - 無限庫存模式 */}
             {product.sizeCharts && product.sizeCharts.length > 0 ? (
               <div>
                 <div className="mb-3">
@@ -340,16 +334,15 @@ export default function ModernProductDetail({ product }: { product: any }) {
                   </h3>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {product.sizeCharts.map((size: any) => (
+                  {product.sizeCharts
+                    .filter((size: any) => size.isActive !== false)
+                    .map((size: any) => (
                     <button
                       key={size.id}
                       onClick={() => setSelectedSize(size)}
-                      disabled={getSizeStock(size) === 0}
                       className={`py-3 text-sm font-medium border transition-all ${
                         selectedSize?.id === size.id
                           ? 'bg-black text-white border-black'
-                          : getSizeStock(size) === 0
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
                           : 'bg-white text-black border-gray-300 hover:border-black'
                       }`}
                     >
@@ -357,29 +350,6 @@ export default function ModernProductDetail({ product }: { product: any }) {
                     </button>
                   ))}
                 </div>
-
-                {/* ✅ 全部缺貨提示（根據當前選擇顏色的 SKU 庫存） */}
-                {product.sizeCharts.every((size: any) => getSizeStock(size) === 0) && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <svg
-                        className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-semibold text-red-900">此商品目前缺貨</p>
-                        <p className="text-xs text-red-700 mt-1">所有尺碼均已售完，請稍後再查看或聯繫客服詢問到貨時間</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               /* ✅ 無尺碼資料提示 */
@@ -397,8 +367,8 @@ export default function ModernProductDetail({ product }: { product: any }) {
                     />
                   </svg>
                   <div>
-                    <p className="text-sm font-semibold text-yellow-900">此商品尚未設定庫存</p>
-                    <p className="text-xs text-yellow-700 mt-1">商品資訊尚未完善，暫時無法購買。請聯繫客服獲取更多資訊。</p>
+                    <p className="text-sm font-semibold text-yellow-900">此商品尚未設定尺寸</p>
+                    <p className="text-xs text-yellow-700 mt-1">商品尺寸資訊尚未設定，暫時無法購買。請聯繫客服獲取更多資訊。</p>
                   </div>
                 </div>
               </div>
@@ -459,7 +429,9 @@ export default function ModernProductDetail({ product }: { product: any }) {
               {isLoading
                 ? '加入中...'
                 : !hasAvailableStock
-                ? '暫時缺貨'
+                ? '請先設定尺寸'
+                : !selectedSize
+                ? '請選擇尺碼'
                 : '加入購物車'}
             </button>
 

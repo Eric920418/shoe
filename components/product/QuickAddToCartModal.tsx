@@ -6,7 +6,7 @@ import { X, ShoppingCart, Check, AlertCircle } from 'lucide-react'
 import { ADD_TO_CART, GET_CART } from '@/graphql/queries'
 import toast from 'react-hot-toast'
 
-// 查詢產品詳細資訊（包含尺碼和變體）
+// 查詢產品詳細資訊（包含尺碼和變體）- 無限庫存模式，不需要 stock
 const GET_PRODUCT_DETAILS = gql`
   query GetProductDetails($id: ID!) {
     product(id: $id) {
@@ -19,16 +19,12 @@ const GET_PRODUCT_DETAILS = gql`
         name
         color
         colorHex
-        stock
         isActive
       }
       sizeCharts {
         id
-        eu
-        us
-        uk
-        cm
-        stock
+        size
+        sortOrder
         isActive
       }
     }
@@ -95,11 +91,6 @@ export default function QuickAddToCartModal({
       // 錯誤已在 onError 中處理
     }
   }
-
-  // 獲取選中尺碼的庫存
-  const selectedSizeStock = product?.sizeCharts?.find(
-    (size: any) => size.id === selectedSizeId
-  )?.stock || 0
 
   // 阻止背景滾動
   React.useEffect(() => {
@@ -188,7 +179,7 @@ export default function QuickAddToCartModal({
                 </div>
               )}
 
-              {/* 尺碼選擇 */}
+              {/* 尺碼選擇 - 無限庫存模式 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   選擇尺碼 <span className="text-red-500">*</span>
@@ -197,34 +188,24 @@ export default function QuickAddToCartModal({
                   <div className="grid grid-cols-4 gap-2">
                     {product.sizeCharts
                       .filter((size: any) => size.isActive)
+                      .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
                       .map((size: any) => {
-                        const isOutOfStock = size.stock === 0
                         const isSelected = selectedSizeId === size.id
 
                         return (
                           <button
                             key={size.id}
-                            onClick={() => !isOutOfStock && setSelectedSizeId(size.id)}
-                            disabled={isOutOfStock}
+                            onClick={() => setSelectedSizeId(size.id)}
                             className={`relative border-2 rounded-lg p-3 transition-all ${
                               isSelected
                                 ? 'border-orange-500 bg-orange-50'
-                                : isOutOfStock
-                                ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
                             <div className="text-center">
                               <p className="font-bold text-gray-900">{size.size}</p>
                             </div>
-                            {isOutOfStock && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded">
-                                  售完
-                                </span>
-                              </div>
-                            )}
-                            {isSelected && !isOutOfStock && (
+                            {isSelected && (
                               <div className="absolute top-1 right-1 bg-orange-500 rounded-full p-0.5">
                                 <Check size={12} className="text-white" />
                               </div>
@@ -241,7 +222,7 @@ export default function QuickAddToCartModal({
                 )}
               </div>
 
-              {/* 數量選擇 */}
+              {/* 數量選擇 - 無限庫存模式 */}
               {selectedSizeId && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -258,24 +239,19 @@ export default function QuickAddToCartModal({
                     <input
                       type="number"
                       min="1"
-                      max={selectedSizeStock}
                       value={quantity}
                       onChange={(e) => {
                         const val = parseInt(e.target.value) || 1
-                        setQuantity(Math.max(1, Math.min(val, selectedSizeStock)))
+                        setQuantity(Math.max(1, val))
                       }}
                       className="w-20 h-10 text-center border-2 border-gray-300 rounded-lg font-bold text-gray-900"
                     />
                     <button
-                      onClick={() => setQuantity(Math.min(selectedSizeStock, quantity + 1))}
-                      disabled={quantity >= selectedSizeStock}
-                      className="w-10 h-10 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-gray-700"
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-10 h-10 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-bold text-gray-700"
                     >
                       +
                     </button>
-                    <span className="text-sm text-gray-500 ml-2">
-                      庫存：{selectedSizeStock} 件
-                    </span>
                   </div>
                 </div>
               )}
