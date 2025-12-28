@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -83,13 +83,14 @@ function ProductsPageContent() {
   const brandParam = searchParams.get('brand') || ''
 
   const [sortBy, setSortBy] = useState('popular')
-  const [manualBrand, setManualBrand] = useState<string | null>(null)
-  const [manualCategories, setManualCategories] = useState<string[] | null>(null)
+  const [selectedBrand, setSelectedBrand] = useState('all')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState('all')
   const [selectedGender, setSelectedGender] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [urlProcessed, setUrlProcessed] = useState(false)
 
   // 查詢品牌列表
   const { data: brandsData } = useQuery(GET_BRANDS)
@@ -100,45 +101,48 @@ function ProductsPageContent() {
   const brands = brandsData?.brands || []
   const categories = categoriesData?.categories || []
 
-  // 計算當前選中的分類 ID（優先用手動選擇，否則從 URL 參數轉換）
-  const selectedCategories = React.useMemo(() => {
-    if (manualCategories !== null) return manualCategories
-    if (!categoryParam || categories.length === 0) return []
+  // 從 URL 參數初始化（只執行一次）
+  useEffect(() => {
+    if (urlProcessed) return
+    if (!categoriesData || !brandsData) return
 
-    const category = categories.find(
-      (c: { id: string; slug: string; name: string }) =>
-        c.slug === categoryParam || c.id === categoryParam || c.name === categoryParam
-    )
-    return category ? [category.id] : []
-  }, [manualCategories, categoryParam, categories])
+    let shouldProcess = true
 
-  // 計算當前選中的品牌 ID
-  const selectedBrand = React.useMemo(() => {
-    if (manualBrand !== null) return manualBrand
-    if (!brandParam || brands.length === 0) return 'all'
+    if (categoryParam && categories.length > 0) {
+      const category = categories.find(
+        (c: { id: string; slug: string; name: string }) =>
+          c.slug === categoryParam || c.id === categoryParam || c.name === categoryParam
+      )
+      if (category) {
+        setSelectedCategories([category.id])
+      }
+    }
 
-    const brand = brands.find(
-      (b: { id: string; slug: string; name: string }) =>
-        b.slug === brandParam || b.id === brandParam || b.name === brandParam
-    )
-    return brand ? brand.id : 'all'
-  }, [manualBrand, brandParam, brands])
+    if (brandParam && brands.length > 0) {
+      const brand = brands.find(
+        (b: { id: string; slug: string; name: string }) =>
+          b.slug === brandParam || b.id === brandParam || b.name === brandParam
+      )
+      if (brand) {
+        setSelectedBrand(brand.id)
+      }
+    }
+
+    if (shouldProcess) {
+      setUrlProcessed(true)
+    }
+  }, [categoryParam, brandParam, categories, brands, categoriesData, brandsData, urlProcessed])
 
   const toggleCategory = (categoryId: string) => {
-    const current = manualCategories ?? selectedCategories
-    if (current.includes(categoryId)) {
-      setManualCategories(current.filter(id => id !== categoryId))
-    } else {
-      setManualCategories([...current, categoryId])
-    }
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
   }
 
-  const setSelectedBrand = (brandId: string) => {
-    setManualBrand(brandId)
-  }
-
-  // 是否準備好查詢（有 URL 參數時需等待數據加載）
-  const isReady = (!categoryParam || categories.length > 0) && (!brandParam || brands.length > 0)
+  // 是否準備好查詢
+  const isReady = urlProcessed || (!categoryParam && !brandParam)
 
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
     variables: {
