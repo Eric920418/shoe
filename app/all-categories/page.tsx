@@ -2,8 +2,8 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  Sparkles, ChevronRight, Crown,
-  User, Heart, Baby, Search, Layers
+  ChevronRight, Star, Zap,
+  User, Heart, Baby, Search, Grid3X3, Flame, Crown
 } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 
@@ -33,128 +33,93 @@ export default async function AllCategoriesPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* 頂部裝飾線 */}
-      <div className="h-[2px] bg-gradient-to-r from-transparent via-[#CBA135] to-transparent" />
-
-      {/* 標題區 - 奢華黑金風格 */}
-      <div className="relative overflow-hidden">
-        {/* 背景裝飾 */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1a1510] via-[#0f0d0a] to-[#0a0a0a]" />
-          <div className="absolute inset-0 opacity-30" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23CBA135' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
-          {/* 金色光暈 */}
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#CBA135] rounded-full blur-[150px] opacity-10" />
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#d4a437] rounded-full blur-[100px] opacity-10" />
-        </div>
-
-        <div className="relative container mx-auto px-4 py-12 md:py-16">
-          <div className="text-center max-w-3xl mx-auto">
-            {/* 裝飾線 */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-[#CBA135]" />
-              <Layers className="text-[#CBA135]" size={24} />
-              <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-[#CBA135]" />
+    <div className="min-h-screen bg-gray-100">
+      {/* 標題橫幅 - 淘寶促銷風格 */}
+      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 bg-yellow-400 text-red-600 px-4 py-1 rounded-full text-sm font-bold mb-3">
+              <Grid3X3 size={16} />
+              全場分類
             </div>
-
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-[#ffe9a3] via-[#CBA135] to-[#d4a437] bg-clip-text text-transparent">
-                全部分類
-              </span>
-            </h1>
-
-            <p className="text-[#888] text-lg">
-              探索我們的完整鞋款系列
-            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">全部分類</h1>
+            <p className="text-white/90">探索我們的完整鞋款系列，找到你的心頭好</p>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-6">
         {/* 主要分類 */}
         {categories.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            {categories.map((category, index) => {
-              const customDisplay = category.categoryDisplay
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="text-orange-500" size={20} />
+              <h2 className="text-lg font-bold text-gray-800">熱門分類</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {categories.map((category) => {
+                const customDisplay = category.categoryDisplay
 
-              return (
-                <Link
-                  key={category.id}
-                  href={`/products?category=${category.slug}`}
-                  className="group relative rounded-xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#CBA135]/40 transition-all duration-500 hover:shadow-xl hover:shadow-[#CBA135]/10"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {/* 卡片背景 */}
-                  <div className="h-36 md:h-44 relative overflow-hidden">
-                    {/* 漸變背景 */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1a1510] via-[#0f0d0a] to-[#0a0a0a]" />
-
-                    {/* 裝飾圓形 */}
-                    <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-[#CBA135]/5 group-hover:bg-[#CBA135]/10 transition-colors duration-500" />
-                    <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-[#CBA135]/10 group-hover:bg-[#CBA135]/20 transition-colors duration-500" />
-
-                    {/* 內容 */}
-                    <div className="relative z-10 p-5 h-full flex flex-col justify-between">
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/products?category=${category.slug}`}
+                    className="group bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 hover:from-orange-100 hover:to-red-100 transition-colors border border-orange-100 hover:border-orange-300"
+                  >
+                    <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-xl md:text-2xl font-bold text-[#eee] group-hover:text-[#CBA135] transition-colors">
+                        <h3 className="font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
                           {customDisplay?.displayName || category.name}
                         </h3>
-                        <p className="text-[#666] text-sm mt-1">{category._count.products} 款商品</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {category._count.products} 款商品
+                        </p>
                       </div>
-
-                      <div className="flex items-center gap-2 text-[#CBA135] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <span className="text-sm">瀏覽全部</span>
-                        <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                      </div>
+                      <ChevronRight className="text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" size={20} />
                     </div>
-                  </div>
-
-                  {/* 底部金色光線 */}
-                  <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#CBA135]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </Link>
-              )
-            })}
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-[#222] bg-[#111]/50 p-12 mb-10 text-center">
-            <p className="text-[#666]">目前沒有分類</p>
+          <div className="bg-white rounded-lg shadow-sm p-8 mb-6 text-center">
+            <p className="text-gray-500">目前沒有分類</p>
           </div>
         )}
 
         {/* 品牌專區 */}
         {brands.length > 0 && (
-          <div className="rounded-xl border border-[#222] bg-[#111]/50 backdrop-blur p-6 md:p-8 mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <Crown className="text-[#CBA135]" size={24} />
-              <h2 className="text-xl font-bold text-[#eee]">品牌專區</h2>
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Crown className="text-yellow-500" size={20} />
+              <h2 className="text-lg font-bold text-gray-800">品牌專區</h2>
+              <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">HOT</span>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {brands.map((brand) => (
                 <Link
                   key={brand.id}
                   href={`/products?brand=${brand.slug}`}
-                  className="group rounded-lg border border-[#222] bg-[#0a0a0a] p-4 hover:border-[#CBA135]/40 hover:bg-[#111] transition-all duration-300 text-center"
+                  className="group bg-gray-50 rounded-lg p-3 hover:bg-orange-50 transition-colors border border-gray-100 hover:border-orange-200 text-center"
                 >
-                  <div className="h-12 mb-3 flex items-center justify-center">
+                  <div className="h-10 mb-2 flex items-center justify-center">
                     {brand.logo ? (
                       <Image
                         src={brand.logo}
                         alt={brand.name}
-                        width={80}
-                        height={40}
-                        className="opacity-60 group-hover:opacity-100 transition-opacity object-contain filter grayscale group-hover:grayscale-0"
+                        width={60}
+                        height={30}
+                        className="opacity-70 group-hover:opacity-100 transition-opacity object-contain"
                       />
                     ) : (
-                      <span className="text-2xl font-bold text-[#444] group-hover:text-[#CBA135] transition-colors">
+                      <span className="text-xl font-bold text-gray-400 group-hover:text-orange-500 transition-colors">
                         {brand.name.charAt(0)}
                       </span>
                     )}
                   </div>
-                  <p className="font-medium text-[#ccc] group-hover:text-[#CBA135] transition-colors">{brand.name}</p>
-                  <p className="text-xs text-[#555] mt-1">{brand._count.products} 款商品</p>
+                  <p className="font-medium text-gray-800 text-sm group-hover:text-orange-600 transition-colors">{brand.name}</p>
+                  <p className="text-xs text-gray-500">{brand._count.products} 款</p>
                 </Link>
               ))}
             </div>
@@ -162,78 +127,121 @@ export default async function AllCategoriesPage() {
         )}
 
         {/* 性別分類 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Link
             href="/products?gender=MEN"
-            className="group relative rounded-xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#CBA135]/40 transition-all duration-300 p-6"
+            className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-5 hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-full bg-[#1a1510] flex items-center justify-center mb-3 group-hover:bg-[#CBA135]/20 transition-colors">
-                  <User className="text-[#CBA135]" size={24} />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <User size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-[#eee] group-hover:text-[#CBA135] transition-colors mb-1">男鞋專區</h3>
-                <p className="text-sm text-[#666]">專為男士設計</p>
+                <div>
+                  <h3 className="text-xl font-bold">男鞋專區</h3>
+                  <p className="text-sm opacity-90">專為男士設計</p>
+                </div>
               </div>
-              <ChevronRight className="text-[#444] group-hover:text-[#CBA135] group-hover:translate-x-1 transition-all" size={24} />
+              <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
             </div>
-            <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#CBA135]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
 
           <Link
             href="/products?gender=WOMEN"
-            className="group relative rounded-xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#CBA135]/40 transition-all duration-300 p-6"
+            className="group bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg p-5 hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-full bg-[#1a1510] flex items-center justify-center mb-3 group-hover:bg-[#CBA135]/20 transition-colors">
-                  <Heart className="text-[#CBA135]" size={24} />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Heart size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-[#eee] group-hover:text-[#CBA135] transition-colors mb-1">女鞋專區</h3>
-                <p className="text-sm text-[#666]">時尚女性之選</p>
+                <div>
+                  <h3 className="text-xl font-bold">女鞋專區</h3>
+                  <p className="text-sm opacity-90">時尚女性之選</p>
+                </div>
               </div>
-              <ChevronRight className="text-[#444] group-hover:text-[#CBA135] group-hover:translate-x-1 transition-all" size={24} />
+              <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
             </div>
-            <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#CBA135]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
 
           <Link
             href="/products?gender=KIDS"
-            className="group relative rounded-xl overflow-hidden bg-[#111] border border-[#222] hover:border-[#CBA135]/40 transition-all duration-300 p-6"
+            className="group bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg p-5 hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-full bg-[#1a1510] flex items-center justify-center mb-3 group-hover:bg-[#CBA135]/20 transition-colors">
-                  <Baby className="text-[#CBA135]" size={24} />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Baby size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-[#eee] group-hover:text-[#CBA135] transition-colors mb-1">童鞋專區</h3>
-                <p className="text-sm text-[#666]">呵護寶貝雙腳</p>
+                <div>
+                  <h3 className="text-xl font-bold">童鞋專區</h3>
+                  <p className="text-sm opacity-90">呵護寶貝雙腳</p>
+                </div>
               </div>
-              <ChevronRight className="text-[#444] group-hover:text-[#CBA135] group-hover:translate-x-1 transition-all" size={24} />
+              <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
             </div>
-            <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#CBA135]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
         </div>
 
-        {/* 底部搜索推薦 */}
-        <div className="rounded-xl border border-[#222] bg-gradient-to-br from-[#1a1510] to-[#0f0d0a] p-8 md:p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#CBA135]/10 flex items-center justify-center mx-auto mb-4">
-            <Search className="text-[#CBA135]" size={32} />
+        {/* 快速入口 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Link
+            href="/popular"
+            className="group bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow border border-gray-100"
+          >
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-red-200 transition-colors">
+              <Flame className="text-red-500" size={24} />
+            </div>
+            <p className="font-medium text-gray-800 group-hover:text-red-500">熱銷排行</p>
+          </Link>
+
+          <Link
+            href="/new-arrivals"
+            className="group bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow border border-gray-100"
+          >
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-green-200 transition-colors">
+              <Zap className="text-green-500" size={24} />
+            </div>
+            <p className="font-medium text-gray-800 group-hover:text-green-500">新品上架</p>
+          </Link>
+
+          <Link
+            href="/flash-sale"
+            className="group bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow border border-gray-100"
+          >
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-orange-200 transition-colors">
+              <Zap className="text-orange-500" size={24} />
+            </div>
+            <p className="font-medium text-gray-800 group-hover:text-orange-500">限時搶購</p>
+          </Link>
+
+          <Link
+            href="/clearance"
+            className="group bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow border border-gray-100"
+          >
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors">
+              <Star className="text-purple-500" size={24} />
+            </div>
+            <p className="font-medium text-gray-800 group-hover:text-purple-500">清倉特價</p>
+          </Link>
+        </div>
+
+        {/* 底部搜索區 */}
+        <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-6 text-center">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+            <Search className="text-orange-500" size={28} />
           </div>
-          <h3 className="text-xl font-bold text-[#eee] mb-2">找不到想要的分類？</h3>
-          <p className="text-[#666] mb-6">使用我們的智能搜索，快速找到心儀的鞋款</p>
+          <h3 className="text-lg font-bold text-gray-800 mb-2">找不到想要的分類？</h3>
+          <p className="text-sm text-gray-600 mb-4">使用搜索功能，快速找到心儀的鞋款</p>
           <Link
             href="/search"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-gradient-to-r from-[#CBA135] to-[#d4a437] text-[#0a0a0a] font-semibold hover:shadow-lg hover:shadow-[#CBA135]/20 transition-all"
+            className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-full font-medium transition-colors"
           >
             <Search size={18} />
             立即搜索
           </Link>
         </div>
       </div>
-
-      {/* 底部裝飾線 */}
-      <div className="h-[1px] bg-gradient-to-r from-transparent via-[#CBA135]/30 to-transparent mt-8" />
     </div>
   )
 }
