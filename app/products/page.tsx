@@ -6,10 +6,9 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, gql } from '@apollo/client'
 import {
-  Star, ShoppingBag, Zap, ChevronDown, X, Grid3X3, LayoutList, Filter, Tag, Flame
+  Star, ShoppingBag, Grid3X3, List, Filter, SlidersHorizontal, Loader2
 } from 'lucide-react'
 import WishlistButton from '@/components/product/WishlistButton'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
 
 // GraphQL 查詢
@@ -83,10 +82,11 @@ function ProductsPageContent() {
   const categoryParam = searchParams.get('category') || ''
   const brandParam = searchParams.get('brand') || ''
 
-  const [sortBy, setSortBy] = useState('relevance')
+  const [sortBy, setSortBy] = useState('popular')
   const [manualBrand, setManualBrand] = useState<string | null>(null)
   const [manualCategories, setManualCategories] = useState<string[] | null>(null)
   const [priceRange, setPriceRange] = useState('all')
+  const [selectedGender, setSelectedGender] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -137,10 +137,6 @@ function ProductsPageContent() {
     setManualBrand(brandId)
   }
 
-  const setSelectedCategories = (categoryIds: string[]) => {
-    setManualCategories(categoryIds)
-  }
-
   // 是否準備好查詢（有 URL 參數時需等待數據加載）
   const isReady = (!categoryParam || categories.length > 0) && (!brandParam || brands.length > 0)
 
@@ -151,6 +147,7 @@ function ProductsPageContent() {
       categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
       maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
+      gender: selectedGender !== 'all' ? selectedGender : undefined,
     },
     skip: !isReady,
   })
@@ -173,23 +170,28 @@ function ProductsPageContent() {
           const ratingB = b.averageRating ? Number(b.averageRating) : 0
           return ratingB - ratingA
         })
-      case 'sales':
-        return sorted.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
       case 'newest':
-        return sorted.filter(p => p.isNewArrival)
-      case 'featured':
-        return sorted.filter(p => p.isFeatured)
+        return sorted.sort((a, b) => -1)
+      case 'popular':
       default:
-        return sorted
+        return sorted.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
     }
   }, [products, sortBy])
 
   const priceRanges = [
     { value: 'all', label: '全部價格' },
     { value: '0-999', label: '$999以下' },
-    { value: '1000-1999', label: '$1,000-$1,999' },
-    { value: '2000-2999', label: '$2,000-$2,999' },
-    { value: '3000+', label: '$3,000以上' }
+    { value: '1000-1999', label: '$1000-$1999' },
+    { value: '2000-2999', label: '$2000-$2999' },
+    { value: '3000+', label: '$3000以上' }
+  ]
+
+  const genderOptions = [
+    { value: 'all', label: '全部' },
+    { value: 'MEN', label: '男款' },
+    { value: 'WOMEN', label: '女款' },
+    { value: 'UNISEX', label: '中性' },
+    { value: 'KIDS', label: '童鞋' },
   ]
 
   const currentCategoryName = selectedCategories.length === 1
@@ -202,412 +204,392 @@ function ProductsPageContent() {
     ? brands.find((b: { id: string; name: string }) => b.id === selectedBrand)?.name
     : null
 
+  const pageTitle = currentCategoryName || currentBrandName || '所有商品'
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* 麵包屑導航 */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-3">
-          <Breadcrumb items={[{ label: '所有商品' }]} />
-        </div>
-      </div>
-
-      {/* 標題區 - 淘寶促銷風格 */}
-      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500">
-        <div className="container mx-auto px-4 py-6 md:py-8">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-yellow-400 text-red-600 px-4 py-1 rounded-full text-sm font-bold mb-3 animate-pulse">
-              <Zap size={16} />
-              超值優惠
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              {currentCategoryName || currentBrandName || '全部商品'}
-            </h1>
-            {!productsLoading && products.length > 0 && (
-              <p className="text-white/90">
-                共 <span className="text-yellow-300 font-bold text-xl">{products.length}</span> 件超值好物等你挑
-              </p>
+        <div className="container mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Link href="/" className="text-gray-500 hover:text-gray-700">首頁</Link>
+            <span className="text-gray-400">/</span>
+            {currentCategoryName ? (
+              <>
+                <Link href="/all-categories" className="text-gray-500 hover:text-gray-700">全部分類</Link>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-800 font-medium">{currentCategoryName}</span>
+              </>
+            ) : currentBrandName ? (
+              <>
+                <Link href="/brands" className="text-gray-500 hover:text-gray-700">品牌專區</Link>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-800 font-medium">{currentBrandName}</span>
+              </>
+            ) : (
+              <span className="text-gray-800 font-medium">所有商品</span>
             )}
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-4">
-        {/* 篩選區 */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          {/* 主要控制列 */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            {/* 已選標籤 */}
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedBrand !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-sm font-medium">
-                  <Tag size={14} />
-                  {currentBrandName}
-                  <button onClick={() => setSelectedBrand('all')} className="hover:text-orange-800">
-                    <X size={14} />
-                  </button>
-                </span>
-              )}
-              {selectedCategories.map(catId => {
-                const cat = categories.find((c: { id: string; name: string }) => c.id === catId)
-                return cat ? (
-                  <span key={catId} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-sm font-medium">
-                    <Tag size={14} />
-                    {cat.name}
-                    <button onClick={() => toggleCategory(catId)} className="hover:text-orange-800">
-                      <X size={14} />
-                    </button>
-                  </span>
-                ) : null
-              })}
-              {priceRange !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-sm font-medium">
-                  <Tag size={14} />
-                  {priceRanges.find(r => r.value === priceRange)?.label}
-                  <button onClick={() => setPriceRange('all')} className="hover:text-orange-800">
-                    <X size={14} />
-                  </button>
-                </span>
-              )}
-              {(selectedBrand !== 'all' || selectedCategories.length > 0 || priceRange !== 'all') && (
-                <button
-                  onClick={() => {
-                    setSelectedBrand('all')
-                    setSelectedCategories([])
-                    setPriceRange('all')
-                  }}
-                  className="text-gray-500 hover:text-orange-500 text-sm"
-                >
-                  清除全部
-                </button>
-              )}
+        <div className="flex gap-4">
+          {/* 側邊篩選器 - 桌面版 */}
+          <div className="hidden lg:block w-64 bg-white rounded-lg shadow-sm p-4 h-fit sticky top-4">
+            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <SlidersHorizontal size={18} />
+              篩選條件
+            </h3>
+
+            {/* 性別篩選 */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-700 mb-3">性別</h4>
+              <div className="space-y-2">
+                {genderOptions.map(option => (
+                  <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={option.value}
+                      checked={selectedGender === option.value}
+                      onChange={(e) => setSelectedGender(e.target.value)}
+                      className="text-orange-500"
+                    />
+                    <span className="text-sm text-gray-600">{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
-            {/* 右側控制 */}
-            <div className="flex items-center gap-2">
-              <div className="flex rounded-lg border overflow-hidden">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  <Grid3X3 size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  <LayoutList size={18} />
-                </button>
+            {/* 分類篩選 */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-700 mb-3">分類</h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {categories.map((cat: { id: string; name: string }) => (
+                  <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(cat.id)}
+                      onChange={() => toggleCategory(cat.id)}
+                      className="text-orange-500 rounded"
+                    />
+                    <span className="text-sm text-gray-600">{cat.name}</span>
+                  </label>
+                ))}
               </div>
+            </div>
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border rounded-lg text-sm bg-white focus:border-orange-500 focus:outline-none"
-              >
-                <option value="relevance">綜合排序</option>
-                <option value="sales">銷量優先</option>
-                <option value="price-low">價格低到高</option>
-                <option value="price-high">價格高到低</option>
-                <option value="rating">好評優先</option>
-                <option value="newest">新品優先</option>
-              </select>
+            {/* 品牌篩選 */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-700 mb-3">品牌</h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="brand"
+                    value="all"
+                    checked={selectedBrand === 'all'}
+                    onChange={(e) => setSelectedBrand(e.target.value)}
+                    className="text-orange-500"
+                  />
+                  <span className="text-sm text-gray-600">全部品牌</span>
+                </label>
+                {brands.map((brand: { id: string; name: string }) => (
+                  <label key={brand.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="brand"
+                      value={brand.id}
+                      checked={selectedBrand === brand.id}
+                      onChange={(e) => setSelectedBrand(e.target.value)}
+                      className="text-orange-500"
+                    />
+                    <span className="text-sm text-gray-600">{brand.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="lg:hidden px-3 py-2 border rounded-lg text-sm bg-white flex items-center gap-1.5 hover:border-orange-500"
-              >
-                <Filter size={16} />
-                篩選
-                <ChevronDown size={14} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-              </button>
+            {/* 價格範圍 */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-700 mb-3">價格範圍</h4>
+              <div className="space-y-2">
+                {priceRanges.map(range => (
+                  <label key={range.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="price"
+                      value={range.value}
+                      checked={priceRange === range.value}
+                      onChange={(e) => setPriceRange(e.target.value)}
+                      className="text-orange-500"
+                    />
+                    <span className="text-sm text-gray-600">{range.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* 篩選選項 */}
-          <div className={`${showFilters ? 'block' : 'hidden'} lg:block border-t pt-4`}>
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* 品牌 */}
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-2 font-medium flex items-center gap-1">
-                  <Filter size={14} />
-                  品牌
-                </p>
-                <div className="flex flex-wrap gap-2">
+          {/* 主要內容區 */}
+          <div className="flex-1">
+            {/* 頂部工具列 */}
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h1 className="text-xl font-bold text-gray-800">{pageTitle}</h1>
+                  <p className="text-sm text-gray-500">共 {sortedProducts.length} 件商品</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* 手機版篩選按鈕 */}
                   <button
-                    onClick={() => setSelectedBrand('all')}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      selectedBrand === 'all'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-600'
-                    }`}
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2"
                   >
-                    全部
+                    <Filter size={16} />
+                    篩選
                   </button>
-                  {brands.slice(0, 8).map((brand: { id: string; name: string }) => (
+
+                  {/* 排序 */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-3 py-1.5 border rounded-lg text-sm"
+                  >
+                    <option value="popular">熱門推薦</option>
+                    <option value="newest">最新上架</option>
+                    <option value="price-low">價格低到高</option>
+                    <option value="price-high">價格高到低</option>
+                    <option value="rating">評價最高</option>
+                  </select>
+
+                  {/* 視圖切換 */}
+                  <div className="hidden sm:flex rounded-lg border">
                     <button
-                      key={brand.id}
-                      onClick={() => setSelectedBrand(brand.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                        selectedBrand === brand.id
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-600'
-                      }`}
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-gray-600'}`}
                     >
-                      {brand.name}
+                      <Grid3X3 size={16} />
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-gray-600'}`}
+                    >
+                      <List size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* 分類 */}
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-2 font-medium flex items-center gap-1">
-                  <Filter size={14} />
-                  分類（可複選）
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((cat: { id: string; name: string }) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => toggleCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm transition-colors flex items-center gap-1 ${
-                        selectedCategories.includes(cat.id)
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-600'
-                      }`}
-                    >
-                      {selectedCategories.includes(cat.id) && (
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 價格 */}
-              <div className="lg:w-44">
-                <p className="text-sm text-gray-600 mb-2 font-medium">價格範圍</p>
-                <select
-                  value={priceRange}
-                  onChange={(e) => setPriceRange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:border-orange-500 focus:outline-none"
-                >
-                  {priceRanges.map(range => (
-                    <option key={range.value} value={range.value}>
-                      {range.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Loading */}
-        {productsLoading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
-              <p className="text-gray-600">正在為您搜尋超值好物...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {productsError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-600">載入失敗：{productsError.message}</p>
-          </div>
-        )}
-
-        {/* 空狀態 */}
-        {!productsLoading && !productsError && sortedProducts.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShoppingBag className="text-orange-500" size={32} />
-            </div>
-            <p className="text-gray-800 text-lg mb-2">暫無符合條件的商品</p>
-            <p className="text-gray-500 text-sm mb-6">試試其他篩選條件吧</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/" className="px-5 py-2 rounded-full border border-orange-500 text-orange-500 hover:bg-orange-50">
-                返回首頁
-              </Link>
-              <Link href="/popular" className="px-5 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600">
-                看看熱銷
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 產品列表 */}
-        {!productsLoading && !productsError && sortedProducts.length > 0 && (
-          <div className={viewMode === 'grid'
-            ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-            : "space-y-3"
-          }>
-            {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; category: { id: string; name: string; slug: string }; brand: { id: string; name: string; slug: string } }) => {
-              const images = Array.isArray(product.images) ? product.images : []
-              const image = images.length > 0 ? images[0] : '/api/placeholder/300/300'
-              const price = parseFloat(product.price)
-              const originalPrice = parseFloat(product.originalPrice) || price
-              const hasDiscount = originalPrice > price
-              const discount = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0
-              const rating = product.averageRating ? Number(product.averageRating) : 0
-
-              return viewMode === 'grid' ? (
-                // 網格卡片 - 淘寶風格
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
-                >
-                  <Link href={`/products/${product.slug}`}>
-                    <div className="relative aspect-square bg-gray-100">
-                      <Image
-                        src={image}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-
-                      {/* 標籤 */}
-                      <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        {hasDiscount && (
-                          <span className="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">
-                            {discount}%OFF
-                          </span>
-                        )}
-                        {product.isNewArrival && (
-                          <span className="bg-green-500 text-white px-2 py-0.5 rounded text-xs font-bold">
-                            新品
-                          </span>
-                        )}
-                        {product.isFeatured && (
-                          <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
-                            <Flame size={10} />
-                            熱賣
-                          </span>
-                        )}
-                      </div>
-
-                      {/* 願望清單 */}
-                      <div className="absolute top-2 right-2 z-20">
-                        <WishlistButton productId={product.id} size="sm" />
-                      </div>
-
-                      {/* 快速購買 */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setModalProduct({ id: product.id, name: product.name })
-                          }}
-                          className="w-full py-2 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 flex items-center justify-center gap-1"
-                        >
-                          <ShoppingBag size={14} />
-                          加入購物車
-                        </button>
-                      </div>
+              {/* 手機版篩選面板 */}
+              {showFilters && (
+                <div className="lg:hidden mt-4 pt-4 border-t">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 性別 */}
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm">性別</h4>
+                      <select
+                        value={selectedGender}
+                        onChange={(e) => setSelectedGender(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded text-sm"
+                      >
+                        {genderOptions.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
                     </div>
+                    {/* 品牌 */}
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm">品牌</h4>
+                      <select
+                        value={selectedBrand}
+                        onChange={(e) => setSelectedBrand(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded text-sm"
+                      >
+                        <option value="all">全部品牌</option>
+                        {brands.map((brand: { id: string; name: string }) => (
+                          <option key={brand.id} value={brand.id}>{brand.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* 價格 */}
+                    <div className="col-span-2">
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm">價格範圍</h4>
+                      <select
+                        value={priceRange}
+                        onChange={(e) => setPriceRange(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded text-sm"
+                      >
+                        {priceRanges.map(range => (
+                          <option key={range.value} value={range.value}>{range.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                    <div className="p-3">
-                      <p className="text-xs text-gray-500 mb-1">{product.brand?.name}</p>
-                      <h3 className="text-sm text-gray-800 line-clamp-2 mb-2 min-h-[40px] group-hover:text-orange-500">
-                        {product.name}
-                      </h3>
+            {/* 載入產品中 */}
+            {productsLoading && (
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <Loader2 className="animate-spin mx-auto mb-4 text-orange-500" size={32} />
+                <p className="text-gray-600">載入產品中...</p>
+              </div>
+            )}
 
-                      {/* 價格區 */}
-                      <div className="flex items-end gap-2 mb-2">
-                        <span className="text-lg font-bold text-red-500">
-                          ${price.toLocaleString()}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-xs text-gray-400 line-through">
-                            ${originalPrice.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
+            {/* 產品錯誤 */}
+            {productsError && (
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <p className="text-gray-600">載入產品時發生錯誤：{productsError.message}</p>
+              </div>
+            )}
 
-                      {/* 銷量評分 */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>已售 {product.soldCount || 0}</span>
-                        {rating > 0 && (
-                          <div className="flex items-center gap-0.5">
-                            <Star className="text-yellow-400 fill-yellow-400" size={12} />
-                            <span>{rating.toFixed(1)}</span>
+            {/* 無產品 */}
+            {!productsLoading && !productsError && sortedProducts.length === 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">暫無符合條件的商品</h3>
+                <p className="text-gray-600 mb-4">請嘗試其他篩選條件或瀏覽其他分類</p>
+                <Link
+                  href="/"
+                  className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  返回首頁
+                </Link>
+              </div>
+            )}
+
+            {/* 產品網格/列表 */}
+            {!productsLoading && !productsError && sortedProducts.length > 0 && (
+              <div className={
+                viewMode === 'grid'
+                  ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
+                  : "space-y-4"
+              }>
+                {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; category: { id: string; name: string; slug: string }; brand: { id: string; name: string; slug: string } }) => {
+                  const images = Array.isArray(product.images) ? product.images : []
+                  const mainImage = images.length > 0 ? images[0] : '/placeholder-product.png'
+                  const price = parseFloat(product.price)
+                  const originalPrice = parseFloat(product.originalPrice) || price
+                  const hasDiscount = originalPrice > price
+                  const discount = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0
+
+                  return viewMode === 'grid' ? (
+                    // 網格視圖
+                    <div
+                      key={product.id}
+                      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
+                    >
+                      <Link href={`/products/${product.slug}`}>
+                        <div className="relative aspect-square bg-gray-100">
+                          <Image
+                            src={mainImage}
+                            alt={product.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                          />
+
+                          {product.isNewArrival && (
+                            <span className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-0.5 rounded text-xs font-bold">
+                              新品
+                            </span>
+                          )}
+
+                          {discount > 0 && (
+                            <span className="absolute top-2 left-2 bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">
+                              {discount}% OFF
+                            </span>
+                          )}
+
+                          <div className="absolute top-2 right-2 z-20">
+                            <WishlistButton productId={product.id} size="sm" />
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              ) : (
-                // 列表卡片
-                <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
-                  <Link href={`/products/${product.slug}`}>
-                    <div className="flex gap-4">
-                      <div className="relative w-28 h-28 md:w-36 md:h-36 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={image}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
-                        {hasDiscount && (
-                          <span className="absolute top-1 left-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-xs font-bold">
-                            {discount}%OFF
-                          </span>
-                        )}
-                      </div>
+                        </div>
 
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">{product.brand?.name} · {product.category?.name}</p>
-                          <h3 className="text-gray-800 font-medium mb-2 hover:text-orange-500">{product.name}</h3>
-                          {rating > 0 && (
-                            <div className="flex items-center gap-3 text-sm text-gray-500">
-                              <div className="flex items-center gap-0.5">
-                                <Star className="text-yellow-400 fill-yellow-400" size={14} />
-                                <span>{rating.toFixed(1)}</span>
-                              </div>
-                              <span>|</span>
-                              <span>{product.reviewCount || 0} 評價</span>
-                              <span>|</span>
-                              <span>已售 {product.soldCount || 0}</span>
+                        <div className="p-3">
+                          <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
+                          <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
+                            {product.name}
+                          </h3>
+
+                          {product.averageRating && Number(product.averageRating) > 0 && (
+                            <div className="flex items-center gap-1 mb-2">
+                              <Star className="text-yellow-400 fill-current" size={12} />
+                              <span className="text-xs text-gray-600">{Number(product.averageRating).toFixed(1)}</span>
+                              <span className="text-xs text-gray-400">({product.reviewCount || 0})</span>
                             </div>
                           )}
-                        </div>
 
-                        <div className="flex items-end justify-between mt-3">
-                          <div>
-                            {hasDiscount && (
-                              <p className="text-xs text-gray-400 line-through">${originalPrice.toLocaleString()}</p>
-                            )}
-                            <p className="text-xl font-bold text-red-500">${price.toLocaleString()}</p>
+                          <div className="flex items-end justify-between">
+                            <div>
+                              {hasDiscount && (
+                                <p className="text-xs text-gray-400 line-through">
+                                  ${originalPrice.toLocaleString()}
+                                </p>
+                              )}
+                              <p className="text-lg font-bold text-orange-600">
+                                ${price.toLocaleString()}
+                              </p>
+                            </div>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setModalProduct({ id: product.id, name: product.name })
-                            }}
-                            className="px-4 py-2 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 flex items-center gap-1"
-                          >
-                            <ShoppingBag size={14} />
-                            加入購物車
-                          </button>
                         </div>
-                      </div>
+                      </Link>
                     </div>
-                  </Link>
-                </div>
-              )
-            })}
+                  ) : (
+                    // 列表視圖
+                    <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
+                      <Link href={`/products/${product.slug}`}>
+                        <div className="flex gap-4">
+                          <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <Image
+                              src={mainImage}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
+                                <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
+                                {product.averageRating && Number(product.averageRating) > 0 && (
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="flex items-center gap-1">
+                                      <Star className="text-yellow-400 fill-current" size={14} />
+                                      <span className="text-sm">{Number(product.averageRating).toFixed(1)}</span>
+                                    </div>
+                                    <span className="text-gray-400">|</span>
+                                    <span className="text-sm text-gray-600">{product.reviewCount || 0} 則評價</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                {hasDiscount && (
+                                  <p className="text-sm text-gray-400 line-through">
+                                    ${originalPrice.toLocaleString()}
+                                  </p>
+                                )}
+                                <p className="text-xl font-bold text-orange-600">
+                                  ${price.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal */}
@@ -625,9 +607,9 @@ function ProductsPageContent() {
 export default function ProductsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <Loader2 className="animate-spin mx-auto mb-4 text-orange-500" size={48} />
           <p className="text-gray-600">載入中...</p>
         </div>
       </div>

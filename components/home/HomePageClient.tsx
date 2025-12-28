@@ -129,7 +129,7 @@ export default function HomePageClient({
             <MarketplaceHero serverProducts={products} />
             <FlashSale serverProducts={products} serverFlashSale={flashSale} />
             <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
-            <CategoryGrid serverCategoryDisplays={categoryDisplays} />
+            <CategoryGrid />
             <SuperDeals />
             <PopularProducts serverProducts={products} />
           </>
