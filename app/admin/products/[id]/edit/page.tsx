@@ -24,7 +24,6 @@ import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
 import SizeManagement from '@/components/admin/SizeManagement'
 import ColorManagement from '@/components/admin/ColorManagement'
-import SkuMatrixManagement from '@/components/admin/SkuMatrixManagement'
 import ProductOptionManager from '@/components/admin/ProductOptionManager'
 import { Settings } from 'lucide-react'
 
@@ -66,7 +65,7 @@ export default function EditProductPage() {
   const params = useParams()
   const productId = params.id as string
 
-  const [activeTab, setActiveTab] = useState<'info' | 'sizes' | 'colors' | 'stock'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'sizes' | 'colors'>('info')
   const [formData, setFormData] = useState<ProductFormData | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -346,17 +345,6 @@ export default function EditProductPage() {
           >
             顏色管理
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('stock')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'stock'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            庫存管理
-          </button>
         </nav>
       </div>
 
@@ -478,9 +466,6 @@ export default function EditProductPage() {
         {/* 價格設定 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">價格設定</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            庫存由各個尺碼獨立管理，請前往「尺碼管理」分頁設定各尺碼的庫存。
-          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -864,13 +849,9 @@ export default function EditProductPage() {
         <div className="space-y-6">
           <SizeManagement productId={productId} />
         </div>
-      ) : activeTab === 'colors' ? (
-        <div className="space-y-6">
-          <ColorManagement productId={productId} />
-        </div>
       ) : (
         <div className="space-y-6">
-          <SkuMatrixManagement productId={productId} />
+          <ColorManagement productId={productId} />
         </div>
       )}
     </div>

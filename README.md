@@ -954,9 +954,15 @@ pnpm prisma migrate reset
 - 移除所有庫存檢查限制，客人可直接購買任何商品
 - SKU 變為可選，不存在也不會阻止購買
 - 適合小型店家，無需精確管理庫存
+- **後台庫存管理 UI 已完全移除**
+  - 新增產品頁面：移除舊版複雜尺碼系統，改為創建後在編輯頁面設定
+  - 編輯產品頁面：使用簡化的尺寸管理組件（無庫存欄位）
+  - 尺寸管理組件：顯示「無限庫存模式」提示
 - 修改範圍：
   - `cartResolvers.ts` - 移除購物車加入/更新時的庫存檢查
   - `orderResolvers.ts` - 移除訂單創建時的庫存驗證
+  - `app/admin/products/new/page.tsx` - 移除舊版尺碼管理UI
+  - `components/admin/SizeManagement.tsx` - 更新為無限庫存模式提示
   - `SizeSelector.tsx` - 移除「售罄」尺碼的禁用狀態
   - `GuestCartContext.tsx` - 移除訪客購物車的庫存限制
 
