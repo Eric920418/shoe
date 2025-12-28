@@ -101,13 +101,17 @@ function ProductsPageContent() {
   const brands = brandsData?.brands || []
   const categories = categoriesData?.categories || []
 
-  // 從 URL 參數初始化（只執行一次）
+  // 當 URL 參數改變時，重置處理狀態（確保 SPA 導航時能重新處理）
+  useEffect(() => {
+    setUrlProcessed(false)
+  }, [categoryParam, brandParam])
+
+  // 從 URL 參數初始化
   useEffect(() => {
     if (urlProcessed) return
     if (!categoriesData || !brandsData) return
 
-    let shouldProcess = true
-
+    // 根據 URL 參數設置篩選條件
     if (categoryParam && categories.length > 0) {
       const category = categories.find(
         (c: { id: string; slug: string; name: string }) =>
@@ -115,7 +119,13 @@ function ProductsPageContent() {
       )
       if (category) {
         setSelectedCategories([category.id])
+      } else {
+        // 找不到對應分類，清空選擇
+        setSelectedCategories([])
       }
+    } else {
+      // 沒有 URL 分類參數，清空選擇
+      setSelectedCategories([])
     }
 
     if (brandParam && brands.length > 0) {
@@ -125,12 +135,14 @@ function ProductsPageContent() {
       )
       if (brand) {
         setSelectedBrand(brand.id)
+      } else {
+        setSelectedBrand('all')
       }
+    } else {
+      setSelectedBrand('all')
     }
 
-    if (shouldProcess) {
-      setUrlProcessed(true)
-    }
+    setUrlProcessed(true)
   }, [categoryParam, brandParam, categories, brands, categoriesData, brandsData, urlProcessed])
 
   const toggleCategory = (categoryId: string) => {
@@ -154,6 +166,7 @@ function ProductsPageContent() {
       gender: selectedGender !== 'all' ? selectedGender : undefined,
     },
     skip: !isReady,
+    fetchPolicy: 'cache-and-network', // 確保每次 variables 改變時都會重新獲取數據
   })
 
   const products = productsData?.products || []
