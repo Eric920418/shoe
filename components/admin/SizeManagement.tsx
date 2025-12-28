@@ -354,7 +354,7 @@ export default function SizeManagement({ productId }: SizeManagementProps) {
         ) : (
           <div className="p-4">
             <div className="flex flex-wrap gap-2">
-              {sizeCharts
+              {[...sizeCharts]
                 .sort((a, b) => Number(a.size) - Number(b.size))
                 .map((size) => (
                   <div

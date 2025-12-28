@@ -279,7 +279,7 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
 
       {/* 中間輪播圖 */}
       <div className="flex-1">
-        <div className="relative h-[200px] sm:h-[300px] lg:h-full bg-gray-100 rounded-lg overflow-hidden">
+        <div className="relative h-[200px] sm:h-[300px] lg:h-[400px] xl:h-[450px] bg-gray-100 rounded-lg overflow-hidden">
           {banners.map((banner, index) => (
             <div
               key={banner.id}

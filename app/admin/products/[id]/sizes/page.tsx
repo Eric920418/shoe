@@ -358,7 +358,7 @@ export default function ProductSizesPage() {
         ) : (
           <div className="p-6">
             <div className="flex flex-wrap gap-3">
-              {sizeCharts
+              {[...sizeCharts]
                 .sort((a, b) => Number(a.size) - Number(b.size))
                 .map((size) => (
                   <div
