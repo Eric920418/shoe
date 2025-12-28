@@ -72,6 +72,7 @@ export const productResolvers = {
         skip = 0,
         take = 20,
         categoryId,
+        categoryIds,
         brandId,
         minPrice,
         maxPrice,
@@ -84,6 +85,7 @@ export const productResolvers = {
         skip?: number
         take?: number
         categoryId?: string
+        categoryIds?: string[]
         brandId?: string
         minPrice?: number
         maxPrice?: number
@@ -98,8 +100,10 @@ export const productResolvers = {
       // 如果是後台管理查詢（noCache=true），不過濾 isActive
       const filters: any = noCache ? { ...where } : { isActive: true, ...where }
 
-      // 分類篩選
-      if (categoryId) {
+      // 分類篩選 - 支援多分類（categoryIds 優先於 categoryId）
+      if (categoryIds && categoryIds.length > 0) {
+        filters.categoryId = { in: categoryIds }
+      } else if (categoryId) {
         filters.categoryId = categoryId
       }
 
@@ -177,7 +181,8 @@ export const productResolvers = {
       }
 
       // 正常情況使用快取
-      const cacheParams = `${skip}:${take}:${categoryId || 'all'}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+      const categoryKey = categoryIds?.length ? categoryIds.sort().join(',') : (categoryId || 'all')
+      const cacheParams = `${skip}:${take}:${categoryKey}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
       return await ProductCache.getList(cacheParams, fetchProducts)
     },
 

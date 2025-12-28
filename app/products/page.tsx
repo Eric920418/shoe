@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -17,7 +17,7 @@ const GET_PRODUCTS = gql`
   query GetProducts(
     $take: Int
     $skip: Int
-    $categoryId: String
+    $categoryIds: [String!]
     $brandId: String
     $minPrice: Float
     $maxPrice: Float
@@ -27,7 +27,7 @@ const GET_PRODUCTS = gql`
     products(
       take: $take
       skip: $skip
-      categoryId: $categoryId
+      categoryIds: $categoryIds
       brandId: $brandId
       minPrice: $minPrice
       maxPrice: $maxPrice
@@ -86,22 +86,12 @@ function ProductsPageContent() {
   const brandParam = searchParams.get('brand') || ''
 
   const [sortBy, setSortBy] = useState('relevance')
-  const [selectedBrand, setSelectedBrand] = useState(brandParam || 'all')
-  const [selectedCategory, setSelectedCategory] = useState(categoryParam || 'all')
+  const [selectedBrand, setSelectedBrand] = useState('all')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
-
-  // 查詢產品
-  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
-    variables: {
-      take: 100,
-      brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
-      categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-      minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
-      maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
-    },
-  })
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // 查詢品牌列表
   const { data: brandsData } = useQuery(GET_BRANDS)
@@ -109,9 +99,59 @@ function ProductsPageContent() {
   // 查詢分類列表
   const { data: categoriesData } = useQuery(GET_CATEGORIES)
 
-  const products = productsData?.products || []
   const brands = brandsData?.brands || []
   const categories = categoriesData?.categories || []
+
+  // 初始化：將 URL 的 slug 轉換成 ID
+  useEffect(() => {
+    if (isInitialized) return
+    if (!categoriesData || !brandsData) return
+
+    // 處理分類參數（支援 slug 或 ID）
+    if (categoryParam) {
+      const category = categories.find(
+        (c: { id: string; slug: string }) => c.slug === categoryParam || c.id === categoryParam
+      )
+      if (category) {
+        setSelectedCategories([category.id])
+      }
+    }
+
+    // 處理品牌參數（支援 slug 或 ID）
+    if (brandParam) {
+      const brand = brands.find(
+        (b: { id: string; slug: string }) => b.slug === brandParam || b.id === brandParam
+      )
+      if (brand) {
+        setSelectedBrand(brand.id)
+      }
+    }
+
+    setIsInitialized(true)
+  }, [categoryParam, brandParam, categories, brands, categoriesData, brandsData, isInitialized])
+
+  // 切換分類選擇
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
+
+  // 查詢產品（等待初始化完成後再查詢，避免用 slug 查詢）
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
+    variables: {
+      take: 100,
+      brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
+      categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
+      minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
+      maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
+    },
+    skip: !isInitialized && (!!categoryParam || !!brandParam), // 有 URL 參數時，等待初始化完成
+  })
+
+  const products = productsData?.products || []
 
   // 排序產品
   const sortedProducts = React.useMemo(() => {
@@ -212,33 +252,36 @@ function ProductsPageContent() {
               </div>
             </div>
 
-            {/* 分類篩選 */}
+            {/* 分類篩選（複選） */}
             <div className="flex-1">
               <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
                 <Filter size={16} />
-                分類
+                分類（可複選）
+                {selectedCategories.length > 0 && (
+                  <button
+                    onClick={() => setSelectedCategories([])}
+                    className="text-xs text-blue-500 hover:text-blue-600 ml-2"
+                  >
+                    清除全部
+                  </button>
+                )}
               </p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    selectedCategory === 'all'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  全部分類
-                </button>
-                {categories.slice(0, 6).map((cat: any) => (
+                {categories.map((cat: any) => (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      selectedCategory === cat.id
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm transition-colors flex items-center gap-1.5 ${
+                      selectedCategories.includes(cat.id)
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
+                    {selectedCategories.includes(cat.id) && (
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
                     {cat.name}
                   </button>
                 ))}

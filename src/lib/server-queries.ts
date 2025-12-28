@@ -484,8 +484,9 @@ export const getHomepageConfig = cache(async () => {
 
 /**
  * 獲取首頁產品（包含完整資料）
+ * 優先顯示精選產品和新品，再按銷量和瀏覽數排序
  */
-export const getHomepageProducts = cache(async (limit: number = 25) => {
+export const getHomepageProducts = cache(async (limit: number = 30) => {
   try {
     const products = await prisma.product.findMany({
       where: {
@@ -509,8 +510,11 @@ export const getHomepageProducts = cache(async (limit: number = 25) => {
         },
       },
       orderBy: [
-        { soldCount: 'desc' },
-        { viewCount: 'desc' },
+        { isFeatured: 'desc' },    // 精選產品優先
+        { isNewArrival: 'desc' },  // 新品次之
+        { sortOrder: 'asc' },      // 手動排序
+        { soldCount: 'desc' },     // 再按銷量
+        { createdAt: 'desc' },     // 最後按建立時間（新產品優先）
       ],
     })
 

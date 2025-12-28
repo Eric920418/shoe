@@ -11,11 +11,10 @@ import HomePageClient from '@/components/home/HomePageClient'
 export const revalidate = 300 // 5分鐘重新驗證一次
 
 export default async function HomePage() {
-  // ✅ 性能優化：減少查詢數量，從 30 筆降為 15 筆
-  // FlashSale 最多顯示 6 筆，DailyDeals 最多 4 筆，其他區塊共用剩餘的
+  // 載入首頁所需的產品（精選和新品優先）
   const [configs, products, flashSale, todaysDeal, categoryDisplays] = await Promise.all([
     getHomepageConfig(),
-    getHomepageProducts(15), // 降低為 15 筆，減少資料傳輸
+    getHomepageProducts(30), // 載入 30 筆，確保精選和新品都能顯示
     getActiveFlashSale(),
     getTodaysDeal(), // ✅ 新增：預先載入今日必搶配置
     getCategoryDisplays(),

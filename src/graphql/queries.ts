@@ -112,6 +112,7 @@ export const GET_PRODUCTS = gql`
     $skip: Int
     $take: Int
     $categoryId: String
+    $categoryIds: [String!]
     $brandId: String
     $minPrice: Float
     $maxPrice: Float
@@ -122,6 +123,7 @@ export const GET_PRODUCTS = gql`
       skip: $skip
       take: $take
       categoryId: $categoryId
+      categoryIds: $categoryIds
       brandId: $brandId
       minPrice: $minPrice
       maxPrice: $maxPrice

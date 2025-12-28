@@ -1666,6 +1666,7 @@ export const typeDefs = gql`
       skip: Int
       take: Int
       categoryId: String
+      categoryIds: [String!]
       brandId: String
       minPrice: Float
       maxPrice: Float

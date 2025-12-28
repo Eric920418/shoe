@@ -27,16 +27,26 @@ const genderLabels = {
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
+  const [filterCategories, setFilterCategories] = useState<string[]>([])
   const [filterBrand, setFilterBrand] = useState('')
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+
+  // 切換分類選擇
+  const toggleCategoryFilter = (categoryId: string) => {
+    setFilterCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
 
   // 獲取產品列表
   const { data: productsData, loading: productsLoading, error: productsError, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
       search: searchQuery || undefined,
-      categoryId: filterCategory || undefined,
+      categoryIds: filterCategories.length > 0 ? filterCategories : undefined,
       brandId: filterBrand || undefined,
     },
     fetchPolicy: 'network-only', // 總是從網路獲取最新資料
@@ -196,9 +206,9 @@ export default function ProductsPage() {
             className="lg:hidden px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center gap-1"
           >
             <span className="text-sm">篩選</span>
-            {(filterBrand || filterCategory) && (
+            {(filterBrand || filterCategories.length > 0) && (
               <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                {(filterBrand ? 1 : 0) + (filterCategory ? 1 : 0)}
+                {(filterBrand ? 1 : 0) + filterCategories.length}
               </span>
             )}
           </button>
@@ -220,18 +230,50 @@ export default function ProductsPage() {
                 </option>
               ))}
             </select>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-            >
-              <option value="">全部分類</option>
-              {categoriesData?.categories?.map((category: any) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            {/* 分類複選下拉選單 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-left bg-white flex items-center justify-between"
+              >
+                <span className={filterCategories.length === 0 ? 'text-gray-500' : 'text-gray-900'}>
+                  {filterCategories.length === 0
+                    ? '全部分類'
+                    : `已選 ${filterCategories.length} 個分類`}
+                </span>
+                <svg className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showCategoryDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filterCategories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterCategories([])}
+                      className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 border-b border-gray-200"
+                    >
+                      清除全部
+                    </button>
+                  )}
+                  {categoriesData?.categories?.map((category: any) => (
+                    <label
+                      key={category.id}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filterCategories.includes(category.id)}
+                        onChange={() => toggleCategoryFilter(category.id)}
+                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700">{category.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -264,7 +306,7 @@ export default function ProductsPage() {
         {products.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <p className="text-gray-500">
-              {searchQuery || filterCategory || filterBrand
+              {searchQuery || filterCategories.length > 0 || filterBrand
                 ? '沒有符合條件的產品'
                 : '暫無產品數據，請先新增產品'}
             </p>
@@ -412,7 +454,7 @@ export default function ProductsPage() {
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                    {searchQuery || filterCategory || filterBrand
+                    {searchQuery || filterCategories.length > 0 || filterBrand
                       ? '沒有符合條件的產品'
                       : '暫無產品數據，請先新增產品'}
                   </td>
