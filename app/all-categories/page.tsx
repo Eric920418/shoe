@@ -49,6 +49,25 @@ export default async function AllCategoriesPage() {
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-6">
+        {/* 全部產品入口 */}
+        <Link
+          href="/products"
+          className="block bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-4 mb-6 hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl">
+                🛒
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">全部產品</h3>
+                <p className="text-sm opacity-90">瀏覽所有商品，不限分類</p>
+              </div>
+            </div>
+            <ChevronRight size={24} />
+          </div>
+        </Link>
+
         {/* 主要分類 */}
         {categories.length > 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-6">

@@ -167,10 +167,21 @@ const MarketplaceHeader = () => {
                   onMouseEnter={() => setShowCategories(true)}
                   onMouseLeave={() => setShowCategories(false)}
                 >
+                  {/* 全部產品入口 */}
+                  <Link
+                    href="/products"
+                    className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 text-orange-600 transition-colors border-b"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">🛒</span>
+                      <span className="font-bold">全部產品</span>
+                    </div>
+                    <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">ALL</span>
+                  </Link>
                   {categories.map((cat, index) => (
                     <Link
                       key={index}
-                      href={`/category/${cat.name}`}
+                      href={`/products?category=${encodeURIComponent(cat.name)}`}
                       className="flex items-center justify-between px-4 py-3 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b last:border-b-0"
                     >
                       <div className="flex items-center gap-3">

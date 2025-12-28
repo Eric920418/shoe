@@ -80,8 +80,8 @@ const CategoryGrid = () => {
           精選分類
           <span className="text-xs sm:text-sm font-normal text-gray-500 ml-1 sm:ml-2 hidden sm:inline">找到您想要的商品</span>
         </h2>
-        <Link href="/all-categories" className="text-orange-600 hover:text-orange-700 font-medium text-xs sm:text-sm">
-          全部 →
+        <Link href="/products" className="text-orange-600 hover:text-orange-700 font-medium text-xs sm:text-sm">
+          全部產品 →
         </Link>
       </div>
 
