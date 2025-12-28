@@ -24,7 +24,8 @@
       "Bash(# 測試 R2 圖片是否可以訪問 curl -I \"\"https://pub-255d7bef84ad4918a06b3575880ce109.r2.dev/uploads/products/\"\")",
       "Bash(ls:*)",
       "Bash(pnpm tsc:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Skill(frontend-design:frontend-design)"
     ],
     "deny": [],
     "ask": []
