@@ -194,7 +194,8 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
     return null
   }
 
-  if (loading || currentProducts.length === 0) {
+  // 只在完全沒有任何產品時隱藏（熱銷榜為空表示沒有資料）
+  if (loading || products.trending.length === 0) {
     return null
   }
 
@@ -238,6 +239,17 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
       </div>
 
       {/* 商品網格 */}
+      {displayedProducts.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg mb-2">
+            {activeTab === 'rated' && '目前沒有已評分的產品'}
+            {activeTab === 'discount' && '目前沒有折扣中的產品'}
+            {activeTab === 'viewed' && '目前沒有瀏覽記錄'}
+            {activeTab === 'trending' && '目前沒有產品'}
+          </p>
+          <p className="text-sm">請切換至其他榜單查看</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
         {displayedProducts.map((product) => (
           <div
@@ -322,6 +334,7 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
           </div>
         ))}
       </div>
+      )}
 
       {/* 查看更多 - 只在有更多產品時顯示 */}
       {hasMoreProducts && (

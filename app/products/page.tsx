@@ -22,7 +22,6 @@ const GET_PRODUCTS = gql`
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
-    $isFeatured: Boolean
   ) {
     products(
       take: $take
@@ -32,7 +31,6 @@ const GET_PRODUCTS = gql`
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
-      isFeatured: $isFeatured
     ) {
       id
       name
