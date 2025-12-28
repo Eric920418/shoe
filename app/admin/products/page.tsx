@@ -439,12 +439,7 @@ export default function ProductsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   價格
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  庫存
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  狀態
-                </th>
+         
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   操作
                 </th>
@@ -520,28 +515,6 @@ export default function ProductsPage() {
                             </p>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`text-sm font-medium ${
-                            product.totalStock === 0
-                              ? 'text-red-600'
-                              : product.totalStock <= 10
-                              ? 'text-orange-600'
-                              : 'text-green-600'
-                          }`}
-                        >
-                          {product.totalStock} 件
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            statusLabels[status as keyof typeof statusLabels].color
-                          }`}
-                        >
-                          {statusLabels[status as keyof typeof statusLabels].label}
-                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
