@@ -3,7 +3,6 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
-import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 
 export default function TermsPage() {
   return (
@@ -251,8 +250,6 @@ export default function TermsPage() {
           </div>
         </div>
       </div>
-
-      <MarketplaceFooter />
     </div>
   )
 }

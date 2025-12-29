@@ -2,7 +2,6 @@
 
 import React from 'react'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
-import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import MarketplaceHero from '@/components/sections/MarketplaceHero'
 import FlashSale from '@/components/sections/FlashSale'
 import CategoryGrid from '@/components/sections/CategoryGrid'
@@ -12,6 +11,7 @@ import PopularProducts from '@/components/sections/PopularProducts'
 import AnnouncementWrapper from '@/components/common/AnnouncementWrapper'
 import FloatingPromo from '@/components/common/FloatingPromo'
 import SaleCountdown from '@/components/sections/SaleCountdown'
+import MobileProductFeed from '@/components/home/MobileProductFeed'
 
 // 組件映射表
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
@@ -115,32 +115,35 @@ export default function HomePageClient({
       {/* 系統公告 - 始終顯示 */}
       <AnnouncementWrapper />
 
-      {/* 限時特賣跑馬燈 - 在 header 正下方 */}
-      {saleCountdownConfig && renderComponent(saleCountdownConfig)}
+      {/* ===== 手機版：蝦皮風格商品瀑布流 ===== */}
+      <MobileProductFeed serverProducts={products} />
 
-      {/* 主要內容區 */}
-      <main className="max-w-[1400px] mx-auto px-2 sm:px-4">
-        {/* 根據後台配置動態渲染組件（排除 SaleCountdown） */}
-        {otherComponentsConfig.length > 0 ? (
-          otherComponentsConfig.map(config => renderComponent(config))
-        ) : (
-          // 如果沒有配置或配置載入失敗，顯示預設佈局
-          <>
-            <MarketplaceHero serverProducts={products} />
-            <FlashSale serverProducts={products} serverFlashSale={flashSale} />
-            <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
-            <CategoryGrid />
-            <SuperDeals />
-            <PopularProducts serverProducts={products} />
-          </>
-        )}
-      </main>
+      {/* ===== 電腦版：原有組件佈局 ===== */}
+      <div className="hidden md:block">
+        {/* 限時特賣跑馬燈 - 在 header 正下方 */}
+        {saleCountdownConfig && renderComponent(saleCountdownConfig)}
 
-      {/* 頁尾 - 始終顯示 */}
-      <MarketplaceFooter />
+        {/* 主要內容區 */}
+        <main className="max-w-[1400px] mx-auto px-2 sm:px-4">
+          {/* 根據後台配置動態渲染組件（排除 SaleCountdown） */}
+          {otherComponentsConfig.length > 0 ? (
+            otherComponentsConfig.map(config => renderComponent(config))
+          ) : (
+            // 如果沒有配置或配置載入失敗，顯示預設佈局
+            <>
+              <MarketplaceHero serverProducts={products} />
+              <FlashSale serverProducts={products} serverFlashSale={flashSale} />
+              <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
+              <CategoryGrid />
+              <SuperDeals />
+              <PopularProducts serverProducts={products} />
+            </>
+          )}
+        </main>
 
-      {/* 浮動促銷按鈕 - 動態控制 */}
-      <FloatingPromo />
+        {/* 浮動促銷按鈕 - 僅電腦版 */}
+        <FloatingPromo />
+      </div>
     </div>
   )
 }

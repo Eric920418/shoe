@@ -3,7 +3,6 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
-import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import { Shield, Eye, Lock, Database, UserCheck, AlertCircle } from 'lucide-react'
 
 export default function PrivacyPage() {
@@ -346,8 +345,6 @@ export default function PrivacyPage() {
           </div>
         </div>
       </div>
-
-      <MarketplaceFooter />
     </div>
   )
 }

@@ -3,7 +3,6 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
-import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import { RotateCcw, Package, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react'
 
 export default function RefundPolicyPage() {
@@ -437,8 +436,6 @@ export default function RefundPolicyPage() {
           </div>
         </div>
       </div>
-
-      <MarketplaceFooter />
     </div>
   )
 }
