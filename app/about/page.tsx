@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
+import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import {
   Store, Users, Award, TrendingUp, Heart, Shield,
   MapPin, Phone, Mail, Clock
@@ -318,6 +319,8 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+
+      <MarketplaceFooter />
     </div>
   )
 }

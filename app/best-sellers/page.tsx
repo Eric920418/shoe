@@ -40,7 +40,7 @@ export default function BestSellersPage() {
 
   const { data, loading, error } = useQuery(GET_BEST_SELLERS, {
     variables: {
-      take: 50,
+      take: 10000, // 顯示所有產品
     },
   })
 

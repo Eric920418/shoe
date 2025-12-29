@@ -2,6 +2,7 @@
 
 import React from 'react'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
+import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import MarketplaceHero from '@/components/sections/MarketplaceHero'
 import FlashSale from '@/components/sections/FlashSale'
 import CategoryGrid from '@/components/sections/CategoryGrid'
@@ -144,6 +145,9 @@ export default function HomePageClient({
         {/* 浮動促銷按鈕 - 僅電腦版 */}
         <FloatingPromo />
       </div>
+
+      {/* 頁尾 - 始終顯示 */}
+      <MarketplaceFooter />
     </div>
   )
 }

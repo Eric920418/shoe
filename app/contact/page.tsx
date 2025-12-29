@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
+import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import { Phone, Mail, Clock, MessageCircle, MapPin } from 'lucide-react'
 
 export default function ContactPage() {
@@ -203,6 +204,8 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+
+      <MarketplaceFooter />
     </div>
   )
 }

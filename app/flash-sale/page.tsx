@@ -78,7 +78,7 @@ export default function FlashSalePage() {
   // 查詢產品資料
   const { data: productsData, loading, error } = useQuery(GET_PRODUCTS, {
     variables: {
-      take: 50, // 獲取足夠多的產品以便篩選
+      take: 10000, // 顯示所有產品
     },
   })
 

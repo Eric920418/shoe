@@ -90,7 +90,7 @@ function SearchPageContent() {
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(SEARCH_PRODUCTS, {
     variables: {
       search: searchQuery,
-      take: 50,
+      take: 10000, // 顯示所有產品
       brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
       categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,

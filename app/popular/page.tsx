@@ -43,7 +43,7 @@ export default function PopularPage() {
   // 從 API 獲取產品數據
   const { data, loading, error } = useQuery(GET_POPULAR_PRODUCTS, {
     variables: {
-      take: 50,
+      take: 10000, // 顯示所有產品
       sortBy: currentTab?.sortBy || 'soldCount'
     },
     fetchPolicy: 'cache-and-network'

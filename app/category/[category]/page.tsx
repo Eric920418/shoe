@@ -114,7 +114,7 @@ export default function CategoryPage() {
     variables: {
       categoryId: categoryData?.category?.id || '',
       skip: 0,
-      take: 50,
+      take: 10000, // 顯示所有產品
       ...priceFilter,
       gender: selectedGender !== 'all' ? selectedGender : undefined,
     },

@@ -43,6 +43,7 @@ const GET_PRODUCTS = gql`
       reviewCount
       isFeatured
       isNewArrival
+      createdAt
       category {
         id
         name
@@ -158,7 +159,7 @@ function ProductsPageContent() {
 
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
     variables: {
-      take: 100,
+      take: 10000, // 顯示所有產品
       brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
       categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
@@ -188,7 +189,7 @@ function ProductsPageContent() {
           return ratingB - ratingA
         })
       case 'newest':
-        return sorted.sort((a, b) => -1)
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       case 'popular':
       default:
         return sorted.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
@@ -487,7 +488,7 @@ function ProductsPageContent() {
                   ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
                   : "space-y-4"
               }>
-                {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; category: { id: string; name: string; slug: string }; brand: { id: string; name: string; slug: string } }) => {
+                {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; createdAt: string; category: { id: string; name: string; slug: string }; brand: { id: string; name: string; slug: string } }) => {
                   const images = Array.isArray(product.images) ? product.images : []
                   const mainImage = images.length > 0 ? images[0] : '/placeholder-product.png'
                   const price = parseFloat(product.price)

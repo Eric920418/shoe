@@ -70,14 +70,14 @@ export default function SuperDealsPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-3">
         {/* 標籤切換 */}
-        <div className="bg-white rounded-lg shadow-sm p-1 mb-6 flex">
+        <div className="bg-white rounded-lg shadow-sm p-1 mb-2 flex">
           {['bundles', 'referral', 'membership'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+              className={`flex-1 py-1 rounded-lg font-medium transition-colors ${
                 activeTab === tab
                   ? 'bg-purple-500 text-white'
                   : 'text-gray-600 hover:text-gray-800'

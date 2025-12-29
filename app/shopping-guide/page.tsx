@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
+import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import {
   ShoppingCart, CreditCard, Truck, Gift, Tag, Shield,
   CheckCircle, Info, AlertCircle, Star
@@ -579,6 +580,8 @@ export default function ShoppingGuidePage() {
           </div>
         </div>
       </div>
+
+      <MarketplaceFooter />
     </div>
   )
 }
