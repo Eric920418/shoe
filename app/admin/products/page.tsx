@@ -45,6 +45,7 @@ export default function ProductsPage() {
   // 獲取產品列表
   const { data: productsData, loading: productsLoading, error: productsError, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
+      take: 10000, // 後台管理需要顯示所有產品
       search: searchQuery || undefined,
       categoryIds: filterCategories.length > 0 ? filterCategories : undefined,
       brandId: filterBrand || undefined,

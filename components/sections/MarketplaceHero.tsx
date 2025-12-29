@@ -16,6 +16,7 @@ const GET_HERO_SLIDES = gql`
       title
       subtitle
       description
+      image
       link
       cta
       bgColor
@@ -199,6 +200,7 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
           title: slide.title,
           subtitle: slide.subtitle,
           description: slide.description,
+          image: slide.image, // 添加圖片字段
           bgColor: slide.bgColor || 'from-red-500 to-orange-500',
           linkUrl: slide.link,
           tag: slide.subtitle || '限時搶購', // 使用 subtitle 作為 tag
@@ -288,8 +290,22 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
               }`}
             >
               <div
-                className={`h-full bg-gradient-to-r ${banner.bgColor} flex items-center justify-center relative`}
+                className={`h-full ${banner.image ? '' : `bg-gradient-to-r ${banner.bgColor}`} flex items-center justify-center relative`}
               >
+                {/* 背景圖片 */}
+                {banner.image && (
+                  <Image
+                    src={banner.image}
+                    alt={banner.title}
+                    fill
+                    className="object-cover"
+                    priority={index === 0}
+                  />
+                )}
+                {/* 圖片遮罩層，確保文字可讀 */}
+                {banner.image && (
+                  <div className="absolute inset-0 bg-black/30" />
+                )}
                 <div className="text-center text-white z-10 px-4 sm:px-8">
                   <div className="inline-block bg-white/20 backdrop-blur text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm mb-2 sm:mb-4">
                     {banner.tag}
