@@ -75,14 +75,18 @@ export default function MobileProductFeed({
     notifyOnNetworkStatusChange: true,
   })
 
+  // 判斷是否有篩選條件
+  const hasFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || filters.minPrice || filters.maxPrice
+
   // 處理初始資料
   useEffect(() => {
-    const rawProducts = serverProducts || data?.products || []
+    // 有篩選條件時，使用 refetch 返回的資料；否則使用伺服器端資料
+    const rawProducts = hasFilters ? (data?.products || []) : (serverProducts || data?.products || [])
     const processed = processProducts(rawProducts, filters.sortBy)
     setProducts(processed)
     setLoadedCount(rawProducts.length) // 記錄初始載入的數量
     setHasMore(rawProducts.length >= ITEMS_PER_PAGE)
-  }, [serverProducts, data, filters.sortBy])
+  }, [serverProducts, data, filters.sortBy, hasFilters])
 
   // 處理產品資料（排序、標記特價）
   const processProducts = (rawProducts: any[], sortBy: SortType) => {
@@ -247,8 +251,8 @@ export default function MobileProductFeed({
     { key: 'price_desc', label: '價格↓' },
   ]
 
-  // 檢查是否有啟用篩選
-  const hasActiveFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || filters.minPrice || filters.maxPrice
+  // 檢查是否有啟用篩選（使用前面定義的 hasFilters）
+  const hasActiveFilters = hasFilters
 
   return (
     <div className="md:hidden">
