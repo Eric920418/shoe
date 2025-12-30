@@ -893,7 +893,24 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
-### 🔥 近期重點更新（2025-12-29）
+### 🔥 近期重點更新（2025-12-30）
+
+#### ✅ 手機版首頁分類/品牌複選篩選（2025-12-30）
+- **問題描述**：手機版首頁篩選面板的分類和品牌只能單選，無法同時選擇多個
+- **修復方案**：
+  1. GraphQL Schema 和 Resolver 添加 `categoryIds` 和 `brandIds` 陣列參數支援
+  2. 前端 `GET_HOMEPAGE_PRODUCTS` 查詢添加複選參數
+  3. `MobileProductFeed.tsx` 篩選邏輯改為複選模式
+- **功能特點**：
+  - 分類和品牌都支援複選（點擊切換選中狀態）
+  - 已選項目顯示打勾圖示
+  - 標題旁顯示「已選 N」提示已選數量
+  - 點擊「全部」可清除該類別的所有選擇
+- **技術變更**：
+  - `src/graphql/schema.ts` - 添加 `brandIds: [String!]` 參數
+  - `src/graphql/queries.ts` - `GET_HOMEPAGE_PRODUCTS` 添加 `categoryIds` 和 `brandIds`
+  - `src/graphql/resolvers/productResolvers.ts` - 支援 `brandIds` 複選邏輯
+  - `components/home/MobileProductFeed.tsx` - `FilterState` 改為陣列結構
 
 #### ✅ 手機版首頁蝦皮風格改版
 - **設計方向**：完全比照蝦皮 App 的商品瀑布流設計
@@ -902,7 +919,7 @@ pnpm prisma migrate reset
   2. **商品瀑布流** - 兩列網格無限滾動，移除所有輪播和區塊
   3. **懸浮篩選器** - 固定在頂部的快速篩選欄，包含：
      - 排序選項：推薦、熱銷、新品、價格升/降
-     - 進階篩選面板：分類、品牌、價格範圍
+     - 進階篩選面板：分類、品牌、價格範圍（**支援複選**）
   4. **特價商品穿插** - 每 6 個普通商品後穿插 2 個特價商品
   5. **視覺標記**：
      - 限時特賣商品（折扣 ≥ 40%）：紅色邊框 + 閃電標籤
@@ -918,6 +935,7 @@ pnpm prisma migrate reset
   - 篩選條件即時套用
   - 底部滑出式篩選面板
   - 已選篩選條件視覺提示
+  - **分類和品牌支援複選**
 
 #### ✅ 首頁輪播圖圖片不顯示修復
 - **問題描述**：後台輪播圖管理上傳的圖片無法在首頁顯示

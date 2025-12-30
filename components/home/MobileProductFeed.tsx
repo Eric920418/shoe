@@ -19,8 +19,8 @@ interface MobileProductFeedProps {
 }
 
 interface FilterState {
-  categoryId?: string
-  brandId?: string
+  categoryIds: string[]
+  brandIds: string[]
   minPrice?: number
   maxPrice?: number
   sortBy: SortType
@@ -41,6 +41,8 @@ export default function MobileProductFeed({
 
   // 篩選狀態
   const [filters, setFilters] = useState<FilterState>({
+    categoryIds: [],
+    brandIds: [],
     sortBy: 'recommend',
   })
   const [showFilterPanel, setShowFilterPanel] = useState(false)
@@ -63,13 +65,13 @@ export default function MobileProductFeed({
     variables: {
       skip: 0,
       take: ITEMS_PER_PAGE,
-      categoryId: filters.categoryId,
-      brandId: filters.brandId,
+      categoryIds: filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
+      brandIds: filters.brandIds.length > 0 ? filters.brandIds : undefined,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
     },
     // 如果有 serverProducts 且沒有篩選條件，跳過初始查詢
-    skip: !!serverProducts && !filters.categoryId && !filters.brandId && !filters.minPrice && !filters.maxPrice,
+    skip: !!serverProducts && filters.categoryIds.length === 0 && filters.brandIds.length === 0 && !filters.minPrice && !filters.maxPrice,
     notifyOnNetworkStatusChange: true,
   })
 
@@ -209,8 +211,8 @@ export default function MobileProductFeed({
     refetch({
       skip: 0,
       take: ITEMS_PER_PAGE,
-      categoryId: tempFilters.categoryId,
-      brandId: tempFilters.brandId,
+      categoryIds: tempFilters.categoryIds.length > 0 ? tempFilters.categoryIds : undefined,
+      brandIds: tempFilters.brandIds.length > 0 ? tempFilters.brandIds : undefined,
       minPrice: tempFilters.minPrice,
       maxPrice: tempFilters.maxPrice,
     })
@@ -218,7 +220,7 @@ export default function MobileProductFeed({
 
   // 重置篩選
   const resetFilters = () => {
-    const reset: FilterState = { sortBy: 'recommend' }
+    const reset: FilterState = { categoryIds: [], brandIds: [], sortBy: 'recommend' }
     setTempFilters(reset)
     setFilters(reset)
     setShowFilterPanel(false)
@@ -246,7 +248,7 @@ export default function MobileProductFeed({
   ]
 
   // 檢查是否有啟用篩選
-  const hasActiveFilters = filters.categoryId || filters.brandId || filters.minPrice || filters.maxPrice
+  const hasActiveFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || filters.minPrice || filters.maxPrice
 
   return (
     <div className="md:hidden">
@@ -309,63 +311,99 @@ export default function MobileProductFeed({
               </button>
             </div>
 
-            {/* 分類篩選 */}
+            {/* 分類篩選（可複選） */}
             <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">分類</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                分類
+                {tempFilters.categoryIds.length > 0 && (
+                  <span className="ml-2 text-orange-500">已選 {tempFilters.categoryIds.length}</span>
+                )}
+              </h4>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setTempFilters(prev => ({ ...prev, categoryId: undefined }))}
+                  onClick={() => setTempFilters(prev => ({ ...prev, categoryIds: [] }))}
                   className={`px-3 py-1.5 rounded-full text-xs ${
-                    !tempFilters.categoryId
+                    tempFilters.categoryIds.length === 0
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   全部
                 </button>
-                {categories.filter((c: any) => c.isActive).map((category: any) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setTempFilters(prev => ({ ...prev, categoryId: category.id }))}
-                    className={`px-3 py-1.5 rounded-full text-xs ${
-                      tempFilters.categoryId === category.id
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
+                {categories.filter((c: any) => c.isActive).map((category: any) => {
+                  const isSelected = tempFilters.categoryIds.includes(category.id)
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setTempFilters(prev => ({
+                        ...prev,
+                        categoryIds: isSelected
+                          ? prev.categoryIds.filter(id => id !== category.id)
+                          : [...prev.categoryIds, category.id]
+                      }))}
+                      className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {category.name}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            {/* 品牌篩選 */}
+            {/* 品牌篩選（可複選） */}
             <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">品牌</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                品牌
+                {tempFilters.brandIds.length > 0 && (
+                  <span className="ml-2 text-orange-500">已選 {tempFilters.brandIds.length}</span>
+                )}
+              </h4>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setTempFilters(prev => ({ ...prev, brandId: undefined }))}
+                  onClick={() => setTempFilters(prev => ({ ...prev, brandIds: [] }))}
                   className={`px-3 py-1.5 rounded-full text-xs ${
-                    !tempFilters.brandId
+                    tempFilters.brandIds.length === 0
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   全部
                 </button>
-                {brands.filter((b: any) => b.isActive).slice(0, 12).map((brand: any) => (
-                  <button
-                    key={brand.id}
-                    onClick={() => setTempFilters(prev => ({ ...prev, brandId: brand.id }))}
-                    className={`px-3 py-1.5 rounded-full text-xs ${
-                      tempFilters.brandId === brand.id
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {brand.name}
-                  </button>
-                ))}
+                {brands.filter((b: any) => b.isActive).slice(0, 12).map((brand: any) => {
+                  const isSelected = tempFilters.brandIds.includes(brand.id)
+                  return (
+                    <button
+                      key={brand.id}
+                      onClick={() => setTempFilters(prev => ({
+                        ...prev,
+                        brandIds: isSelected
+                          ? prev.brandIds.filter(id => id !== brand.id)
+                          : [...prev.brandIds, brand.id]
+                      }))}
+                      className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {brand.name}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

@@ -74,6 +74,7 @@ export const productResolvers = {
         categoryId,
         categoryIds,
         brandId,
+        brandIds,
         minPrice,
         maxPrice,
         gender,
@@ -87,6 +88,7 @@ export const productResolvers = {
         categoryId?: string
         categoryIds?: string[]
         brandId?: string
+        brandIds?: string[]
         minPrice?: number
         maxPrice?: number
         gender?: string
@@ -107,8 +109,10 @@ export const productResolvers = {
         filters.categoryId = categoryId
       }
 
-      // 品牌篩選
-      if (brandId) {
+      // 品牌篩選 - 支援多品牌（brandIds 優先於 brandId）
+      if (brandIds && brandIds.length > 0) {
+        filters.brandId = { in: brandIds }
+      } else if (brandId) {
         filters.brandId = brandId
       }
 

@@ -1668,6 +1668,7 @@ export const typeDefs = gql`
       categoryId: String
       categoryIds: [String!]
       brandId: String
+      brandIds: [String!]
       minPrice: Float
       maxPrice: Float
       gender: ProductGender
