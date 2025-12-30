@@ -60,8 +60,11 @@ export default function MobileProductFeed({
   })
   const brands = serverBrands || brandsData?.brands || []
 
-  // 查詢產品
-  const { data, loading, fetchMore, refetch } = useQuery(GET_HOMEPAGE_PRODUCTS, {
+  // 判斷是否有篩選條件
+  const hasFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || !!filters.minPrice || !!filters.maxPrice
+
+  // 查詢產品 - 只在有篩選條件時執行（沒有篩選條件時使用 serverProducts）
+  const { data, loading, fetchMore } = useQuery(GET_HOMEPAGE_PRODUCTS, {
     variables: {
       skip: 0,
       take: ITEMS_PER_PAGE,
@@ -70,18 +73,16 @@ export default function MobileProductFeed({
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
     },
-    // 如果有 serverProducts 且沒有篩選條件，跳過初始查詢
-    skip: !!serverProducts && filters.categoryIds.length === 0 && filters.brandIds.length === 0 && !filters.minPrice && !filters.maxPrice,
+    // 只有在有篩選條件時才執行查詢
+    skip: !hasFilters,
+    fetchPolicy: 'network-only', // 確保每次都從伺服器獲取最新資料
     notifyOnNetworkStatusChange: true,
   })
 
-  // 判斷是否有篩選條件
-  const hasFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || filters.minPrice || filters.maxPrice
-
   // 處理初始資料
   useEffect(() => {
-    // 有篩選條件時，使用 refetch 返回的資料；否則使用伺服器端資料
-    const rawProducts = hasFilters ? (data?.products || []) : (serverProducts || data?.products || [])
+    // 有篩選條件時，使用查詢結果；否則使用伺服器端資料
+    const rawProducts = hasFilters ? (data?.products || []) : (serverProducts || [])
     const processed = processProducts(rawProducts, filters.sortBy)
     setProducts(processed)
     setLoadedCount(rawProducts.length) // 記錄初始載入的數量
@@ -206,20 +207,12 @@ export default function MobileProductFeed({
     setFilters(prev => ({ ...prev, sortBy }))
   }
 
-  // 套用篩選
+  // 套用篩選 - 更新 filters 狀態後，useQuery 會自動重新查詢
   const applyFilters = () => {
     setFilters(tempFilters)
     setShowFilterPanel(false)
     setLoadedCount(0) // 重置已載入數量
     setHasMore(true)
-    refetch({
-      skip: 0,
-      take: ITEMS_PER_PAGE,
-      categoryIds: tempFilters.categoryIds.length > 0 ? tempFilters.categoryIds : undefined,
-      brandIds: tempFilters.brandIds.length > 0 ? tempFilters.brandIds : undefined,
-      minPrice: tempFilters.minPrice,
-      maxPrice: tempFilters.maxPrice,
-    })
   }
 
   // 重置篩選
@@ -230,10 +223,6 @@ export default function MobileProductFeed({
     setShowFilterPanel(false)
     setLoadedCount(0) // 重置已載入數量
     setHasMore(true)
-    refetch({
-      skip: 0,
-      take: ITEMS_PER_PAGE,
-    })
   }
 
   // 格式化銷量
