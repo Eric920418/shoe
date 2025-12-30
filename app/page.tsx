@@ -14,7 +14,7 @@ export default async function HomePage() {
   // 載入首頁所需的產品（精選和新品優先）
   const [configs, products, flashSale, todaysDeal, categoryDisplays] = await Promise.all([
     getHomepageConfig(),
-    getHomepageProducts(30), // 載入 30 筆，確保精選和新品都能顯示
+    getHomepageProducts(50), // 載入 50 筆，手機版無限滾動會繼續載入更多
     getActiveFlashSale(),
     getTodaysDeal(), // ✅ 新增：預先載入今日必搶配置
     getCategoryDisplays(),

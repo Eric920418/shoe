@@ -32,7 +32,7 @@ export default function MobileProductFeed({
   serverBrands,
 }: MobileProductFeedProps) {
   const [products, setProducts] = useState<any[]>([])
-  const [page, setPage] = useState(1)
+  const [loadedCount, setLoadedCount] = useState(0) // 追蹤已載入的產品數量
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
@@ -68,7 +68,8 @@ export default function MobileProductFeed({
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
     },
-    skip: !!serverProducts && page === 1 && !filters.categoryId && !filters.brandId,
+    // 如果有 serverProducts 且沒有篩選條件，跳過初始查詢
+    skip: !!serverProducts && !filters.categoryId && !filters.brandId && !filters.minPrice && !filters.maxPrice,
     notifyOnNetworkStatusChange: true,
   })
 
@@ -77,6 +78,7 @@ export default function MobileProductFeed({
     const rawProducts = serverProducts || data?.products || []
     const processed = processProducts(rawProducts, filters.sortBy)
     setProducts(processed)
+    setLoadedCount(rawProducts.length) // 記錄初始載入的數量
     setHasMore(rawProducts.length >= ITEMS_PER_PAGE)
   }, [serverProducts, data, filters.sortBy])
 
@@ -153,7 +155,7 @@ export default function MobileProductFeed({
     try {
       const result = await fetchMore({
         variables: {
-          skip: page * ITEMS_PER_PAGE,
+          skip: loadedCount, // 使用實際已載入數量作為 skip
           take: ITEMS_PER_PAGE,
         },
       })
@@ -163,15 +165,17 @@ export default function MobileProductFeed({
         setHasMore(false)
       }
 
-      const processed = processProducts(newProducts, filters.sortBy)
-      setProducts(prev => [...prev, ...processed])
-      setPage(prev => prev + 1)
+      if (newProducts.length > 0) {
+        const processed = processProducts(newProducts, filters.sortBy)
+        setProducts(prev => [...prev, ...processed])
+        setLoadedCount(prev => prev + newProducts.length) // 累加實際載入數量
+      }
     } catch (error) {
       console.error('載入更多產品失敗:', error)
     } finally {
       setIsLoadingMore(false)
     }
-  }, [page, fetchMore, hasMore, isLoadingMore, filters.sortBy])
+  }, [loadedCount, fetchMore, hasMore, isLoadingMore, filters.sortBy])
 
   // Intersection Observer 實現無限滾動
   useEffect(() => {
@@ -191,17 +195,17 @@ export default function MobileProductFeed({
     return () => observer.disconnect()
   }, [loadMore, hasMore, isLoadingMore, loading])
 
-  // 快速排序切換
+  // 快速排序切換（只重新排序現有產品，不需要重新載入）
   const handleSortChange = (sortBy: SortType) => {
     setFilters(prev => ({ ...prev, sortBy }))
-    setPage(1)
   }
 
   // 套用篩選
   const applyFilters = () => {
     setFilters(tempFilters)
     setShowFilterPanel(false)
-    setPage(1)
+    setLoadedCount(0) // 重置已載入數量
+    setHasMore(true)
     refetch({
       skip: 0,
       take: ITEMS_PER_PAGE,
@@ -218,7 +222,8 @@ export default function MobileProductFeed({
     setTempFilters(reset)
     setFilters(reset)
     setShowFilterPanel(false)
-    setPage(1)
+    setLoadedCount(0) // 重置已載入數量
+    setHasMore(true)
     refetch({
       skip: 0,
       take: ITEMS_PER_PAGE,
