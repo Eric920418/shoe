@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Tag, Percent, AlertTriangle, TrendingDown,
-  Filter, ShoppingCart, Heart, Clock, Zap
+  Tag, AlertTriangle,
+  ShoppingCart, Clock, Zap
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 
 export default function ClearancePage() {
@@ -248,11 +248,10 @@ export default function ClearancePage() {
             >
               <Link href={`/products/${product.id}`}>
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    hoverScale
                   />
 
                   {/* 折扣標籤 */}

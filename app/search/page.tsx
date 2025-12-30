@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, gql } from '@apollo/client'
 import {
-  Search, Filter, Star, Heart, ShoppingBag,
-  ChevronDown, TrendingUp, Package, Sparkles
+  Search, Star, ShoppingBag,
+  TrendingUp, Package
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
 
@@ -348,11 +348,10 @@ function SearchPageContent() {
                 >
                   <Link href={`/products/${product.slug}`}>
                     <div className="relative aspect-square bg-gray-100">
-                      <Image
+                      <ProductCardImage
                         src={image}
                         alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
+                        hoverScale
                       />
 
                       {/* 折扣標籤 */}
@@ -413,11 +412,10 @@ function SearchPageContent() {
                   <Link href={`/products/${product.slug}`}>
                     <div className="flex gap-4">
                       <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
+                        <ProductCardImage
                           src={image}
                           alt={product.name}
-                          fill
-                          className="object-cover"
+                          hoverScale={false}
                         />
                         {hasDiscount && (
                           <span className="absolute top-1 left-1 bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">

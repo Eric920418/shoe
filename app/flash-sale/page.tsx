@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery, gql } from '@apollo/client'
 import {
-  Clock, Flame, Filter, Star, TrendingUp,
-  ChevronDown, ShoppingCart, Heart, Zap, Timer
+  Clock, Flame, Star, TrendingUp,
+  ShoppingCart, Zap, Timer
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
@@ -343,11 +343,10 @@ export default function FlashSalePage() {
             >
               <Link href={`/products/${product.slug}`}>
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    hoverScale
                   />
 
                   {/* 標籤 */}

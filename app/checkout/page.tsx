@@ -14,7 +14,6 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { GET_CART, CREATE_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
@@ -729,12 +728,14 @@ export default function CheckoutPage() {
                         <div key={isGuest ? `guest-${index}` : item.id} className="flex gap-4">
                           <div className="w-20 h-20 bg-gray-100 flex-shrink-0 overflow-hidden">
                             {productImage ? (
-                              <Image
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
                                 src={productImage}
                                 alt={productName}
                                 width={80}
                                 height={80}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">

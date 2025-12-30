@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Calendar, Clock, Flame, Star, TrendingUp,
-  RefreshCw, Bell, ShoppingCart, Heart
+  Calendar, Star,
+  RefreshCw
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 
 export default function DailyDealsPage() {
@@ -154,11 +154,10 @@ export default function DailyDealsPage() {
             >
               <Link href={`/products/${deal.id}`}>
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={deal.image}
                     alt={deal.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    hoverScale
                   />
 
                   {/* 標籤 */}

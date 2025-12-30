@@ -1,9 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
-  ChevronRight, Star, Zap,
-  User, Heart, Baby, Search, Grid3X3, Flame, Crown
+  ChevronRight, Zap,
+  User, Heart, Baby, Search, Grid3X3, Flame, Crown, Star
 } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 
@@ -124,7 +123,8 @@ export default async function AllCategoriesPage() {
                 >
                   <div className="h-10 mb-2 flex items-center justify-center">
                     {brand.logo ? (
-                      <Image
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
                         src={brand.logo}
                         alt={brand.name}
                         width={60}

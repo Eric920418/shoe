@@ -8,7 +8,6 @@ import { useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { GET_ORDER, CANCEL_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -235,12 +234,13 @@ export default function OrderDetailPage() {
                 <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0 last:pb-0">
                   <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                     {item.productImage || item.product?.images?.[0] ? (
-                      <Image
+                      <img
                         src={item.productImage || item.product.images[0]}
                         alt={item.productName || item.product?.name || '商品'}
                         width={96}
                         height={96}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">

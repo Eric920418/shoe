@@ -7,7 +7,6 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useQuery, gql } from '@apollo/client'
 
 // GraphQL 查詢 - 獲取訂單詳情
@@ -251,13 +250,15 @@ function OrderSuccessContent() {
             <div className="space-y-3">
               {order.items.map((item: any) => (
                 <div key={item.id} className="flex gap-3">
-                  <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     {item.productImage && (
-                      <Image
+                      <img
                         src={item.productImage}
                         alt={item.productName}
-                        fill
-                        className="object-cover"
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                     )}
                   </div>

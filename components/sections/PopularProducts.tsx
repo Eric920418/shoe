@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award } from 'lucide-react'
+import { ShoppingCart, Eye, Star, TrendingUp, Flame, Award } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 import WishlistButton from '@/components/product/WishlistButton'
@@ -266,12 +266,11 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
                   </div>
                 )}
 
-                {/* 商品圖 */}
-                <Image
+                {/* 商品圖 - 使用 ProductCardImage 減少 Vercel 用量 */}
+                <ProductCardImage
                   src={product.image}
                   alt={product.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  hoverScale
                 />
 
                 {/* 願望清單按鈕 - 右上角固定位置 */}

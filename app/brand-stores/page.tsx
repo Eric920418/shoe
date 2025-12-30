@@ -2,7 +2,6 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Store, Shield, Award, Star, ChevronRight } from 'lucide-react'
 
 export default function BrandStoresPage() {
@@ -127,7 +126,8 @@ export default function BrandStoresPage() {
                     )}
                   </div>
                   <div className="w-20 h-12 bg-white/10 rounded flex items-center justify-center">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={store.logo}
                       alt={store.name}
                       width={80}

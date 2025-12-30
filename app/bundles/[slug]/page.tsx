@@ -3,13 +3,13 @@
 import React, { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, gql } from '@apollo/client'
-import Image from 'next/image'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import {
-  ShoppingCart, Heart, Share2, Package, Tag, Clock,
-  CheckCircle, AlertCircle, Percent, Gift
+  ShoppingCart, Package, Tag,
+  AlertCircle, Percent, Gift
 } from 'lucide-react'
+import { HeroImage, ProductCardImage } from '@/components/common/ProductImage'
 
 // GraphQL 查詢：獲取單個組合套裝
 const GET_BUNDLE = gql`
@@ -275,11 +275,10 @@ export default function BundlePage() {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 mb-4">
               {bundle.image ? (
-                <Image
+                <HeroImage
                   src={bundle.image}
                   alt={bundle.name}
-                  fill
-                  className="object-cover"
+                  priority
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -298,7 +297,7 @@ export default function BundlePage() {
               <div className="grid grid-cols-4 gap-2">
                 {bundle.images.map((img: string, idx: number) => (
                   <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-75">
-                    <Image src={img} alt={`${bundle.name} ${idx + 1}`} fill className="object-cover" />
+                    <ProductCardImage src={img} alt={`${bundle.name} ${idx + 1}`} hoverScale={false} />
                   </div>
                 ))}
               </div>
@@ -348,13 +347,13 @@ export default function BundlePage() {
                 {bundle.items.map((item) => (
                   <div key={item.id} className="border rounded-lg p-4">
                     <div className="flex gap-4 mb-3">
-                      <div className="w-16 h-16 bg-gray-100 rounded flex-shrink-0 relative">
+                      <div className="w-16 h-16 bg-gray-100 rounded flex-shrink-0 relative overflow-hidden">
                         {item.product.images && item.product.images[0] && (
-                          <Image
+                          <ProductCardImage
                             src={item.product.images[0]}
                             alt={item.product.name}
-                            fill
-                            className="object-cover rounded"
+                            hoverScale={false}
+                            className="rounded"
                           />
                         )}
                       </div>

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { GET_MY_REVIEWS } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -104,13 +103,15 @@ export default function MyReviewsPage() {
               <div className="flex gap-4">
                 {/* 產品圖片 */}
                 <Link href={`/products/${review.product.id}`} className="flex-shrink-0">
-                  <div className="relative w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
                     {review.product.images[0] && (
-                      <Image
+                      <img
                         src={review.product.images[0]}
                         alt={review.product.name}
-                        fill
-                        className="object-cover"
+                        width={96}
+                        height={96}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                     )}
                   </div>
@@ -169,13 +170,15 @@ export default function MyReviewsPage() {
                       {review.images.map((img, idx) => (
                         <div
                           key={idx}
-                          className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden"
+                          className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden"
                         >
-                          <Image
+                          <img
                             src={img}
                             alt={`評論圖片 ${idx + 1}`}
-                            fill
-                            className="object-cover"
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         </div>
                       ))}

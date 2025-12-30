@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { Sparkles, Gift, Package, Users, ShoppingBag, Zap, Heart, TrendingUp } from 'lucide-react'
+import { Sparkles, Package, Users } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
 import Breadcrumb from '@/components/common/Breadcrumb'
 

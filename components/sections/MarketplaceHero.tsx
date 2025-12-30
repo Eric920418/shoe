@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import { HeroImage } from '@/components/common/ProductImage'
 import { ChevronLeft, ChevronRight, Flame, Gift, Star } from 'lucide-react'
 import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS, GET_AVAILABLE_CREDIT_AMOUNT, GET_SHIPPED_ORDERS } from '@/graphql/queries'
@@ -292,13 +292,11 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
               <div
                 className={`h-full ${banner.image ? '' : `bg-gradient-to-r ${banner.bgColor}`} flex items-center justify-center relative`}
               >
-                {/* 背景圖片 */}
+                {/* 背景圖片 - 使用 HeroImage 減少 Vercel Image Transformations 用量 */}
                 {banner.image && (
-                  <Image
+                  <HeroImage
                     src={banner.image}
                     alt={banner.title}
-                    fill
-                    className="object-cover"
                     priority={index === 0}
                   />
                 )}

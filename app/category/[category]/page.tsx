@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useQuery, gql } from '@apollo/client'
 import {
-  Filter, ChevronDown, Star, Heart, ShoppingBag,
+  Filter, Star,
   Grid3X3, List, SlidersHorizontal, Loader2
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 
 // GraphQL 查詢：透過 slug 取得分類資訊
@@ -447,11 +447,10 @@ export default function CategoryPage() {
                     >
                       <Link href={`/products/${product.slug}`}>
                         <div className="relative aspect-square bg-gray-100">
-                          <Image
+                          <ProductCardImage
                             src={mainImage}
                             alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform"
+                            hoverScale
                           />
 
                           {product.isNewArrival && (
@@ -506,11 +505,10 @@ export default function CategoryPage() {
                       <Link href={`/products/${product.slug}`}>
                         <div className="flex gap-4">
                           <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                            <Image
+                            <ProductCardImage
                               src={mainImage}
                               alt={product.name}
-                              fill
-                              className="object-cover"
+                              hoverScale={false}
                             />
                           </div>
 

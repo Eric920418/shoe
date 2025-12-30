@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
   Shield, Award, Star, Verified, TrendingUp,
   ChevronRight, Sparkles, BadgeCheck, Globe
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 
 export default function BrandsPage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -227,7 +227,8 @@ export default function BrandsPage() {
                     </div>
                   </div>
                   <div className="w-20 h-12 bg-white/10 rounded flex items-center justify-center">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={brand.logo}
                       alt={brand.name}
                       width={80}
@@ -299,11 +300,10 @@ export default function BrandsPage() {
                 className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
               >
                 <div className="relative aspect-square bg-white">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    hoverScale
                   />
                   <span className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-0.5 rounded text-xs font-bold">
                     {product.brand}

@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import toast from 'react-hot-toast'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 
 export default function WishlistPage() {
@@ -159,11 +159,10 @@ export default function WishlistPage() {
                   <Link href={`/products/${product.slug}`} className="block relative">
                     {/* Product Image */}
                     <div className="relative aspect-square bg-gray-100">
-                      <Image
+                      <ProductCardImage
                         src={mainImage}
                         alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        hoverScale
                       />
 
                       {/* Wishlist Button */}

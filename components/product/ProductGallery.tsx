@@ -5,8 +5,8 @@
  */
 
 import { useState, useRef } from 'react'
-import Image from 'next/image'
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { HeroImage, ProductCardImage } from '@/components/common/ProductImage'
 
 interface ProductGalleryProps {
   images: string[]
@@ -123,12 +123,10 @@ export default function ProductGallery({
             )}
           </div>
         ) : (
-          // 圖片顯示
-          <Image
+          // 圖片顯示 - 使用 HeroImage 減少 Vercel 用量
+          <HeroImage
             src={currentMedia}
             alt={`${productName} - 圖${selectedImage + 1}`}
-            fill
-            className="object-cover"
             priority
           />
         )}
@@ -170,12 +168,11 @@ export default function ProductGallery({
                     </div>
                   </div>
                 ) : (
-                  // 圖片縮略圖
-                  <Image
+                  // 圖片縮略圖 - 使用 ProductCardImage 減少 Vercel 用量
+                  <ProductCardImage
                     src={media}
                     alt={`${productName} - 縮略圖${index + 1}`}
-                    fill
-                    className="object-cover"
+                    hoverScale={false}
                   />
                 )}
               </button>

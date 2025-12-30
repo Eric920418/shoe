@@ -2,8 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Gift, Star, ShoppingCart, Package } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 
 export default function GiftsPage() {
   const gifts = [
@@ -80,11 +80,10 @@ export default function GiftsPage() {
             <div key={product.id} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
               <Link href={`/products/${product.id}`}>
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover"
+                    hoverScale
                   />
                   <span className="absolute top-2 left-2 bg-pink-500 text-white px-2 py-0.5 rounded text-xs font-bold">
                     送禮

@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@apollo/client'
 import { ADD_TO_CART } from '@/graphql/queries'
@@ -10,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import toast from 'react-hot-toast'
 import Breadcrumb from '@/components/common/Breadcrumb'
+import { HeroImage, ProductCardImage } from '@/components/common/ProductImage'
 
 // ✅ 解析圖片陣列（提取為獨立函數）
 const parseImages = (images: string[] | string): string[] => {
@@ -169,14 +168,12 @@ export default function ModernProductDetail({ product }: { product: any }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
           {/* 左側：圖片區 */}
           <div className="space-y-4">
-            {/* 主圖 */}
+            {/* 主圖 - 使用 HeroImage 減少 Vercel 用量 */}
             <div className="relative aspect-square bg-gray-100 overflow-hidden">
               {hasImages ? (
-                <Image
+                <HeroImage
                   src={displayImages[selectedImage]}
                   alt={product.name}
-                  fill
-                  className="object-cover"
                   priority
                 />
               ) : (
@@ -189,7 +186,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
               )}
             </div>
 
-            {/* 縮略圖 */}
+            {/* 縮略圖 - 使用 ProductCardImage 減少 Vercel 用量 */}
             {displayImages.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {displayImages.map((image, index) => (
@@ -202,11 +199,10 @@ export default function ModernProductDetail({ product }: { product: any }) {
                         : 'border-transparent hover:border-gray-300'
                     }`}
                   >
-                    <Image
+                    <ProductCardImage
                       src={image}
                       alt={`${product.name} ${index + 1}`}
-                      fill
-                      className="object-cover"
+                      hoverScale={false}
                     />
                   </button>
                 ))}
@@ -270,12 +266,11 @@ export default function ModernProductDetail({ product }: { product: any }) {
                               : 'border-gray-300 hover:border-gray-400'
                           }`}
                         >
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={variant.colorImage}
                             alt={variant.color}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
+                            className="w-full h-full object-cover"
                           />
                           {selectedVariant?.id === variant.id && (
                             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">

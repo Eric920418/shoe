@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Clock, Flame, ShoppingCart, ChevronRight, Zap } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 
@@ -236,13 +236,12 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
             >
               <Link href={`/products/${product.slug}`}>
                 <div className="relative">
-                  {/* 商品圖片 */}
+                  {/* 商品圖片 - 使用 ProductCardImage 減少 Vercel 用量 */}
                   <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                    <Image
+                    <ProductCardImage
                       src={product.image}
                       alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
+                      hoverScale
                     />
 
                     {/* 折扣標籤 */}

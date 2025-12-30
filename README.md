@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.4.1 | **狀態**: ✅ 生產就緒 | **更新**: 2025-12-29
+**版本**: 2.4.2 | **狀態**: ✅ 生產就緒 | **更新**: 2025-12-30
 
 ---
 
@@ -665,6 +665,29 @@ mutation CreateOrder($input: CreateOrderInput!) {
 - ✅ Prisma 連線池優化 - Serverless 環境連線管理
 - ✅ 安全標頭配置 - X-Content-Type-Options, X-Frame-Options
 
+**Vercel Image Transformations 用量優化**（2025-12-30 新增）：
+- ✅ 開發期間自動關閉圖片優化 - `unoptimized: true`（development 環境）
+- ✅ R2 CDN 圖片自動跳過 Next.js 優化 - 直接使用原生 `<img>` 標籤
+- ✅ 精簡 deviceSizes - 從 8 個減少到 4 個（640, 828, 1200, 1920）
+- ✅ 精簡 imageSizes - 從 8 個減少到 3 個（64, 128, 256）
+- ✅ 統一圖片組件 `ProductCardImage` / `HeroImage` - 限制 sizes 屬性減少變體
+- ✅ 正式環境可透過 `DISABLE_IMAGE_OPTIMIZATION=true` 完全關閉優化
+
+**圖片優化組件使用指南**（位於 `components/common/ProductImage.tsx`）：
+```tsx
+// 產品卡片（會自動判斷 R2 CDN 圖片並跳過優化）
+import { ProductCardImage } from '@/components/common/ProductImage'
+<ProductCardImage src={product.image} alt={product.name} hoverScale />
+
+// Hero 輪播圖（建議預先壓縮好圖片）
+import { HeroImage } from '@/components/common/ProductImage'
+<HeroImage src={banner.image} alt={banner.title} priority />
+
+// 手動指定跳過優化（用於 CDN 圖片）
+import ProductImage from '@/components/common/ProductImage'
+<ProductImage src={cdnUrl} alt="..." unoptimized />
+```
+
 ---
 
 ## 🚀 部署
@@ -894,6 +917,30 @@ pnpm prisma migrate reset
 ## 📝 最新更新摘要
 
 ### 🔥 近期重點更新（2025-12-30）
+
+#### ✅ Vercel Image Transformations 用量優化（2025-12-30）
+- **問題描述**：Vercel Image Transformations 用量過高，產生額外費用
+- **優化方案**：
+  1. **next.config.js 配置優化**
+     - 開發環境自動關閉圖片優化（`unoptimized: true`）
+     - 精簡 deviceSizes 從 8 個減少到 4 個
+     - 精簡 imageSizes 從 8 個減少到 3 個
+     - 正式環境可透過環境變數 `DISABLE_IMAGE_OPTIMIZATION=true` 關閉
+  2. **新增統一圖片組件** (`components/common/ProductImage.tsx`)
+     - `ProductCardImage` - 產品卡片專用，自動判斷 R2 CDN 圖片
+     - `HeroImage` - 首頁輪播圖專用
+     - R2 CDN 圖片自動使用原生 `<img>` 標籤，完全不走 Vercel 優化
+  3. **已更新的組件**（改用新的圖片組件）
+     - `MarketplaceHero.tsx` - 首頁輪播圖
+     - `PopularProducts.tsx` - 人氣精選
+     - `MobileProductFeed.tsx` - 手機版產品列表
+     - `DailyDeals.tsx` - 今日特價
+     - `FlashSale.tsx` - 限時搶購
+     - `SuperDeals.tsx` - 超值優惠
+     - `app/products/page.tsx` - 產品列表頁
+- **預期效果**：
+  - 開發期間：Image Transformations 用量降為 0
+  - 正式環境：R2 CDN 圖片不消耗用量，其他圖片減少 60% 變體數量
 
 #### ✅ 手機版首頁分類/品牌複選篩選（2025-12-30）
 - **問題描述**：手機版首頁篩選面板的分類和品牌只能單選，無法同時選擇多個
@@ -1435,4 +1482,4 @@ const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
 
 ---
 
-**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.1 | **最後更新**: 2025-12-29
+**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.2 | **最後更新**: 2025-12-30

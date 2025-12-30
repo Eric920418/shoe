@@ -7,7 +7,6 @@
 import { useState } from 'react'
 import { useMutation, gql } from '@apollo/client'
 import Link from 'next/link'
-import Image from 'next/image'
 // LINE Login
 const GET_LINE_LOGIN_URL = gql`
   mutation GetLineLoginUrl {
@@ -40,12 +39,12 @@ export default function LoginPage() {
         {/* 標題 */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-          <Image
-            src="/favicon.png"
-            alt="logo"
-            width={200}
-            height={200}
-          />
+            <img
+              src="/favicon.png"
+              alt="logo"
+              width={200}
+              height={200}
+            />
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900">歡迎回來</h2>
           <p className="mt-2 text-sm text-gray-600">使用 LINE 帳號快速登入</p>

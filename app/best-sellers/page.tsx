@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ShoppingCart, Star, Trophy, TrendingUp } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
@@ -155,11 +155,10 @@ export default function BestSellersPage() {
                       </div>
                     )}
 
-                    <Image
+                    <ProductCardImage
                       src={product.image}
                       alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
+                      hoverScale
                     />
 
                     {/* 願望清單按鈕 - 右上角 */}

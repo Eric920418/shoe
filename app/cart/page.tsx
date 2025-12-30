@@ -8,7 +8,6 @@ import { useEffect } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { GET_CART, UPDATE_CART_ITEM, REMOVE_FROM_CART, CLEAR_CART } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
@@ -295,15 +294,17 @@ export default function CartPage() {
                   className="border-b border-gray-200 pb-6 last:border-0"
                 >
                   <div className="flex gap-6">
-                    {/* 商品圖片 - 更大尺寸 */}
+                    {/* 商品圖片 - 使用原生 img 減少 Vercel 用量 */}
                     <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gray-100 flex-shrink-0 overflow-hidden">
                       {productImage ? (
-                        <Image
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
                           src={productImage}
                           alt={productName}
                           width={192}
                           height={192}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">

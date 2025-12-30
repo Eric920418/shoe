@@ -2,8 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Sparkles, TrendingUp, Award, Zap, Package } from 'lucide-react'
+import { Sparkles, Award, Zap, Package } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
 
 // GraphQL 查詢：獲取首頁展示的組合套裝（最多3個）
@@ -121,13 +121,13 @@ const SuperDeals = () => {
                   className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-gradient-to-br from-yellow-50 to-orange-50 block"
                 >
                   <div className="flex gap-3 sm:gap-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex-shrink-0 relative">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex-shrink-0 relative overflow-hidden">
                       {bundle.image ? (
-                        <Image
+                        <ProductCardImage
                           src={bundle.image}
                           alt={bundle.name}
-                          fill
-                          className="rounded-lg object-cover"
+                          hoverScale={false}
+                          className="rounded-lg"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

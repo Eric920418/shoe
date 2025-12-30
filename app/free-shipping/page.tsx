@@ -2,8 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Truck, Package, Star, ShoppingCart } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import Breadcrumb from '@/components/common/Breadcrumb'
 
 export default function FreeShippingPage() {
@@ -62,11 +62,10 @@ export default function FreeShippingPage() {
             <div key={product.id} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
               <Link href={`/products/${product.id}`}>
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover"
+                    hoverScale
                   />
                   <span className="absolute top-2 left-2 bg-green-500 text-white px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
                     <Truck size={12} />

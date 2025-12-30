@@ -2,8 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Calendar, Tag, Flame, Star } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 
@@ -155,13 +155,12 @@ const DailyDeals = ({ serverProducts, serverDealConfig }: DailyDealsProps) => {
             className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
           >
             <Link href={`/products/${product.slug}`}>
-              {/* 圖片區 */}
+              {/* 圖片區 - 使用 ProductCardImage 減少 Vercel 用量 */}
               <div className="relative aspect-square bg-gray-100">
-                <Image
+                <ProductCardImage
                   src={product.image}
                   alt={product.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  hoverScale
                 />
 
                 {/* 標籤 */}

@@ -2,6 +2,9 @@
 const nextConfig = {
   // 图片优化配置（Next.js 16 移除了 domains，使用 remotePatterns）
   images: {
+    // ⚠️ 開發期間關閉圖片優化，減少 Vercel Image Transformations 用量
+    // 正式上線前可設為 false 或移除此行
+    unoptimized: process.env.NODE_ENV === 'development' || process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
     // 支持所有本地路徑和遠端模式
     remotePatterns: [
       {
@@ -14,8 +17,9 @@ const nextConfig = {
       },
     ],
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 精簡 deviceSizes，減少生成的圖片變體數量
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [64, 128, 256],
     // Next.js 16 默認 minimumCacheTTL 改為 4 小時
     minimumCacheTTL: 14400,
   },

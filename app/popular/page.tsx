@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useQuery, gql } from '@apollo/client'
-import { Heart, ShoppingCart, Eye, Star, TrendingUp, Flame, Award, Trophy } from 'lucide-react'
+import { ShoppingCart, Eye, Star, TrendingUp, Flame, Trophy } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
@@ -167,11 +167,10 @@ export default function PopularPage() {
                     {product.rank}
                   </div>
 
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    hoverScale
                   />
 
                   {/* 願望清單按鈕 - 右上角 */}

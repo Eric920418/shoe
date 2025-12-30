@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Star, Flame, Zap } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS, GET_CATEGORIES, GET_BRANDS } from '@/graphql/queries'
 import WishlistButton from '@/components/product/WishlistButton'
@@ -465,14 +465,12 @@ export default function MobileProductFeed({
               }`}
             >
               <Link href={`/products/${product.slug}`}>
-                {/* 商品圖片 */}
+                {/* 商品圖片 - 使用 ProductCardImage 減少 Vercel 用量 */}
                 <div className="relative aspect-square bg-gray-100">
-                  <Image
+                  <ProductCardImage
                     src={product.image}
                     alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="50vw"
+                    hoverScale={false}
                   />
 
                   {/* 特價標籤 */}

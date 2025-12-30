@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Sparkles, TrendingUp, Star, Heart, ShoppingBag,
-  Calendar, ChevronDown, Filter, Award, Zap
+  Sparkles, TrendingUp, Star, ShoppingBag,
+  Calendar, Award, Zap
 } from 'lucide-react'
+import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
 
@@ -242,11 +242,10 @@ export default function NewArrivalsPage() {
               >
                 <Link href={`/products/${product.id}`}>
                   <div className="relative aspect-square bg-gray-100">
-                    <Image
+                    <ProductCardImage
                       src={product.image}
                       alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
+                      hoverScale
                     />
 
                     {/* 標籤 */}
@@ -324,11 +323,10 @@ export default function NewArrivalsPage() {
                 <Link href={`/products/${product.id}`}>
                   <div className="flex gap-4">
                     <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <Image
+                      <ProductCardImage
                         src={product.image}
                         alt={product.name}
-                        fill
-                        className="object-cover"
+                        hoverScale={false}
                       />
                       {product.tag === 'NEW' && (
                         <span className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded text-xs font-bold">
