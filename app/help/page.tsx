@@ -5,7 +5,7 @@
  *
  * 功能：
  * 1. 顯示常見問題 FAQ（來自資料庫）
- * 2. 線上留言客服功能
+ * 2. 線上留言客服功能（支援圖片上傳）
  * 3. 用戶可以創建新對話並查看回覆
  * 4. 不需要 WebSocket，採用輪詢方式
  */
@@ -15,6 +15,7 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import { useAuth } from '@/contexts/AuthContext'
 import FAQSection from '@/components/sections/FAQSection'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const GET_MY_CONVERSATIONS = gql`
   query GetMyConversations {
@@ -27,6 +28,7 @@ const GET_MY_CONVERSATIONS = gql`
       messages {
         id
         content
+        imageUrl
         senderType
         isRead
         createdAt
@@ -36,8 +38,8 @@ const GET_MY_CONVERSATIONS = gql`
 `
 
 const CREATE_CONVERSATION = gql`
-  mutation CreateConversation($subject: String, $message: String!) {
-    createConversation(subject: $subject, message: $message) {
+  mutation CreateConversation($subject: String, $message: String!, $imageUrl: String) {
+    createConversation(subject: $subject, message: $message, imageUrl: $imageUrl) {
       id
       subject
       status
@@ -47,10 +49,11 @@ const CREATE_CONVERSATION = gql`
 `
 
 const SEND_MESSAGE = gql`
-  mutation SendMessage($conversationId: ID!, $content: String!) {
-    sendMessage(conversationId: $conversationId, content: $content) {
+  mutation SendMessage($conversationId: ID!, $content: String!, $imageUrl: String) {
+    sendMessage(conversationId: $conversationId, content: $content, imageUrl: $imageUrl) {
       id
       content
+      imageUrl
       senderType
       isRead
       createdAt
@@ -62,11 +65,19 @@ export default function HelpPage() {
   const { user } = useAuth()
   const [showChatSection, setShowChatSection] = useState(false)
   const [selectedConversation, setSelectedConversation] = useState<any>(null)
-  const [showNewMessageForm, setShowNewMessageForm] = useState(false)
   const [newSubject, setNewSubject] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [messageInput, setMessageInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // 圖片上傳狀態
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null)
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null)
+  const [messageImageUrl, setMessageImageUrl] = useState<string | null>(null)
+  const [messageImagePreview, setMessageImagePreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const newImageInputRef = useRef<HTMLInputElement>(null)
+  const messageImageInputRef = useRef<HTMLInputElement>(null)
 
   // 查詢用戶的對話
   const { data, loading, refetch } = useQuery(GET_MY_CONVERSATIONS, {
@@ -79,9 +90,10 @@ export default function HelpPage() {
   const [createConversation, { loading: creating }] = useMutation(CREATE_CONVERSATION, {
     onCompleted: (data) => {
       alert('留言已成功送出！客服人員會盡快回覆您。')
-      setShowNewMessageForm(false)
       setNewSubject('')
       setNewMessage('')
+      setNewImageUrl(null)
+      setNewImagePreview(null)
       refetch()
       setSelectedConversation(data.createConversation)
       setShowChatSection(true)
@@ -94,6 +106,8 @@ export default function HelpPage() {
   const [sendMessage, { loading: sending }] = useMutation(SEND_MESSAGE, {
     onCompleted: () => {
       setMessageInput('')
+      setMessageImageUrl(null)
+      setMessageImagePreview(null)
       refetch()
     },
     onError: (error) => {
@@ -108,6 +122,61 @@ export default function HelpPage() {
 
   const conversations = data?.myConversations || []
 
+  // 圖片上傳處理
+  const handleImageUpload = async (
+    file: File,
+    setImageUrl: (url: string | null) => void,
+    setPreview: (url: string | null) => void
+  ) => {
+    if (!file) return
+
+    // 驗證檔案類型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      alert('僅支援 JPG、PNG、WebP 格式的圖片')
+      return
+    }
+
+    // 驗證檔案大小（5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      alert('圖片大小不能超過 5MB')
+      return
+    }
+
+    // 設置預覽
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // 上傳圖片
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'support')
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || '上傳失敗')
+      }
+
+      const data = await response.json()
+      setImageUrl(data.url)
+    } catch (error: any) {
+      alert(`圖片上傳失敗：${error.message}`)
+      setPreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleCreateConversation = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) {
@@ -118,18 +187,20 @@ export default function HelpPage() {
       variables: {
         subject: newSubject || '客服諮詢',
         message: newMessage,
+        imageUrl: newImageUrl,
       },
     })
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!messageInput.trim() || !selectedConversation) return
+    if ((!messageInput.trim() && !messageImageUrl) || !selectedConversation) return
 
     await sendMessage({
       variables: {
         conversationId: selectedConversation.id,
-        content: messageInput,
+        content: messageInput || '（圖片）',
+        imageUrl: messageImageUrl,
       },
     })
   }
@@ -141,6 +212,23 @@ export default function HelpPage() {
       CLOSED: { label: '已關閉', color: 'bg-gray-100 text-gray-800' },
     }
     return statusMap[status] || statusMap.OPEN
+  }
+
+  // 移除圖片
+  const removeNewImage = () => {
+    setNewImageUrl(null)
+    setNewImagePreview(null)
+    if (newImageInputRef.current) {
+      newImageInputRef.current.value = ''
+    }
+  }
+
+  const removeMessageImage = () => {
+    setMessageImageUrl(null)
+    setMessageImagePreview(null)
+    if (messageImageInputRef.current) {
+      messageImageInputRef.current.value = ''
+    }
   }
 
   return (
@@ -181,7 +269,7 @@ export default function HelpPage() {
                       : 'bg-white/10 text-white hover:bg-white/20'
                   }`}
                 >
-                  📝 新增留言
+                  新增留言
                 </button>
                 <button
                   onClick={() => setShowChatSection(true)}
@@ -191,7 +279,7 @@ export default function HelpPage() {
                       : 'bg-white/10 text-white hover:bg-white/20'
                   }`}
                 >
-                  💬 我的留言記錄 ({conversations.length})
+                  我的留言記錄 ({conversations.length})
                 </button>
               </div>
 
@@ -226,12 +314,68 @@ export default function HelpPage() {
                       />
                     </div>
 
+                    {/* 圖片上傳區域 */}
+                    <div>
+                      <label className="block text-white font-semibold mb-2">
+                        附加圖片（選填）
+                      </label>
+                      <input
+                        ref={newImageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            handleImageUpload(file, setNewImageUrl, setNewImagePreview)
+                          }
+                        }}
+                        className="hidden"
+                      />
+
+                      {newImagePreview ? (
+                        <div className="relative inline-block">
+                          <Image
+                            src={newImagePreview}
+                            alt="預覽圖片"
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeNewImage}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                          {uploading && (
+                            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                              <div className="text-white text-sm">上傳中...</div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => newImageInputRef.current?.click()}
+                          disabled={uploading}
+                          className="w-full px-4 py-6 border-2 border-dashed border-white/30 rounded-lg hover:border-white/50 transition-colors flex flex-col items-center gap-2 text-white/70 hover:text-white disabled:opacity-50"
+                        >
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>點擊上傳圖片</span>
+                          <span className="text-xs text-white/50">支援 JPG、PNG、WebP（最大 5MB）</span>
+                        </button>
+                      )}
+                    </div>
+
                     <button
                       type="submit"
-                      disabled={creating}
+                      disabled={creating || uploading}
                       className="w-full px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      {creating ? '送出中...' : '📤 送出留言'}
+                      {creating ? '送出中...' : '送出留言'}
                     </button>
                   </form>
                 </div>
@@ -333,6 +477,25 @@ export default function HelpPage() {
                                   {msg.senderType === 'USER' ? '我' : '客服'}
                                 </p>
                                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                {/* 顯示圖片 */}
+                                {msg.imageUrl && (
+                                  <div className="mt-2">
+                                    <a
+                                      href={msg.imageUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block"
+                                    >
+                                      <Image
+                                        src={msg.imageUrl}
+                                        alt="附加圖片"
+                                        width={200}
+                                        height={200}
+                                        className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      />
+                                    </a>
+                                  </div>
+                                )}
                                 <p className="text-xs mt-1 opacity-75">
                                   {new Date(msg.createdAt).toLocaleString('zh-TW', {
                                     month: 'numeric',
@@ -350,18 +513,65 @@ export default function HelpPage() {
                         {/* 回覆輸入框 */}
                         {selectedConversation.status !== 'CLOSED' && (
                           <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-white/20">
+                            {/* 圖片預覽 */}
+                            {messageImagePreview && (
+                              <div className="relative inline-block mb-3">
+                                <Image
+                                  src={messageImagePreview}
+                                  alt="預覽圖片"
+                                  width={100}
+                                  height={100}
+                                  className="rounded-lg object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={removeMessageImage}
+                                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+                                >
+                                  ×
+                                </button>
+                                {uploading && (
+                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                    <div className="text-white text-xs">上傳中...</div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <div className="flex gap-3">
+                              <input
+                                ref={messageImageInputRef}
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    handleImageUpload(file, setMessageImageUrl, setMessageImagePreview)
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => messageImageInputRef.current?.click()}
+                                disabled={uploading || sending}
+                                className="px-3 py-2 bg-white/20 border border-white/30 rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+                                title="上傳圖片"
+                              >
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </button>
                               <input
                                 type="text"
                                 value={messageInput}
                                 onChange={(e) => setMessageInput(e.target.value)}
                                 placeholder="輸入您的訊息..."
                                 className="flex-1 px-4 py-2 bg-white/20 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-white placeholder-white/60"
-                                disabled={sending}
+                                disabled={sending || uploading}
                               />
                               <button
                                 type="submit"
-                                disabled={sending || !messageInput.trim()}
+                                disabled={sending || uploading || (!messageInput.trim() && !messageImageUrl)}
                                 className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {sending ? '發送中...' : '發送'}

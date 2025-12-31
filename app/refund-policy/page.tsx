@@ -16,7 +16,10 @@ export default function RefundPolicyPage() {
         <nav className="mb-6 text-sm">
           <ol className="flex items-center space-x-2 text-gray-600">
             <li>
-              <Link href="/" className="hover:text-orange-600 transition-colors">
+              <Link
+                href="/"
+                className="hover:text-orange-600 transition-colors"
+              >
                 首頁
               </Link>
             </li>
@@ -29,7 +32,9 @@ export default function RefundPolicyPage() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="flex items-center gap-3 mb-4">
             <RotateCcw className="w-8 h-8 text-orange-600" />
-            <h1 className="text-3xl font-bold text-gray-900">退換貨與退款政策</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              退換貨與退款政策
+            </h1>
           </div>
           <p className="text-sm text-gray-600 mb-8">最後更新日期：2025年1月</p>
 
@@ -40,7 +45,9 @@ export default function RefundPolicyPage() {
               退換貨保障
             </h3>
             <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              依據消費者保護法第19條規定，消費者享有商品到貨後<strong className="text-orange-600">7天猶豫期</strong>的權益（非試用期）。
+              依據消費者保護法第19條規定，消費者享有商品到貨後
+              <strong className="text-orange-600">7天猶豫期</strong>
+              的權益（非試用期）。
               在此期間內，若您對商品不滿意，可申請退貨退款。
             </p>
             <div className="grid md:grid-cols-3 gap-3 mt-4">
@@ -73,23 +80,34 @@ export default function RefundPolicyPage() {
                   <ul className="space-y-2">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>商品收到後<strong>7天內</strong>提出退貨申請</span>
+                      <span>
+                        商品收到後<strong>7天內</strong>提出退貨申請
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>商品<strong>未經使用、試穿或拆封</strong>，保持原包裝完整</span>
+                      <span>
+                        商品<strong>未經使用、試穿或拆封</strong>
+                        ，保持原包裝完整
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>商品<strong>標籤、吊牌完整</strong>未剪除</span>
+                      <span>
+                        商品<strong>標籤、吊牌完整</strong>未剪除
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>附贈品、配件、贈品等<strong>須一併退回</strong></span>
+                      <span>
+                        附贈品、配件、贈品等<strong>須一併退回</strong>
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span>原廠包裝、外盒、說明書等<strong>齊全無損</strong></span>
+                      <span>
+                        原廠包裝、外盒、說明書等<strong>齊全無損</strong>
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -98,7 +116,8 @@ export default function RefundPolicyPage() {
                   <p className="text-sm flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                     <span>
-                      <strong>注意：</strong>鞋類商品若已試穿，鞋底有磨損或使用痕跡，恕無法接受退貨。
+                      <strong>注意：</strong>
+                      鞋類商品若已試穿，鞋底有磨損或使用痕跡，恕無法接受退貨。
                       建議您在室內乾淨地面試穿，確認尺寸合適後再使用。
                     </span>
                   </p>
@@ -113,7 +132,10 @@ export default function RefundPolicyPage() {
                 2. 不接受退貨的情況
               </h2>
               <div className="space-y-3 text-gray-700">
-                <p>依據消費者保護法第19條及相關法規，以下情況<strong className="text-red-600">不適用</strong>7天鑑賞期：</p>
+                <p>
+                  依據消費者保護法第19條及相關法規，以下情況
+                  <strong className="text-red-600">不適用</strong>7天鑑賞期：
+                </p>
 
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <ul className="space-y-2">
@@ -158,7 +180,9 @@ export default function RefundPolicyPage() {
               </h2>
               <div className="space-y-4 text-gray-700">
                 <div className="border-l-4 border-orange-500 pl-4 bg-gray-50 p-4 rounded">
-                  <p className="font-semibold text-orange-600 mb-2">步驟 1：提出申請</p>
+                  <p className="font-semibold text-orange-600 mb-2">
+                    步驟 1：提出申請
+                  </p>
                   <p className="text-sm">
                     於商品到貨後7天內，透過以下方式聯繫客服提出退貨申請：
                   </p>
@@ -174,7 +198,9 @@ export default function RefundPolicyPage() {
                 </div>
 
                 <div className="border-l-4 border-orange-500 pl-4 bg-gray-50 p-4 rounded">
-                  <p className="font-semibold text-orange-600 mb-2">步驟 2：客服審核</p>
+                  <p className="font-semibold text-orange-600 mb-2">
+                    步驟 2：客服審核
+                  </p>
                   <p className="text-sm">
                     客服人員將於<strong>1個工作天內</strong>審核您的退貨申請，
                     並提供退貨地址或安排物流收件。
@@ -182,16 +208,26 @@ export default function RefundPolicyPage() {
                 </div>
 
                 <div className="border-l-4 border-orange-500 pl-4 bg-gray-50 p-4 rounded">
-                  <p className="font-semibold text-orange-600 mb-2">步驟 3：寄回商品</p>
+                  <p className="font-semibold text-orange-600 mb-2">
+                    步驟 3：寄回商品
+                  </p>
                   <p className="text-sm mb-2">請將商品妥善包裝後寄回：</p>
                   <ul className="list-disc pl-6 text-sm space-y-1">
-                    <li><strong>宅配/超商取貨：</strong>我們將安排物流到府收件（免運費）</li>
-                    <li><strong>自行寄回：</strong>寄至指定地址（運費需自付，退款時可扣除）</li>
+                    <li>
+                      <strong>宅配/超商取貨：</strong>
+                      我們將安排物流到府收件（免運費）
+                    </li>
+                    <li>
+                      <strong>自行寄回：</strong>
+                      寄至指定地址（運費需自付，退款時可扣除）
+                    </li>
                   </ul>
                 </div>
 
                 <div className="border-l-4 border-orange-500 pl-4 bg-gray-50 p-4 rounded">
-                  <p className="font-semibold text-orange-600 mb-2">步驟 4：商品檢驗</p>
+                  <p className="font-semibold text-orange-600 mb-2">
+                    步驟 4：商品檢驗
+                  </p>
                   <p className="text-sm">
                     收到退貨商品後，我們將進行檢驗，確認符合退貨條件。
                     檢驗時間約<strong>1-2個工作天</strong>。
@@ -199,7 +235,9 @@ export default function RefundPolicyPage() {
                 </div>
 
                 <div className="border-l-4 border-orange-500 pl-4 bg-gray-50 p-4 rounded">
-                  <p className="font-semibold text-orange-600 mb-2">步驟 5：退款處理</p>
+                  <p className="font-semibold text-orange-600 mb-2">
+                    步驟 5：退款處理
+                  </p>
                   <p className="text-sm">
                     檢驗通過後，將於<strong>3-7個工作天內</strong>完成退款。
                     退款方式依原付款方式而定（詳見下方說明）。
@@ -210,9 +248,13 @@ export default function RefundPolicyPage() {
 
             {/* 4. 退款方式與時間 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">4. 退款方式與時間</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                4. 退款方式與時間
+              </h2>
               <div className="space-y-3 text-gray-700">
-                <p>退款將依您的<strong>原付款方式</strong>進行：</p>
+                <p>
+                  退款將依您的<strong>原付款方式</strong>進行：
+                </p>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -274,7 +316,9 @@ export default function RefundPolicyPage() {
 
             {/* 5. 換貨說明 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">5. 換貨說明</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                5. 換貨說明
+              </h2>
               <div className="space-y-3 text-gray-700">
                 <p className="font-semibold">5.1 可換貨情況</p>
                 <ul className="list-disc pl-6 space-y-2">
@@ -306,10 +350,13 @@ export default function RefundPolicyPage() {
 
             {/* 6. 瑕疵品處理 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">6. 瑕疵品處理</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                6. 瑕疵品處理
+              </h2>
               <div className="space-y-3 text-gray-700">
                 <p>
-                  若收到商品有瑕疵、損壞或品質問題，請於<strong>收到商品後7天內</strong>聯繫客服。
+                  若收到商品有瑕疵、損壞或品質問題，請於
+                  <strong>收到商品後7天內</strong>聯繫客服。
                 </p>
 
                 <p className="font-semibold">處理方式：</p>
@@ -323,7 +370,8 @@ export default function RefundPolicyPage() {
 
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4">
                   <p className="text-sm">
-                    <strong>提醒：</strong>請於收到商品時立即檢查，若包裝外觀有明顯損壞，
+                    <strong>提醒：</strong>
+                    請於收到商品時立即檢查，若包裝外觀有明顯損壞，
                     建議當場拒收或拍照存證後聯繫客服。
                   </p>
                 </div>
@@ -332,36 +380,62 @@ export default function RefundPolicyPage() {
 
             {/* 7. 運費負擔說明 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">7. 運費負擔說明</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                7. 運費負擔說明
+              </h2>
               <div className="space-y-3 text-gray-700">
                 <div className="overflow-x-auto">
                   <table className="min-w-full border border-gray-300 text-sm">
                     <thead className="bg-gray-100">
                       <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">退貨原因</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">運費負擔</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          退貨原因
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                          運費負擔
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td className="border border-gray-300 px-4 py-2">商品瑕疵、損壞</td>
-                        <td className="border border-gray-300 px-4 py-2 text-green-600 font-semibold">本公司負擔</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          商品瑕疵、損壞
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-green-600 font-semibold">
+                          本公司負擔
+                        </td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-300 px-4 py-2">寄錯商品</td>
-                        <td className="border border-gray-300 px-4 py-2 text-green-600 font-semibold">本公司負擔</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          寄錯商品
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-green-600 font-semibold">
+                          本公司負擔
+                        </td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-300 px-4 py-2">個人因素（尺寸不合、不喜歡等）</td>
-                        <td className="border border-gray-300 px-4 py-2 text-orange-600 font-semibold">消費者負擔</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          個人因素（尺寸不合、不喜歡等）
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-orange-600 font-semibold">
+                          消費者負擔
+                        </td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-300 px-4 py-2">換貨（第一次）</td>
-                        <td className="border border-gray-300 px-4 py-2 text-green-600 font-semibold">本公司負擔</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          換貨（第一次）
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-orange-600 font-semibold">
+                          消費者負擔
+                        </td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-300 px-4 py-2">換貨（第二次起）</td>
-                        <td className="border border-gray-300 px-4 py-2 text-orange-600 font-semibold">消費者負擔</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          換貨（第二次起）
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-orange-600 font-semibold">
+                          消費者負擔
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -371,19 +445,23 @@ export default function RefundPolicyPage() {
 
             {/* 8. 常見問題 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">8. 退換貨常見問題</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                8. 退換貨常見問題
+              </h2>
               <div className="space-y-4 text-gray-700">
                 <div className="border border-gray-200 rounded-lg p-4">
                   <p className="font-semibold mb-2">Q1：可以試穿嗎？</p>
                   <p className="text-sm">
-                    可以，但請在<strong>室內乾淨地面</strong>試穿。若鞋底有明顯磨損或髒污，將無法退貨。
+                    可以，但請在<strong>室內乾淨地面</strong>
+                    試穿。若鞋底有明顯磨損或髒污，將無法退貨。
                   </p>
                 </div>
 
                 <div className="border border-gray-200 rounded-lg p-4">
                   <p className="font-semibold mb-2">Q2：退款多久會入帳？</p>
                   <p className="text-sm">
-                    依付款方式不同，約<strong>3-14個工作天</strong>。信用卡退款需依各銀行作業時間。
+                    依付款方式不同，約<strong>3-14個工作天</strong>
+                    。信用卡退款需依各銀行作業時間。
                   </p>
                 </div>
 
@@ -396,7 +474,9 @@ export default function RefundPolicyPage() {
                 </div>
 
                 <div className="border border-gray-200 rounded-lg p-4">
-                  <p className="font-semibold mb-2">Q4：外盒有點損壞可以退嗎？</p>
+                  <p className="font-semibold mb-2">
+                    Q4：外盒有點損壞可以退嗎？
+                  </p>
                   <p className="text-sm">
                     若是運送過程造成的輕微損壞，不影響退貨權益。但若是人為嚴重破壞，
                     可能無法接受退貨。建議拍照聯繫客服確認。
@@ -414,16 +494,22 @@ export default function RefundPolicyPage() {
 
             {/* 聯絡資訊 */}
             <section className="bg-orange-50 border border-orange-200 rounded-lg p-6 mt-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">退換貨問題？聯絡我們</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                退換貨問題？聯絡我們
+              </h3>
               <p className="text-gray-700 mb-4">
                 若對退換貨有任何疑問，歡迎聯繫我們的客服團隊，我們將竭誠為您服務。
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <p className="font-semibold text-gray-900 mb-2">客服聯絡方式</p>
+                  <p className="font-semibold text-gray-900 mb-2">
+                    客服聯絡方式
+                  </p>
                   <p className="text-sm text-gray-700">電話：0923-101-058</p>
                   <p className="text-sm text-gray-700">LINE：@308mstvl</p>
-                  <p className="text-sm text-gray-700">Email：caishenmaixie@gmail.com</p>
+                  <p className="text-sm text-gray-700">
+                    Email：caishenmaixie@gmail.com
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 mb-2">服務時間</p>
@@ -440,5 +526,5 @@ export default function RefundPolicyPage() {
 
       <MarketplaceFooter />
     </div>
-  )
+  );
 }

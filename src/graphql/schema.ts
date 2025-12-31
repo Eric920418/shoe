@@ -1370,6 +1370,7 @@ export const typeDefs = gql`
     senderId: String!
     senderType: SenderType!
     content: String!
+    imageUrl: String
     isRead: Boolean!
     createdAt: DateTime!
   }
@@ -2000,8 +2001,8 @@ export const typeDefs = gql`
     updateReferralCode(id: ID!, input: UpdateReferralCodeInput!): ReferralCode!
 
     # 聊天室
-    createConversation(subject: String, message: String!): Conversation!
-    sendMessage(conversationId: ID!, content: String!): Message!
+    createConversation(subject: String, message: String!, imageUrl: String): Conversation!
+    sendMessage(conversationId: ID!, content: String!, imageUrl: String): Message!
     # Admin: 聊天室管理
     updateConversationStatus(id: ID!, status: ConversationStatus!): Conversation!
 

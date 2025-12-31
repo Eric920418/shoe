@@ -155,7 +155,7 @@ export const chatResolvers = {
     // 創建新對話（用戶）
     createConversation: async (
       _: any,
-      { subject, message }: { subject?: string; message: string },
+      { subject, message, imageUrl }: { subject?: string; message: string; imageUrl?: string },
       { user }: GraphQLContext
     ) => {
       if (!user) {
@@ -178,6 +178,7 @@ export const chatResolvers = {
               senderId: user.userId,
               senderType: 'USER',
               content: sanitizedMessage,
+              imageUrl: imageUrl || null,
             },
           },
         },
@@ -199,7 +200,7 @@ export const chatResolvers = {
     // 發送訊息
     sendMessage: async (
       _: any,
-      { conversationId, content }: { conversationId: string; content: string },
+      { conversationId, content, imageUrl }: { conversationId: string; content: string; imageUrl?: string },
       { user }: GraphQLContext
     ) => {
       if (!user) {
@@ -236,6 +237,7 @@ export const chatResolvers = {
           senderId: user.userId,
           senderType: user.role === 'ADMIN' ? 'ADMIN' : 'USER',
           content: sanitizedContent,
+          imageUrl: imageUrl || null,
         },
       })
 

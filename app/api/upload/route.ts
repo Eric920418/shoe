@@ -21,7 +21,7 @@ import path from 'path'
 import { uploadToR2 } from '@/lib/r2'
 
 // 允許上傳的資料夾白名單
-const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews', 'returns', 'hero', 'payments']
+const ALLOWED_FOLDERS = ['products', 'brands', 'categories', 'banners', 'avatars', 'reviews', 'returns', 'hero', 'payments', 'support']
 
 // 允許的圖片類型（移除 SVG 防止 XSS）
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
