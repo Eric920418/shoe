@@ -265,11 +265,13 @@ export function createPaymentData(params: {
   if (cleanShippingMethod === 'SEVEN_ELEVEN') {
     console.log('✅ 判定為 [7-11 店到店] -> 啟用 LgsType');
     tradeData.LgsType = 'C2C';
-    // 如果有超商付款，可能還需要 CVSCOM（超商取貨付款）
-    if (types.has('CVS') || types.has('BARCODE')) {
-      tradeData.CVSCOM = 1; // 啟用超商取貨付款
-      console.log('   📦 啟用 CVSCOM（超商取貨付款）');
-    }
+    // 🔥 CVSCOM 參數值說明（根據藍新金流 API 文件）：
+    // 0 = 不開啟
+    // 1 = 啟用超商取貨「不付款」
+    // 2 = 啟用超商取貨「付款」（貨到付款）
+    // 3 = 同時啟用不付款及付款
+    tradeData.CVSCOM = 2; // 啟用超商取貨付款（貨到付款）
+    console.log('   📦 啟用 CVSCOM = 2（超商取貨付款/貨到付款）');
   } else {
     console.log('🚫 判定為 [純金流/宅配/自取] -> 強制移除 LgsType');
     // 確保完全移除，不留痕跡

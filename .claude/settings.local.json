@@ -25,7 +25,12 @@
       "Bash(ls:*)",
       "Bash(pnpm tsc:*)",
       "Bash(psql:*)",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ithelp.ithome.com.tw)",
+      "WebFetch(domain:firebasestorage.googleapis.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []
