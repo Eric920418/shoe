@@ -44,6 +44,15 @@ const CREATE_CONVERSATION = gql`
       subject
       status
       createdAt
+      lastMessageAt
+      messages {
+        id
+        content
+        imageUrl
+        senderType
+        isRead
+        createdAt
+      }
     }
   }
 `

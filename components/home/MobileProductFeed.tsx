@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Star, Flame, Zap } from 'lucide-react'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery } from '@apollo/client'
@@ -31,6 +32,9 @@ export default function MobileProductFeed({
   serverCategories,
   serverBrands,
 }: MobileProductFeedProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [products, setProducts] = useState<any[]>([])
   const [loadedCount, setLoadedCount] = useState(0) // 追蹤已載入的產品數量
   const [hasMore, setHasMore] = useState(true)
@@ -39,14 +43,56 @@ export default function MobileProductFeed({
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const ITEMS_PER_PAGE = 20
 
-  // 篩選狀態
-  const [filters, setFilters] = useState<FilterState>({
-    categoryIds: [],
-    brandIds: [],
-    sortBy: 'recommend',
-  })
+  // 從 URL 解析篩選狀態
+  const parseFiltersFromUrl = useCallback((): FilterState => {
+    const categoryIds = searchParams.get('categories')?.split(',').filter(Boolean) || []
+    const brandIds = searchParams.get('brands')?.split(',').filter(Boolean) || []
+    const minPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
+    const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
+    const sortBy = (searchParams.get('sort') as SortType) || 'recommend'
+    return { categoryIds, brandIds, minPrice, maxPrice, sortBy }
+  }, [searchParams])
+
+  // 篩選狀態 - 從 URL 初始化
+  const [filters, setFilters] = useState<FilterState>(parseFiltersFromUrl)
   const [showFilterPanel, setShowFilterPanel] = useState(false)
   const [tempFilters, setTempFilters] = useState<FilterState>(filters)
+
+  // 當 URL 變化時更新篩選狀態（處理返回鍵）
+  useEffect(() => {
+    const urlFilters = parseFiltersFromUrl()
+    setFilters(urlFilters)
+    setTempFilters(urlFilters)
+    setLoadedCount(0)
+    setHasMore(true)
+  }, [searchParams, parseFiltersFromUrl])
+
+  // 將篩選狀態同步到 URL
+  const updateUrlWithFilters = useCallback((newFilters: FilterState) => {
+    const params = new URLSearchParams()
+
+    if (newFilters.categoryIds.length > 0) {
+      params.set('categories', newFilters.categoryIds.join(','))
+    }
+    if (newFilters.brandIds.length > 0) {
+      params.set('brands', newFilters.brandIds.join(','))
+    }
+    if (newFilters.minPrice !== undefined) {
+      params.set('minPrice', String(newFilters.minPrice))
+    }
+    if (newFilters.maxPrice !== undefined) {
+      params.set('maxPrice', String(newFilters.maxPrice))
+    }
+    if (newFilters.sortBy !== 'recommend') {
+      params.set('sort', newFilters.sortBy)
+    }
+
+    const queryString = params.toString()
+    const newUrl = queryString ? `/?${queryString}` : '/'
+
+    // 使用 push 建立新的歷史記錄，這樣返回鍵可以返回上一個篩選狀態
+    router.push(newUrl, { scroll: false })
+  }, [router])
 
   // 查詢分類
   const { data: categoriesData } = useQuery(GET_CATEGORIES, {
@@ -202,27 +248,24 @@ export default function MobileProductFeed({
     return () => observer.disconnect()
   }, [loadMore, hasMore, isLoadingMore, loading])
 
-  // 快速排序切換（只重新排序現有產品，不需要重新載入）
+  // 快速排序切換 - 同步到 URL
   const handleSortChange = (sortBy: SortType) => {
-    setFilters(prev => ({ ...prev, sortBy }))
+    const newFilters = { ...filters, sortBy }
+    updateUrlWithFilters(newFilters)
   }
 
-  // 套用篩選 - 更新 filters 狀態後，useQuery 會自動重新查詢
+  // 套用篩選 - 更新 URL（會觸發 searchParams 變化，自動更新 filters 狀態）
   const applyFilters = () => {
-    setFilters(tempFilters)
+    updateUrlWithFilters(tempFilters)
     setShowFilterPanel(false)
-    setLoadedCount(0) // 重置已載入數量
-    setHasMore(true)
   }
 
-  // 重置篩選
+  // 重置篩選 - 清空 URL 參數
   const resetFilters = () => {
     const reset: FilterState = { categoryIds: [], brandIds: [], sortBy: 'recommend' }
     setTempFilters(reset)
-    setFilters(reset)
+    updateUrlWithFilters(reset)
     setShowFilterPanel(false)
-    setLoadedCount(0) // 重置已載入數量
-    setHasMore(true)
   }
 
   // 格式化銷量

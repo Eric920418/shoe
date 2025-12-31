@@ -132,11 +132,13 @@ export const productResolvers = {
         }
       }
 
-      // 關鍵字搜尋（搜尋產品名稱和描述）
+      // 關鍵字搜尋（搜尋產品名稱、描述、分類名稱、品牌名稱）
       if (search) {
         filters.OR = [
           { name: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
+          { category: { name: { contains: search, mode: 'insensitive' } } },
+          { brand: { name: { contains: search, mode: 'insensitive' } } },
         ]
       }
 

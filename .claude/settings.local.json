@@ -30,7 +30,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:ithelp.ithome.com.tw)",
       "WebFetch(domain:firebasestorage.googleapis.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pnpm prisma generate:*)"
     ],
     "deny": [],
     "ask": []

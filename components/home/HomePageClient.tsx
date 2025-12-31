@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import MarketplaceHeader from '@/components/navigation/MarketplaceHeader'
 import MarketplaceFooter from '@/components/common/MarketplaceFooter'
 import MarketplaceHero from '@/components/sections/MarketplaceHero'
@@ -117,7 +117,23 @@ export default function HomePageClient({
       <AnnouncementWrapper />
 
       {/* ===== 手機版：蝦皮風格商品瀑布流 ===== */}
-      <MobileProductFeed serverProducts={products} />
+      <Suspense fallback={
+        <div className="md:hidden px-2 py-4">
+          <div className="grid grid-cols-2 gap-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm animate-pulse">
+                <div className="aspect-square bg-gray-200" />
+                <div className="p-2 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded" />
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      }>
+        <MobileProductFeed serverProducts={products} />
+      </Suspense>
 
       {/* ===== 電腦版：原有組件佈局 ===== */}
       <div className="hidden md:block">
