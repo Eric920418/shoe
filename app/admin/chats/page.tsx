@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, gql } from '@apollo/client'
+import Image from 'next/image'
 
 const GET_ALL_CONVERSATIONS = gql`
   query GetAllConversations($skip: Int, $take: Int, $status: String) {
@@ -20,6 +21,7 @@ const GET_ALL_CONVERSATIONS = gql`
         messages {
           id
           content
+          imageUrl
           senderType
           senderId
           isRead
@@ -33,10 +35,11 @@ const GET_ALL_CONVERSATIONS = gql`
 `
 
 const SEND_MESSAGE = gql`
-  mutation SendMessage($conversationId: ID!, $message: String!) {
-    sendMessage(conversationId: $conversationId, message: $message) {
+  mutation SendMessage($conversationId: ID!, $content: String!, $imageUrl: String) {
+    sendMessage(conversationId: $conversationId, content: $content, imageUrl: $imageUrl) {
       id
       content
+      imageUrl
       senderType
       isRead
       createdAt
@@ -116,7 +119,7 @@ export default function AdminChatsPage() {
     await sendMessage({
       variables: {
         conversationId: selectedConversation.id,
-        message: messageInput,
+        content: messageInput,
       },
     })
   }
@@ -375,6 +378,24 @@ export default function AdminChatsPage() {
                         {msg.senderType === 'ADMIN' ? '客服' : selectedConversation.user.name}
                       </p>
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      {msg.imageUrl && (
+                        <div className="mt-2">
+                          <a
+                            href={msg.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <Image
+                              src={msg.imageUrl}
+                              alt="附加圖片"
+                              width={200}
+                              height={200}
+                              className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        </div>
+                      )}
                       <p
                         className={`text-xs mt-1 ${
                           msg.senderType === 'ADMIN' ? 'text-primary-100' : 'text-gray-500'
