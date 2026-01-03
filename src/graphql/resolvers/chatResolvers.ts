@@ -48,7 +48,7 @@ export const chatResolvers = {
     // 獲取所有對話（管理員）
     allConversations: async (
       _: any,
-      { status }: { status?: string },
+      { skip = 0, take = 20, status }: { skip?: number; take?: number; status?: string },
       { user }: GraphQLContext
     ) => {
       if (!user || user.role !== 'ADMIN') {
@@ -62,24 +62,34 @@ export const chatResolvers = {
         where.status = status
       }
 
-      return await prisma.conversation.findMany({
-        where,
-        include: {
-          messages: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              phone: true,
+      const [items, total] = await Promise.all([
+        prisma.conversation.findMany({
+          where,
+          skip,
+          take,
+          include: {
+            messages: {
+              orderBy: { createdAt: 'asc' },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
             },
           },
-        },
-        orderBy: { lastMessageAt: 'desc' },
-      })
+          orderBy: { lastMessageAt: 'desc' },
+        }),
+        prisma.conversation.count({ where }),
+      ])
+
+      return {
+        items,
+        total,
+        hasMore: skip + take < total,
+      }
     },
 
     // 獲取對話詳情

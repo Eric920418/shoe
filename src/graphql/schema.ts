@@ -1364,6 +1364,12 @@ export const typeDefs = gql`
     unreadCount: Int!
   }
 
+  type ConversationsResponse {
+    items: [Conversation!]!
+    total: Int!
+    hasMore: Boolean!
+  }
+
   type Message {
     id: ID!
     conversationId: String!
@@ -1769,7 +1775,7 @@ export const typeDefs = gql`
     myConversations: [Conversation!]!
     conversation(id: ID!): Conversation
     # Admin: 聊天室管理
-    allConversations(status: ConversationStatus): [Conversation!]!
+    allConversations(skip: Int, take: Int, status: String): ConversationsResponse!
 
     # 評論
     productReviews(productId: ID!, skip: Int, take: Int): [Review!]!
