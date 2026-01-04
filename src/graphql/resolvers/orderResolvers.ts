@@ -471,6 +471,14 @@ export const orderResolvers = {
               })
             }
 
+            // 查詢 sizeChart（用於獲取尺寸）
+            let sizeChart = null
+            if (item.sizeChartId) {
+              sizeChart = await prisma.sizeChart.findUnique({
+                where: { id: item.sizeChartId },
+              })
+            }
+
             // 查找 SKU（可選，用於記錄）
             let sku = null
             if (item.variantId && item.sizeChartId) {
@@ -493,6 +501,7 @@ export const orderResolvers = {
               variantId: item.variantId,
               variant,
               sizeChartId: item.sizeChartId,
+              sizeChart, // ✅ 加入 sizeChart
               skuId: sku?.id || null, // 加入 SKU ID
               quantity: item.quantity,
               sizeEu: item.sizeEu,
