@@ -188,6 +188,7 @@ export default function DailyDealsPage() {
                         className="h-full bg-gradient-to-r from-yellow-400 to-orange-500"
                         style={{ width: `${Math.min(50, (deal.stock > 0 ? 30 : 100))}%` }}
                       />
+                    </div>
                   </div>
                 </div>
 
