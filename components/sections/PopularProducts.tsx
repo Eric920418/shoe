@@ -303,16 +303,15 @@ const PopularProducts = ({ serverProducts }: PopularProductsProps) => {
                   {product.name}
                 </h3>
 
-                {/* 銷量和評分 */}
-                <div className="flex items-center justify-between mb-1 sm:mb-2 text-[10px] sm:text-xs">
-                  <span className="text-gray-500 truncate">已售 {product.sales}</span>
-                  {product.rating > 0 && (
+                {/* 評分 */}
+                {product.rating > 0 && (
+                  <div className="flex items-center justify-end mb-1 sm:mb-2 text-[10px] sm:text-xs">
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                       <Star className="text-yellow-400 fill-current" size={10} />
                       <span className="text-gray-600">{typeof product.rating === 'number' ? product.rating.toFixed(1) : Number(product.rating || 0).toFixed(1)}</span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* 價格 */}
                 <div className="flex items-end justify-between gap-1">

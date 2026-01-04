@@ -100,7 +100,7 @@ const DailyDeals = ({ serverProducts, serverDealConfig }: DailyDealsProps) => {
           rating: averageRating,
           reviews: reviewCount,
           tag,
-          sales: soldCount > 0 ? `已售 ${soldCount}` : '新品上架',
+          sales: '', // 已售數量暫時隱藏
           soldCount,
           averageRating
         }
@@ -207,14 +207,12 @@ const DailyDeals = ({ serverProducts, serverDealConfig }: DailyDealsProps) => {
                   {product.name}
                 </h3>
 
-                {/* 評分和銷量 */}
+                {/* 評分 */}
                 <div className="flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
                   <div className="flex items-center gap-0.5 sm:gap-1">
                     <Star className="text-yellow-400 fill-current" size={12} />
                     <span className="text-xs sm:text-sm text-gray-600">{product.rating}</span>
                   </div>
-                  <span className="text-gray-300 hidden sm:inline">|</span>
-                  <span className="text-[10px] sm:text-xs text-gray-500 truncate">{product.sales}</span>
                 </div>
 
                 {/* 價格 */}

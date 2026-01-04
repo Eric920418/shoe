@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.4.3 | **狀態**: ✅ 生產就緒 | **更新**: 2025-12-31
+**版本**: 2.4.5 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-04
 
 ---
 
@@ -31,6 +31,7 @@
 
 ### 🛒 電商功能
 - **訪客結帳系統** - 無需註冊即可下單，強力引導註冊
+- **選擇性結帳功能** - 購物車可選擇部分商品結帳，未結帳商品保留
 - **LINE Login 整合** - 30 秒快速註冊/登入
 - **動態會員等級系統** - 後台可自由配置等級與權益
 - **購物金與優惠券系統** - 完整的行銷工具
@@ -916,6 +917,60 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
+### 🔥 近期重點更新（2026-01-04）
+
+#### ✅ 購物車與訂單系統大幅優化（v2.4.5）
+
+**1. 選擇性結帳功能**
+- 購物車新增全選/單選 checkbox，可選擇部分商品結帳
+- 只結帳選中的商品，未選中的商品保留在購物車
+- 摘要區域即時顯示選中商品的總金額
+- 支援會員和訪客兩種模式
+
+**2. 購物車圖片顯示修正**
+- 修正購物車和訂單顯示的圖片永遠是主圖的問題
+- 現在優先顯示變體（顏色）對應的圖片 `colorImage`
+- 確保用戶看到的圖片與選擇的顏色一致
+
+**3. 購物車尺寸顯示修正**
+- 修正會員購物車不顯示尺寸的問題
+- 現在正確從 `sizeChart.size` 獲取尺寸資料
+- 確保購物車和訂單都能正確顯示尺寸
+
+**4. 購物車排序優化**
+- 購物車商品現在按加入時間降序排列
+- 最新加入的商品顯示在最前面，符合用戶預期
+
+**影響範圍**：
+- `app/cart/page.tsx` - 購物車頁面（選擇功能、圖片、尺寸、排序）
+- `app/checkout/page.tsx` - 結帳頁面（選擇性結帳）
+- `src/graphql/resolvers/cartResolvers.ts` - 購物車排序
+- `src/graphql/resolvers/orderResolvers.ts` - 訂單創建（圖片、尺寸、選擇性清空）
+- `src/graphql/queries.ts` - GraphQL 查詢（變體圖片欄位）
+- `src/graphql/schema.ts` - GraphQL Schema（selectedCartItemIds）
+- `app/products/[slug]/ModernProductDetail.tsx` - 訪客購物車變體圖片
+
+#### ✅ 隱藏產品已售數量顯示
+- **背景**：新上架商品顯示「已售 0」影響消費者購買意願
+- **解決方案**：暫時隱藏所有「已售」數量統計顯示
+- **影響範圍**：
+  - `components/sections/PopularProducts.tsx` - 熱銷商品區
+  - `components/sections/DailyDeals.tsx` - 每日優惠區
+  - `components/sections/FlashSale.tsx` - 限時搶購區（隱藏進度條）
+  - `components/sections/MarketplaceHero.tsx` - 首頁輪播促銷
+  - `components/home/MobileProductFeed.tsx` - 手機版商品列表
+  - `app/brands/page.tsx` - 品牌頁
+  - `app/clearance/page.tsx` - 清倉頁
+  - `app/flash-sale/page.tsx` - 限時特賣頁
+  - `app/popular/page.tsx` - 熱銷頁
+  - `app/best-sellers/page.tsx` - 暢銷榜頁
+  - `app/search/page.tsx` - 搜尋結果頁
+  - `app/daily-deals/page.tsx` - 每日優惠頁
+- **保留項目**：「已售完」「已售罄」等缺貨狀態提示仍正常顯示
+- **未來規劃**：待銷量累積後可考慮恢復顯示
+
+---
+
 ### 🔥 近期重點更新（2025-12-31）
 
 #### ✅ 手機版篩選返回鍵體驗優化
@@ -1512,4 +1567,4 @@ const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
 
 ---
 
-**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.3 | **最後更新**: 2025-12-31
+**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.5 | **最後更新**: 2026-01-04

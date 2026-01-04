@@ -297,8 +297,7 @@ export default function ClearancePage() {
                     )}
                   </div>
 
-                  {/* 銷量 */}
-                  <p className="text-xs text-gray-500 mb-2">已售 {product.sold} 件</p>
+{/* 銷量暫時隱藏 */}
 
                   {/* 價格 */}
                   <div className="flex items-end justify-between">

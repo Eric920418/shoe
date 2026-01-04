@@ -397,8 +397,6 @@ export default function FlashSalePage() {
                       <Star className="text-yellow-400 fill-current" size={12} />
                       <span className="text-gray-600">{product.rating}</span>
                     </div>
-                    <span className="text-gray-300">|</span>
-                    <span className="text-gray-500">已售 {product.sold}</span>
                   </div>
 
                   {/* 價格 */}

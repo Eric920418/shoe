@@ -439,8 +439,7 @@ function SearchPageContent() {
                                 </div>
                                 <span className="text-gray-400">|</span>
                                 <span className="text-gray-600">{product.reviewCount} 則評價</span>
-                                <span className="text-gray-400">|</span>
-                                <span className="text-gray-600">已售 {product.soldCount}</span>
+{/* 已售數量暫時隱藏 */}
                               </div>
                             )}
                           </div>

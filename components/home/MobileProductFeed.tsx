@@ -547,16 +547,15 @@ export default function MobileProductFeed({
                     )}
                   </div>
 
-                  {/* 銷量與評分 */}
-                  <div className="flex items-center justify-between text-[10px] text-gray-500">
-                    <span>已售 {formatSales(product.soldCount)}</span>
-                    {product.rating > 0 && (
+                  {/* 評分 */}
+                  {product.rating > 0 && (
+                    <div className="flex items-center justify-end text-[10px] text-gray-500">
                       <div className="flex items-center gap-0.5">
                         <Star size={10} className="text-yellow-400 fill-current" />
                         <span>{product.rating.toFixed(1)}</span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* 特價產品額外標籤 */}
                   {product.insertedAsSale && (

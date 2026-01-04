@@ -123,10 +123,23 @@ export default function ModernProductDetail({ product }: { product: any }) {
       }
       // 訪客模式：使用 localStorage
       else {
+        // ✅ 優先使用變體圖片，沒有才使用產品主圖
+        const getVariantImage = () => {
+          if (selectedVariant?.colorImage) return selectedVariant.colorImage
+          if (selectedVariant?.images) {
+            const variantImages = typeof selectedVariant.images === 'string'
+              ? JSON.parse(selectedVariant.images)
+              : selectedVariant.images
+            if (Array.isArray(variantImages) && variantImages.length > 0) {
+              return variantImages[0]
+            }
+          }
+          return displayImages[0] || null
+        }
         guestCart.addItem({
           productId: product.id,
           productName: product.name,
-          productImage: displayImages[0] || null,
+          productImage: getVariantImage(),
           variantId: selectedVariant?.id || null,
           variantName: selectedVariant?.color || null,
           sizeEu: selectedSize.size,

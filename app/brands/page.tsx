@@ -322,9 +322,7 @@ export default function BrandsPage() {
                         ${product.price}
                       </p>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      已售 {product.sales}
-                    </p>
+{/* 已售數量暫時隱藏 */}
                   </div>
                 </div>
               </Link>

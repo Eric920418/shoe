@@ -42,6 +42,7 @@ export const GET_PRODUCT_BY_SLUG = gql`
         color
         colorHex
         colorImage
+        images
         stock
         priceAdjustment
         isActive
@@ -252,6 +253,8 @@ export const GET_CART = gql`
         variant {
           color
           colorHex
+          colorImage
+          images
         }
         sizeChart {
           id

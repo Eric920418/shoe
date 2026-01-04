@@ -2149,6 +2149,7 @@ export const typeDefs = gql`
 
   input CreateOrderInput {
     items: [OrderItemInput!]  # 選填：會員模式從購物車獲取，訪客模式必須提供
+    selectedCartItemIds: [ID!]  # 選擇性結帳：指定要結帳的購物車項目 ID（會員模式）
     shippingName: String!
     shippingPhone: String!
     # 地址欄位改為可選，因為客戶會在藍新物流頁面填寫超商地址

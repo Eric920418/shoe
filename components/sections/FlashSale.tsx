@@ -278,18 +278,7 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
                       )}
                     </div>
 
-                    {/* 進度條 */}
-                    <div className="bg-gray-200 rounded-full h-1.5 sm:h-2 overflow-hidden mb-1">
-                      <div
-                        className="bg-gradient-to-r from-orange-400 to-red-500 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min((product.sold / product.stock) * 100, 100)}%` }}
-                      />
-                    </div>
-
-                    {/* 已售出 */}
-                    <p className="text-[10px] sm:text-xs text-gray-500">
-                      已搶購 <span className="text-red-500 font-medium">{product.sold}</span> 件
-                    </p>
+{/* 進度條與已搶購數量暫時隱藏 */}
                   </div>
                 </div>
               </Link>

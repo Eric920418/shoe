@@ -404,8 +404,14 @@ export const orderResolvers = {
 
         // 會員模式：從購物車獲取商品
         if (!isGuest && user) {
+          // ✅ 支持選擇性結帳：如果提供了 selectedCartItemIds，只獲取指定的購物車項目
+          const whereCondition: any = { userId: user.userId }
+          if (input.selectedCartItemIds && input.selectedCartItemIds.length > 0) {
+            whereCondition.id = { in: input.selectedCartItemIds }
+          }
+
           const dbCartItems = await prisma.cartItem.findMany({
-            where: { userId: user.userId },
+            where: whereCondition,
             include: {
               product: {
                 include: {
@@ -413,12 +419,13 @@ export const orderResolvers = {
                 },
               },
               variant: true,
+              sizeChart: true, // ✅ 加入 sizeChart 關聯以獲取尺寸
               sku: true, // 加入 SKU 關聯
             },
           })
 
           if (!dbCartItems || dbCartItems.length === 0) {
-            throw new GraphQLError('購物車是空的', {
+            throw new GraphQLError('購物車是空的或選中的商品不存在', {
               extensions: { code: 'BAD_USER_INPUT' },
             })
           }
@@ -630,20 +637,40 @@ export const orderResolvers = {
             shippingZipCode: input.shippingZipCode || null,
             notes: input.notes ? `${input.notes}${creditsUsed > 0 ? `\n[使用購物金：$${creditsUsed}]` : ''}` : creditsUsed > 0 ? `[使用購物金：$${creditsUsed}]` : null,
             items: {
-              create: cartItems.map((item) => ({
-                productId: item.productId,
-                productName: item.product.name,
-                productImage: item.product.images?.[0] || null,
-                variantId: item.variantId,
-                variantName: item.variant?.color || null,
-                sizeEu: item.sizeEu,
-                color: item.variant?.color || null,
-                quantity: item.quantity,
-                price: item.addedPrice,
-                subtotal: (typeof item.addedPrice === 'number' ? item.addedPrice : item.addedPrice.toNumber()) * item.quantity,
-                sku: item.variant?.sku || item.product.sku,
-                skuId: item.skuId || null, // 關聯 SKU
-              })),
+              create: cartItems.map((item) => {
+                // ✅ 優先使用變體圖片，沒有才使用產品主圖
+                const getItemImage = () => {
+                  if (item.variant?.colorImage) return item.variant.colorImage
+                  if (item.variant?.images) {
+                    const variantImages = typeof item.variant.images === 'string'
+                      ? JSON.parse(item.variant.images)
+                      : item.variant.images
+                    if (Array.isArray(variantImages) && variantImages.length > 0) {
+                      return variantImages[0]
+                    }
+                  }
+                  return item.product.images?.[0] || null
+                }
+                // ✅ 優先使用 sizeChart.size，沒有才使用 sizeEu
+                const getSizeEu = () => {
+                  if (item.sizeChart?.size) return item.sizeChart.size
+                  return item.sizeEu || null
+                }
+                return {
+                  productId: item.productId,
+                  productName: item.product.name,
+                  productImage: getItemImage(),
+                  variantId: item.variantId,
+                  variantName: item.variant?.color || null,
+                  sizeEu: getSizeEu(),
+                  color: item.variant?.color || null,
+                  quantity: item.quantity,
+                  price: item.addedPrice,
+                  subtotal: (typeof item.addedPrice === 'number' ? item.addedPrice : item.addedPrice.toNumber()) * item.quantity,
+                  sku: item.variant?.sku || item.product.sku,
+                  skuId: item.skuId || null, // 關聯 SKU
+                }
+              }),
             },
           },
           include: {
@@ -660,11 +687,23 @@ export const orderResolvers = {
           },
         })
 
-        // 清空購物車（僅會員模式）
+        // ✅ 清空已結帳的購物車項目（僅會員模式）
+        // 如果是選擇性結帳，只刪除已結帳的商品；否則清空整個購物車
         if (!isGuest && user) {
-          await prisma.cartItem.deleteMany({
-            where: { userId: user.userId },
-          })
+          if (input.selectedCartItemIds && input.selectedCartItemIds.length > 0) {
+            // 選擇性結帳：只刪除選中的購物車項目
+            await prisma.cartItem.deleteMany({
+              where: {
+                userId: user.userId,
+                id: { in: input.selectedCartItemIds },
+              },
+            })
+          } else {
+            // 全部結帳：清空整個購物車
+            await prisma.cartItem.deleteMany({
+              where: { userId: user.userId },
+            })
+          }
         }
 
         return order

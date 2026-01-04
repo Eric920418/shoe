@@ -30,8 +30,7 @@ export const chatResolvers = {
         where: { userId: user.userId },
         include: {
           messages: {
-            orderBy: { createdAt: 'desc' },
-            take: 1, // 只取最後一則訊息預覽
+            orderBy: { createdAt: 'asc' }, // 按時間順序顯示所有訊息
           },
           user: {
             select: {

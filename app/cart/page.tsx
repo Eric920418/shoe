@@ -2,9 +2,10 @@
 
 /**
  * 購物車頁面 - 支援會員和訪客模式
+ * ✅ 支援選擇性結帳功能
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -158,8 +159,69 @@ export default function CartPage() {
 
   // 獲取購物車數據（會員或訪客）
   const cartItems = isGuest ? guestCart.items : (data?.cart?.items || [])
-  const cartTotal = isGuest ? guestCart.total : (data?.cart?.total || 0)
   const cartIsEmpty = cartItems.length === 0
+
+  // ✅ 選擇性結帳：管理選中的商品
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+
+  // 當購物車數據更新時，預設全選所有商品
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const allItemIds = new Set(cartItems.map((item: any, index: number) =>
+        isGuest ? `guest-${index}` : item.id
+      ))
+      setSelectedItems(allItemIds)
+    }
+  }, [cartItems.length, isGuest])
+
+  // 計算選中商品的總金額
+  const selectedTotal = useMemo(() => {
+    return cartItems.reduce((sum: number, item: any, index: number) => {
+      const itemId = isGuest ? `guest-${index}` : item.id
+      if (!selectedItems.has(itemId)) return sum
+      const price = isGuest ? item.price : item.addedPrice
+      return sum + (Number(price) * item.quantity)
+    }, 0)
+  }, [cartItems, selectedItems, isGuest])
+
+  // 選中商品數量
+  const selectedCount = selectedItems.size
+
+  // 是否全選
+  const isAllSelected = cartItems.length > 0 && selectedItems.size === cartItems.length
+
+  // 切換單個商品選擇
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
+  }
+
+  // 全選/取消全選
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedItems(new Set())
+    } else {
+      const allItemIds = new Set(cartItems.map((item: any, index: number) =>
+        isGuest ? `guest-${index}` : item.id
+      ))
+      setSelectedItems(allItemIds)
+    }
+  }
+
+  // 獲取選中商品的詳細信息（用於結帳）
+  const getSelectedItemsData = () => {
+    return cartItems.filter((item: any, index: number) => {
+      const itemId = isGuest ? `guest-${index}` : item.id
+      return selectedItems.has(itemId)
+    })
+  }
 
   // 載入中狀態（訪客模式不需要等待）
   if (!isGuest && (authLoading || loading)) {
@@ -275,27 +337,77 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* 左側：商品列表 */}
           <div className="lg:col-span-2 space-y-6">
+            {/* ✅ 全選控制區 */}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  全選 ({selectedCount}/{cartItems.length})
+                </span>
+              </label>
+              {selectedCount > 0 && selectedCount < cartItems.length && (
+                <span className="text-sm text-gray-500">
+                  已選 {selectedCount} 件商品
+                </span>
+              )}
+            </div>
             {cartItems.map((item: any, index: number) => {
               // 訪客購物車與會員購物車數據結構不同
               const productName = isGuest ? item.productName : item.product.name
-              const productImage = isGuest ? item.productImage : parseImages(item.product.images)[0]
+              // ✅ 優先使用變體圖片，沒有才使用產品主圖
+              const getVariantImage = () => {
+                if (isGuest) return item.productImage
+                // 會員模式：優先使用變體的 colorImage 或 images[0]
+                if (item.variant?.colorImage) return item.variant.colorImage
+                if (item.variant?.images) {
+                  const variantImages = typeof item.variant.images === 'string'
+                    ? JSON.parse(item.variant.images)
+                    : item.variant.images
+                  if (Array.isArray(variantImages) && variantImages.length > 0) {
+                    return variantImages[0]
+                  }
+                }
+                // 最後才使用產品主圖
+                return parseImages(item.product.images)[0]
+              }
+              const productImage = getVariantImage()
               const productSlug = isGuest ? '#' : `/products/${item.product.slug}`
               const brandName = isGuest ? null : item.product?.brand?.name
               const variantName = isGuest ? item.variantName : item.variant?.color
-              const sizeEu = isGuest ? item.sizeEu : item.sizeEu
+              // ✅ 優先使用 sizeChart.size，沒有才使用 sizeEu
+              const sizeEu = isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu)
               const quantity = item.quantity
               const price = isGuest ? item.price : item.addedPrice
               const subtotal = isGuest ? (item.price * item.quantity) : item.subtotal
               const itemId = isGuest ? `guest-${index}` : item.id
 
+              // ✅ 檢查商品是否被選中
+              const isSelected = selectedItems.has(itemId)
+
               return (
                 <div
                   key={itemId}
-                  className="border-b border-gray-200 pb-6 last:border-0"
+                  className={`border-b border-gray-200 pb-6 last:border-0 transition-opacity ${
+                    !isSelected ? 'opacity-60' : ''
+                  }`}
                 >
-                  <div className="flex gap-6">
+                  <div className="flex gap-4 sm:gap-6">
+                    {/* ✅ 選擇框 */}
+                    <div className="flex items-start pt-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleItemSelection(itemId)}
+                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                      />
+                    </div>
                     {/* 商品圖片 - 使用原生 img 減少 Vercel 用量 */}
-                    <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gray-100 flex-shrink-0 overflow-hidden">
+                    <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gray-100 flex-shrink-0 overflow-hidden">
                       {productImage ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
@@ -463,11 +575,20 @@ export default function CartPage() {
                   摘要
                 </h2>
 
+                {/* ✅ 選中商品數量提示 */}
+                {selectedCount < cartItems.length && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      已選擇 {selectedCount} / {cartItems.length} 件商品結帳
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">小計</span>
+                    <span className="text-gray-600">小計 ({selectedCount} 件)</span>
                     <span className="text-black font-medium">
-                      NT$ {cartTotal.toLocaleString()}
+                      NT$ {selectedTotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -480,7 +601,7 @@ export default function CartPage() {
                         總計
                       </span>
                       <span className="text-2xl font-black text-black">
-                        NT$ {cartTotal.toLocaleString()}
+                        NT$ {selectedTotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -488,12 +609,21 @@ export default function CartPage() {
 
                 {/* CTA 按鈕 */}
                 <div className="space-y-3">
-                  <Link
-                    href="/checkout"
-                    className="block w-full py-4 bg-black text-white text-center rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide"
-                  >
-                    結帳
-                  </Link>
+                  {selectedCount > 0 ? (
+                    <Link
+                      href={`/checkout?items=${Array.from(selectedItems).join(',')}`}
+                      className="block w-full py-4 bg-black text-white text-center rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide"
+                    >
+                      結帳 ({selectedCount} 件)
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="block w-full py-4 bg-gray-300 text-gray-500 text-center rounded-full cursor-not-allowed font-medium text-sm uppercase tracking-wide"
+                    >
+                      請選擇商品
+                    </button>
+                  )}
 
                   <Link
                     href="/"

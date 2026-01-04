@@ -32,6 +32,10 @@ const CART_INCLUDE = {
       sizeChart: true,
       sku: true, // 加入 SKU 關聯
     },
+    // ✅ 按創建時間降序排列，最新加入的商品在最前面
+    orderBy: {
+      createdAt: 'desc' as const,
+    },
   },
 } as const
 

@@ -178,18 +178,16 @@ export default function DailyDealsPage() {
                     <WishlistButton productId={deal.id.toString()} size="sm" />
                   </div>
 
-                  {/* 庫存進度 */}
+                  {/* 庫存進度（已售數量暫時隱藏） */}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur p-2">
-                    <div className="flex justify-between text-white text-[10px] mb-1">
-                      <span>已售 {deal.sold}</span>
+                    <div className="flex justify-end text-white text-[10px] mb-1">
                       <span>剩餘 {deal.stock}</span>
                     </div>
                     <div className="w-full bg-white/30 rounded-full h-1.5 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-yellow-400 to-orange-500"
-                        style={{ width: `${(deal.sold / (deal.sold + deal.stock)) * 100}%` }}
+                        style={{ width: `${Math.min(50, (deal.stock > 0 ? 30 : 100))}%` }}
                       />
-                    </div>
                   </div>
                 </div>
 

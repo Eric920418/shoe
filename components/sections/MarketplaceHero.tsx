@@ -447,15 +447,7 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
                       ${Math.round(todayDeal.originalPrice)}
                     </span>
                   </div>
-                  <div className="mt-1.5 bg-white/30 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-white h-full rounded-full transition-all"
-                      style={{ width: `${todayDeal.soldPercentage}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-[10px] mt-0.5 opacity-80">
-                    已搶購 {Math.round(todayDeal.soldPercentage)}%
-                  </p>
+{/* 銷售進度暫時隱藏 */}
                 </div>
               </div>
             </Link>

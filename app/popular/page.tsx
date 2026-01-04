@@ -202,8 +202,7 @@ export default function PopularPage() {
                     {product.name}
                   </h3>
 
-                  <div className="flex items-center justify-between mb-2 text-xs">
-                    <span className="text-gray-500">已售 {product.sales}</span>
+                  <div className="flex items-center justify-end mb-2 text-xs">
                     <div className="flex items-center gap-1">
                       <Star className="text-yellow-400 fill-current" size={12} />
                       <span className="text-gray-600">{product.rating}</span>

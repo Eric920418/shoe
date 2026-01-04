@@ -8,11 +8,12 @@
  * - 優惠券使用
  * - 購物金使用（會員）
  * - 藍新金流整合（僅線上支付）
+ * - ✅ 選擇性結帳（只結帳購物車中選中的商品）
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { GET_CART, CREATE_ORDER } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
@@ -62,8 +63,16 @@ interface CheckoutFormData {
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const guestCart = useGuestCart()
+
+  // ✅ 獲取選中的商品 ID（從 URL 參數）
+  const selectedItemIds = useMemo(() => {
+    const itemsParam = searchParams.get('items')
+    if (!itemsParam) return null // null 表示結帳全部商品
+    return new Set(itemsParam.split(',').filter(Boolean))
+  }, [searchParams])
 
   // 表單狀態
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -184,8 +193,25 @@ export default function CheckoutPage() {
   const isGuest = !isAuthenticated
 
   // 獲取購物車數據（會員或訪客）
-  const cartItems = isGuest ? guestCart.items : (cartData?.cart?.items || [])
-  const cartSubtotal = isGuest ? guestCart.total : (cartData?.cart?.total || 0)
+  const allCartItems = isGuest ? guestCart.items : (cartData?.cart?.items || [])
+
+  // ✅ 根據選中的商品 ID 過濾購物車項目（選擇性結帳）
+  const cartItems = useMemo(() => {
+    if (!selectedItemIds) return allCartItems // 如果沒有指定，結帳全部商品
+    return allCartItems.filter((item: any, index: number) => {
+      const itemId = isGuest ? `guest-${index}` : item.id
+      return selectedItemIds.has(itemId)
+    })
+  }, [allCartItems, selectedItemIds, isGuest])
+
+  // ✅ 計算選中商品的小計
+  const cartSubtotal = useMemo(() => {
+    return cartItems.reduce((sum: number, item: any) => {
+      const price = isGuest ? item.price : (item.addedPrice || item.price)
+      return sum + (Number(price) * item.quantity)
+    }, 0)
+  }, [cartItems, isGuest])
+
   const cartIsEmpty = cartItems.length === 0
 
   // 計算總金額（扣除優惠券和購物金）
@@ -280,20 +306,26 @@ export default function CheckoutPage() {
     }
 
     try {
-      // 訪客模式：從 guestCart.items 構建訂單項目
-      const orderItems = isGuest
-        ? guestCart.items.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId || null,
-            sizeEu: item.sizeEu,
-            quantity: item.quantity,
-          }))
-        : undefined // 會員模式：後端從購物車獲取
+      // ✅ 使用已篩選的 cartItems（選擇性結帳）
+      // 訪客模式和選擇性結帳都需要傳遞 items
+      const orderItems = cartItems.map((item: any) => ({
+        productId: isGuest ? item.productId : item.product?.id || item.productId,
+        variantId: isGuest ? (item.variantId || null) : (item.variant?.id || item.variantId || null),
+        sizeEu: isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu),
+        sizeChartId: isGuest ? (item.sizeChartId || null) : (item.sizeChart?.id || item.sizeChartId || null),
+        quantity: item.quantity,
+      }))
+
+      // ✅ 選中的購物車項目 ID（會員模式用於選擇性結帳）
+      const selectedCartItemIds = !isGuest && selectedItemIds
+        ? Array.from(selectedItemIds)
+        : null
 
       console.log('=== 第 0 層：前端提交訂單 ===');
       console.log('formData.shippingMethod:', formData.shippingMethod, '(type:', typeof formData.shippingMethod, ')');
       console.log('運費:', shippingFee);
-      console.log('實際傳送到 GraphQL 的值:', formData.shippingMethod);
+      console.log('選中商品數量:', cartItems.length);
+      console.log('選擇性結帳:', selectedItemIds ? '是' : '否（全部商品）');
       console.log('===============================');
 
       await createOrder({
@@ -304,8 +336,10 @@ export default function CheckoutPage() {
             guestName: isGuest ? formData.guestName.trim() : null,
             guestPhone: isGuest ? formData.guestPhone.trim() : null,
             guestEmail: isGuest && formData.guestEmail ? formData.guestEmail.trim() : null,
-            // 訂單項目（僅訪客模式需要）
+            // ✅ 訂單項目（訪客模式和選擇性結帳都需要）
             items: orderItems,
+            // ✅ 選中的購物車項目 ID（會員選擇性結帳時傳遞）
+            selectedCartItemIds,
             // 收件資訊
             shippingName: formData.shippingName.trim(),
             shippingPhone: formData.shippingPhone.trim(),
