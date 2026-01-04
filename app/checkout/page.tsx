@@ -11,7 +11,7 @@
  * - ✅ 選擇性結帳（只結帳購物車中選中的商品）
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -61,7 +61,7 @@ interface CheckoutFormData {
   packagingOption: 'STANDARD' | 'COMBINED' | 'SEPARATE'
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
@@ -900,5 +900,26 @@ export default function CheckoutPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function CheckoutLoading() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-16">
+      <div className="text-center">
+        <div className="text-2xl font-semibold text-gray-900 mb-2">載入中...</div>
+        <p className="text-gray-600">正在準備結帳頁面</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary for useSearchParams
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutLoading />}>
+      <CheckoutContent />
+    </Suspense>
   )
 }
