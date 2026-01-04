@@ -112,6 +112,17 @@ export default function AdminChatsPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [selectedConversation?.messages])
 
+  // 當 data 更新時，同步更新 selectedConversation
+  useEffect(() => {
+    const items = data?.allConversations?.items || []
+    if (selectedConversation && items.length > 0) {
+      const updated = items.find((c: any) => c.id === selectedConversation.id)
+      if (updated) {
+        setSelectedConversation(updated)
+      }
+    }
+  }, [data])
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!messageInput.trim() || !selectedConversation) return
