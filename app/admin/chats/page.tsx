@@ -241,66 +241,66 @@ export default function AdminChatsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       {/* 頁面標題 */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">客服聊天管理</h1>
-        <p className="text-gray-600 mt-1">管理所有客戶諮詢對話</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">客服聊天管理</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">管理所有客戶諮詢對話</p>
       </div>
 
       {/* 統計卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center text-lg sm:text-2xl shrink-0">
               💬
             </div>
-            <div>
-              <p className="text-sm text-gray-600">總對話數</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">總對話數</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-2xl">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg flex items-center justify-center text-lg sm:text-2xl shrink-0">
               🔴
             </div>
-            <div>
-              <p className="text-sm text-gray-600">待處理</p>
-              <p className="text-2xl font-bold text-red-600">{stats.open}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">待處理</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.open}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-2xl">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-lg sm:text-2xl shrink-0">
               🟡
             </div>
-            <div>
-              <p className="text-sm text-gray-600">進行中</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.inProgress}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">進行中</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.inProgress}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center text-lg sm:text-2xl shrink-0">
               ✅
             </div>
-            <div>
-              <p className="text-sm text-gray-600">已解決</p>
-              <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600">已解決</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.resolved}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* 篩選器 */}
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {STATUS_OPTIONS.map((status) => (
           <button
             key={status.value}
@@ -308,7 +308,7 @@ export default function AdminChatsPage() {
               setStatusFilter(status.value)
               setPage(0)
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               statusFilter === status.value
                 ? 'bg-primary-600 text-white'
                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -319,15 +319,15 @@ export default function AdminChatsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 對話列表 */}
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* 對話列表 - 手機版選中對話後隱藏 */}
+        <div className={`lg:col-span-1 ${selectedConversation ? 'hidden lg:block' : ''}`}>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-4 py-3 border-b border-gray-200">
               <h2 className="font-bold text-gray-900">對話列表</h2>
             </div>
 
-            <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+            <div className="divide-y divide-gray-200 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
               {loading ? (
                 <div className="px-4 py-8 text-center text-gray-500">載入中...</div>
               ) : conversations.length === 0 ? (
@@ -384,22 +384,22 @@ export default function AdminChatsPage() {
 
             {/* 分頁 */}
             {total > limit && (
-              <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+              <div className="px-3 sm:px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="text-xs sm:text-sm text-gray-700">
                   {skip + 1} - {Math.min(skip + limit, total)} / {total}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPage(Math.max(0, page - 1))}
                     disabled={page === 0}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="px-2 sm:px-3 py-1 border border-gray-300 rounded text-xs sm:text-sm hover:bg-gray-50 disabled:opacity-50"
                   >
                     上一頁
                   </button>
                   <button
                     onClick={() => setPage(page + 1)}
                     disabled={!data?.allConversations?.hasMore}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="px-2 sm:px-3 py-1 border border-gray-300 rounded text-xs sm:text-sm hover:bg-gray-50 disabled:opacity-50"
                   >
                     下一頁
                   </button>
@@ -412,26 +412,38 @@ export default function AdminChatsPage() {
         {/* 對話內容 */}
         <div className="lg:col-span-2">
           {selectedConversation ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-[600px]">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-200px)] sm:h-[600px]">
               {/* 對話標題 */}
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-xl font-bold text-gray-900 truncate">
                       {selectedConversation.subject}
                     </h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      客戶：{selectedConversation.user.name} ({selectedConversation.user.email})
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
+                      客戶：{selectedConversation.user.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {selectedConversation.user.email}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       創建於 {new Date(selectedConversation.createdAt).toLocaleString('zh-TW')}
                     </p>
                   </div>
+                  {/* 手機版返回按鈕 */}
+                  <button
+                    onClick={() => setSelectedConversation(null)}
+                    className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* 狀態更新 */}
-                <div className="flex gap-2">
-                  <label className="text-sm font-medium text-gray-700 self-center">
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
                     狀態：
                   </label>
                   <select
@@ -439,7 +451,7 @@ export default function AdminChatsPage() {
                     onChange={(e) =>
                       handleStatusChange(selectedConversation.id, e.target.value)
                     }
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="px-2 sm:px-3 py-1 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     {STATUS_OPTIONS.filter((s) => s.value !== 'all').map((status) => (
                       <option key={status.value} value={status.value}>
@@ -451,14 +463,14 @@ export default function AdminChatsPage() {
               </div>
 
               {/* 訊息列表 */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
                 {selectedConversation.messages.map((msg: any) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.senderType === 'ADMIN' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                      className={`max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 sm:py-3 ${
                         msg.senderType === 'ADMIN'
                           ? 'bg-primary-600 text-white'
                           : 'bg-gray-100 text-gray-900'
@@ -481,7 +493,7 @@ export default function AdminChatsPage() {
                               alt="附加圖片"
                               width={200}
                               height={200}
-                              className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                              className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity max-w-[150px] sm:max-w-[200px]"
                             />
                           </a>
                         </div>
@@ -505,16 +517,16 @@ export default function AdminChatsPage() {
               </div>
 
               {/* 輸入框 */}
-              <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-gray-200">
+              <form onSubmit={handleSendMessage} className="px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
                 {/* 圖片預覽 */}
                 {imagePreview && (
                   <div className="relative inline-block mb-3">
                     <Image
                       src={imagePreview}
                       alt="預覽圖片"
-                      width={100}
-                      height={100}
-                      className="rounded-lg object-cover"
+                      width={80}
+                      height={80}
+                      className="rounded-lg object-cover w-16 h-16 sm:w-[100px] sm:h-[100px]"
                     />
                     <button
                       type="button"
@@ -530,7 +542,7 @@ export default function AdminChatsPage() {
                     )}
                   </div>
                 )}
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <input
                     ref={imageInputRef}
                     type="file"
@@ -541,23 +553,12 @@ export default function AdminChatsPage() {
                     }}
                     className="hidden"
                   />
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={uploading || sending}
-                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 self-end"
-                    title="上傳圖片"
-                  >
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
                   <textarea
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="輸入回覆訊息..."
                     rows={2}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-sm"
                     disabled={sending || uploading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -566,22 +567,35 @@ export default function AdminChatsPage() {
                       }
                     }}
                   />
-                  <button
-                    type="submit"
-                    disabled={sending || uploading || (!messageInput.trim() && !imageUrl)}
-                    className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
-                  >
-                    {sending ? '發送中...' : '發送'}
-                  </button>
+                  <div className="flex gap-2 sm:flex-col justify-end">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploading || sending}
+                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      title="上傳圖片"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sending || uploading || (!messageInput.trim() && !imageUrl)}
+                      className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      {sending ? '發送中...' : '發送'}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">提示：按 Enter 發送，Shift+Enter 換行，可附加圖片</p>
+                <p className="text-xs text-gray-500 mt-2 hidden sm:block">提示：按 Enter 發送，Shift+Enter 換行，可附加圖片</p>
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[600px] flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[300px] sm:h-[600px] flex items-center justify-center">
               <div className="text-center text-gray-500">
-                <div className="text-6xl mb-4">💬</div>
-                <p className="text-lg">請選擇一個對話開始回覆</p>
+                <div className="text-4xl sm:text-6xl mb-4">💬</div>
+                <p className="text-base sm:text-lg">請選擇一個對話開始回覆</p>
               </div>
             </div>
           )}
