@@ -249,56 +249,58 @@ export default function AdminOrderDetailPage() {
   const nextAction = getNextAction(order.status, order.paymentStatus)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 標題列 */}
       <div>
-        <Link href="/admin/orders" className="text-primary-600 hover:text-primary-700 mb-4 inline-block">
+        <Link href="/admin/orders" className="text-primary-600 hover:text-primary-700 mb-3 sm:mb-4 inline-block text-sm sm:text-base">
           ← 返回訂單列表
         </Link>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">訂單詳情</h1>
-            <p className="text-gray-600 mt-2">訂單編號: {order.orderNumber}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">訂單詳情</h1>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-xs sm:text-base break-all">
+              訂單編號: {order.orderNumber}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`px-4 py-2 text-sm font-medium rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-full ${statusConfig.bgColor} ${statusConfig.color}`}>
               {statusConfig.label}
             </span>
-            <span className={`text-sm font-medium ${paymentConfig.color}`}>
+            <span className={`text-xs sm:text-sm font-medium ${paymentConfig.color}`}>
               {paymentConfig.label}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* 左側內容 */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* 客戶資訊 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">客戶資訊</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <p className="text-sm text-gray-600">客戶姓名</p>
-                <p className="font-medium text-gray-900 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600">客戶姓名</p>
+                <p className="font-medium text-gray-900 mt-1 text-sm sm:text-base">
                   {order.user?.name || order.guestName || '訪客'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">聯絡電話</p>
-                <p className="font-medium text-gray-900 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600">聯絡電話</p>
+                <p className="font-medium text-gray-900 mt-1 text-sm sm:text-base">
                   {order.user?.phone || order.guestPhone || '-'}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">電子郵件</p>
-                <p className="font-medium text-gray-900 mt-1">
+              <div className="sm:col-span-2">
+                <p className="text-xs sm:text-sm text-gray-600">電子郵件</p>
+                <p className="font-medium text-gray-900 mt-1 text-sm sm:text-base break-all">
                   {order.user?.email || order.guestEmail || '-'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">客戶類型</p>
-                <p className="font-medium text-gray-900 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600">客戶類型</p>
+                <p className="font-medium text-gray-900 mt-1 text-sm sm:text-base">
                   {order.user ? '會員' : '訪客'}
                 </p>
               </div>
@@ -306,45 +308,51 @@ export default function AdminOrderDetailPage() {
           </div>
 
           {/* 商品列表 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">訂購商品</h2>
 
             <div className="space-y-4">
               {order.items.map((item: any) => (
-                <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0 last:pb-0">
-                  <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                    {item.productImage || item.product?.images?.[0] ? (
-                      <Image
-                        src={item.productImage || item.product.images[0]}
-                        alt={item.productName || item.product?.name || '商品'}
-                        width={96}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        無圖片
+                <div key={item.id} className="pb-4 border-b border-gray-200 last:border-0 last:pb-0">
+                  <div className="flex gap-3 sm:gap-4">
+                    {/* 商品圖片 */}
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                      {item.productImage || item.product?.images?.[0] ? (
+                        <Image
+                          src={item.productImage || item.product.images[0]}
+                          alt={item.productName || item.product?.name || '商品'}
+                          width={96}
+                          height={96}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                          無圖片
+                        </div>
+                      )}
+                    </div>
+                    {/* 商品資訊 */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 sm:mb-2 line-clamp-2">
+                        {item.productName || item.product?.name || '未知商品'}
+                      </h3>
+                      <div className="text-xs sm:text-sm text-gray-600 space-y-0.5 sm:space-y-1">
+                        {item.sizeEu && <div>尺碼: {item.sizeEu}</div>}
+                        {item.color && <div>顏色: {item.color}</div>}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      {item.productName || item.product?.name || '未知商品'}
-                    </h3>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      {item.sizeEu && <div>尺碼: EU {item.sizeEu}</div>}
-                      {item.color && <div>顏色: {item.color}</div>}
-                      {item.sku && <div className="text-xs">SKU: {item.sku}</div>}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">數量: {item.quantity}</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      NT$ {item.price.toLocaleString()}
-                    </p>
-                    <p className="text-base font-bold text-gray-900 mt-2">
-                      NT$ {item.subtotal.toLocaleString()}
-                    </p>
+                  {/* 數量與價格 - 手機版放下方 */}
+                  <div className="flex justify-between items-center mt-2 sm:mt-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-600">數量: {item.quantity}</p>
+                    <div className="text-right">
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        NT$ {item.price.toLocaleString()} × {item.quantity}
+                      </p>
+                      <p className="text-sm sm:text-base font-bold text-gray-900">
+                        NT$ {item.subtotal.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -352,7 +360,7 @@ export default function AdminOrderDetailPage() {
           </div>
 
           {/* 收件資訊 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <h2 className="text-lg font-bold text-gray-900">收件資訊</h2>
               {isQueryingLogistics && (
@@ -363,13 +371,13 @@ export default function AdminOrderDetailPage() {
               )}
             </div>
 
-            <div className="space-y-3">
-              <div className="flex">
-                <span className="w-24 text-gray-600">收件人:</span>
+            <div className="space-y-2 sm:space-y-3 text-sm sm:text-base">
+              <div className="flex flex-col sm:flex-row sm:gap-2">
+                <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">收件人:</span>
                 <span className="font-medium text-gray-900">{order.shippingName}</span>
               </div>
-              <div className="flex">
-                <span className="w-24 text-gray-600">聯絡電話:</span>
+              <div className="flex flex-col sm:flex-row sm:gap-2">
+                <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">聯絡電話:</span>
                 <span className="font-medium text-gray-900">{order.shippingPhone}</span>
               </div>
 
@@ -380,38 +388,38 @@ export default function AdminOrderDetailPage() {
                     <p className="text-sm text-gray-500 mb-3">📦 超商取貨資訊</p>
                   </div>
                   {logisticsInfo.ReceiverStoreName && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">取貨店鋪:</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">取貨店鋪:</span>
                       <span className="font-medium text-gray-900">{logisticsInfo.ReceiverStoreName}</span>
                     </div>
                   )}
                   {logisticsInfo.ReceiverStoreID && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">店鋪代號:</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">店鋪代號:</span>
                       <span className="font-medium text-gray-900">{logisticsInfo.ReceiverStoreID}</span>
                     </div>
                   )}
                   {logisticsInfo.ReceiverAddress && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">店鋪地址:</span>
-                      <span className="font-medium text-gray-900">{logisticsInfo.ReceiverAddress}</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">店鋪地址:</span>
+                      <span className="font-medium text-gray-900 break-all">{logisticsInfo.ReceiverAddress}</span>
                     </div>
                   )}
                   {logisticsInfo.CVSPaymentNo && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">寄貨編號:</span>
-                      <span className="font-medium text-gray-900 font-mono">{logisticsInfo.CVSPaymentNo}</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">寄貨編號:</span>
+                      <span className="font-medium text-gray-900 font-mono text-xs sm:text-sm">{logisticsInfo.CVSPaymentNo}</span>
                     </div>
                   )}
                   {logisticsInfo.CVSValidationNo && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">驗證碼:</span>
-                      <span className="font-medium text-gray-900 font-mono">{logisticsInfo.CVSValidationNo}</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">驗證碼:</span>
+                      <span className="font-medium text-gray-900 font-mono text-xs sm:text-sm">{logisticsInfo.CVSValidationNo}</span>
                     </div>
                   )}
                   {logisticsInfo.Status && (
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">物流狀態:</span>
+                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                      <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">物流狀態:</span>
                       <span className="font-medium text-gray-900">{logisticsInfo.Status}</span>
                     </div>
                   )}
@@ -425,9 +433,9 @@ export default function AdminOrderDetailPage() {
               )}
 
               {order.notes && (
-                <div className="flex">
-                  <span className="w-24 text-gray-600">訂單備註:</span>
-                  <span className="text-gray-900">{order.notes}</span>
+                <div className="flex flex-col sm:flex-row sm:gap-2">
+                  <span className="text-gray-600 text-xs sm:text-sm sm:w-24 sm:flex-shrink-0">訂單備註:</span>
+                  <span className="text-gray-900 break-all">{order.notes}</span>
                 </div>
               )}
             </div>
@@ -436,12 +444,12 @@ export default function AdminOrderDetailPage() {
 
         {/* 右側摘要 */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-4 space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 sticky top-4 space-y-4 sm:space-y-6">
             {/* 金額摘要 */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">金額摘要</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">金額摘要</h2>
 
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3 text-sm sm:text-base">
                 <div className="flex justify-between text-gray-700">
                   <span>商品小計</span>
                   <span>NT$ {order.subtotal.toLocaleString()}</span>
@@ -464,8 +472,8 @@ export default function AdminOrderDetailPage() {
                 )}
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-gray-900">訂單總計</span>
-                    <span className="text-2xl font-bold text-primary-600">
+                    <span className="text-base sm:text-lg font-bold text-gray-900">訂單總計</span>
+                    <span className="text-xl sm:text-2xl font-bold text-primary-600">
                       NT$ {order.total.toLocaleString()}
                     </span>
                   </div>

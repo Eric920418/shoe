@@ -2009,6 +2009,7 @@ export const typeDefs = gql`
     # 聊天室
     createConversation(subject: String, message: String!, imageUrl: String): Conversation!
     sendMessage(conversationId: ID!, content: String!, imageUrl: String): Message!
+    markMessagesAsRead(conversationId: ID!): Boolean!
     # Admin: 聊天室管理
     updateConversationStatus(id: ID!, status: ConversationStatus!): Conversation!
 

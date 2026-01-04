@@ -265,7 +265,7 @@ function OrderSuccessContent() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{item.productName}</p>
                     <p className="text-sm text-gray-500">
-                      {item.color && `${item.color} / `}EU {item.sizeEu} × {item.quantity}
+                      {item.color && `${item.color} / `}{item.sizeEu} × {item.quantity}
                     </p>
                   </div>
                   <div className="text-right">

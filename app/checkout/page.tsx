@@ -782,7 +782,7 @@ function CheckoutContent() {
                               {productName}
                             </p>
                             <p className="text-xs text-gray-600 mt-1">
-                              尺寸: {item.sizeEu} EU | 數量: {quantity}
+                              尺寸: {item.sizeEu} | 數量: {quantity}
                             </p>
                             <p className="text-sm font-medium text-black mt-1">
                               NT$ {subtotal.toLocaleString()}

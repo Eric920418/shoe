@@ -254,7 +254,7 @@ export default function OrderDetailPage() {
                     </h3>
                     <div className="text-sm text-gray-600 space-y-1">
                       {item.sizeEu && (
-                        <div>尺碼: EU {item.sizeEu}</div>
+                        <div>尺碼: {item.sizeEu}</div>
                       )}
                       {item.color && (
                         <div>顏色: {item.color}</div>

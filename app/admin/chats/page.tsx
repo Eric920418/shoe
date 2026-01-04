@@ -13,6 +13,7 @@ const GET_ALL_CONVERSATIONS = gql`
         status
         lastMessageAt
         createdAt
+        unreadCount
         user {
           id
           name
@@ -56,6 +57,12 @@ const UPDATE_CONVERSATION_STATUS = gql`
   }
 `
 
+const MARK_AS_READ = gql`
+  mutation MarkMessagesAsRead($conversationId: ID!) {
+    markMessagesAsRead(conversationId: $conversationId)
+  }
+`
+
 const STATUS_OPTIONS = [
   { value: 'all', label: '全部', color: 'bg-gray-100 text-gray-800' },
   { value: 'OPEN', label: '待處理', color: 'bg-blue-100 text-blue-800' },
@@ -70,6 +77,12 @@ export default function AdminChatsPage() {
   const [selectedConversation, setSelectedConversation] = useState<any>(null)
   const [messageInput, setMessageInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // 圖片上傳狀態
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const limit = 20
   const skip = page * limit
@@ -90,6 +103,9 @@ export default function AdminChatsPage() {
   const [sendMessage, { loading: sending }] = useMutation(SEND_MESSAGE, {
     onCompleted: () => {
       setMessageInput('')
+      setImageUrl(null)
+      setImagePreview(null)
+      if (imageInputRef.current) imageInputRef.current.value = ''
       refetch()
     },
     onError: (error) => {
@@ -107,6 +123,19 @@ export default function AdminChatsPage() {
     },
   })
 
+  const [markAsRead] = useMutation(MARK_AS_READ, {
+    onCompleted: () => {
+      refetch()
+    },
+  })
+
+  // 選擇對話並標記為已讀
+  const handleSelectConversation = (conv: any) => {
+    setSelectedConversation(conv)
+    // 標記訊息為已讀
+    markAsRead({ variables: { conversationId: conv.id } })
+  }
+
   // 自動滾動到最新訊息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -123,14 +152,66 @@ export default function AdminChatsPage() {
     }
   }, [data])
 
+  // 圖片上傳處理
+  const handleImageUpload = async (file: File) => {
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      alert('僅支援 JPG、PNG、WebP 格式的圖片')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('圖片大小不能超過 5MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'support')
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || '上傳失敗')
+      }
+
+      const data = await response.json()
+      setImageUrl(data.url)
+    } catch (error: any) {
+      alert(`圖片上傳失敗：${error.message}`)
+      setImagePreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = () => {
+    setImageUrl(null)
+    setImagePreview(null)
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!messageInput.trim() || !selectedConversation) return
+    if ((!messageInput.trim() && !imageUrl) || !selectedConversation) return
 
     await sendMessage({
       variables: {
         conversationId: selectedConversation.id,
-        content: messageInput,
+        content: messageInput || '（圖片）',
+        imageUrl: imageUrl,
       },
     })
   }
@@ -257,14 +338,12 @@ export default function AdminChatsPage() {
                 conversations.map((conv: any) => {
                   const status = getStatusDisplay(conv.status)
                   const isSelected = selectedConversation?.id === conv.id
-                  const unreadCount = conv.messages.filter(
-                    (m: any) => m.senderType === 'USER' && !m.isRead
-                  ).length
+                  const unreadCount = conv.unreadCount || 0
 
                   return (
                     <div
                       key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
+                      onClick={() => handleSelectConversation(conv)}
                       className={`px-4 py-3 cursor-pointer transition-colors ${
                         isSelected ? 'bg-primary-50' : 'hover:bg-gray-50'
                       }`}
@@ -427,14 +506,59 @@ export default function AdminChatsPage() {
 
               {/* 輸入框 */}
               <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-gray-200">
+                {/* 圖片預覽 */}
+                {imagePreview && (
+                  <div className="relative inline-block mb-3">
+                    <Image
+                      src={imagePreview}
+                      alt="預覽圖片"
+                      width={100}
+                      height={100}
+                      className="rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+                    >
+                      ×
+                    </button>
+                    {uploading && (
+                      <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                        <div className="text-white text-xs">上傳中...</div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-3">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file)
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploading || sending}
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 self-end"
+                    title="上傳圖片"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                   <textarea
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="輸入回覆訊息..."
                     rows={2}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                    disabled={sending}
+                    disabled={sending || uploading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -444,13 +568,13 @@ export default function AdminChatsPage() {
                   />
                   <button
                     type="submit"
-                    disabled={sending || !messageInput.trim()}
+                    disabled={sending || uploading || (!messageInput.trim() && !imageUrl)}
                     className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
                   >
                     {sending ? '發送中...' : '發送'}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">提示：按 Enter 發送，Shift+Enter 換行</p>
+                <p className="text-xs text-gray-500 mt-2">提示：按 Enter 發送，Shift+Enter 換行，可附加圖片</p>
               </form>
             </div>
           ) : (

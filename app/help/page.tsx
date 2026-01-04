@@ -25,6 +25,7 @@ const GET_MY_CONVERSATIONS = gql`
       status
       lastMessageAt
       createdAt
+      unreadCount
       messages {
         id
         content
@@ -67,6 +68,12 @@ const SEND_MESSAGE = gql`
       isRead
       createdAt
     }
+  }
+`
+
+const MARK_AS_READ = gql`
+  mutation MarkMessagesAsRead($conversationId: ID!) {
+    markMessagesAsRead(conversationId: $conversationId)
   }
 `
 
@@ -124,12 +131,44 @@ export default function HelpPage() {
     },
   })
 
+  const [markAsRead] = useMutation(MARK_AS_READ, {
+    onCompleted: () => {
+      refetch()
+    },
+  })
+
+  // 同步 selectedConversation 與最新資料
+  useEffect(() => {
+    if (selectedConversation && data?.myConversations) {
+      const updated = data.myConversations.find(
+        (conv: any) => conv.id === selectedConversation.id
+      )
+      if (updated) {
+        setSelectedConversation(updated)
+      }
+    }
+  }, [data])
+
+  // 選擇對話並標記為已讀
+  const handleSelectConversation = (conv: any) => {
+    setSelectedConversation(conv)
+    if (conv.unreadCount > 0) {
+      markAsRead({ variables: { conversationId: conv.id } })
+    }
+  }
+
   // 自動滾動到最新訊息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [selectedConversation?.messages])
 
   const conversations = data?.myConversations || []
+
+  // 計算總未讀數
+  const totalUnreadCount = conversations.reduce(
+    (sum: number, conv: any) => sum + (conv.unreadCount || 0),
+    0
+  )
 
   // 圖片上傳處理
   const handleImageUpload = async (
@@ -282,13 +321,18 @@ export default function HelpPage() {
                 </button>
                 <button
                   onClick={() => setShowChatSection(true)}
-                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all relative ${
                     showChatSection
                       ? 'bg-white text-gray-900'
                       : 'bg-white/10 text-white hover:bg-white/20'
                   }`}
                 >
                   我的留言記錄 ({conversations.length})
+                  {totalUnreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold bg-red-500 text-white rounded-full">
+                      {totalUnreadCount}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -411,17 +455,23 @@ export default function HelpPage() {
                           conversations.map((conv: any) => {
                             const status = getStatusDisplay(conv.status)
                             const isSelected = selectedConversation?.id === conv.id
+                            const unreadCount = conv.unreadCount || 0
                             return (
                               <div
                                 key={conv.id}
-                                onClick={() => setSelectedConversation(conv)}
+                                onClick={() => handleSelectConversation(conv)}
                                 className={`px-4 py-3 cursor-pointer transition-colors ${
                                   isSelected ? 'bg-white/20' : 'hover:bg-white/10'
                                 }`}
                               >
                                 <div className="flex items-start justify-between mb-1">
-                                  <h4 className="font-medium text-white text-sm truncate flex-1">
+                                  <h4 className="font-medium text-white text-sm truncate flex-1 flex items-center gap-2">
                                     {conv.subject}
+                                    {unreadCount > 0 && (
+                                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                                        {unreadCount}
+                                      </span>
+                                    )}
                                   </h4>
                                   <span className={`ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${status.color}`}>
                                     {status.label}

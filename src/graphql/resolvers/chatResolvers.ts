@@ -259,6 +259,62 @@ export const chatResolvers = {
       return message
     },
 
+    // 標記訊息為已讀
+    markMessagesAsRead: async (
+      _: any,
+      { conversationId }: { conversationId: string },
+      { user }: GraphQLContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError('請先登入', {
+          extensions: { code: 'UNAUTHENTICATED' },
+        })
+      }
+
+      // 獲取對話以驗證權限
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+      })
+
+      if (!conversation) {
+        throw new GraphQLError('對話不存在', {
+          extensions: { code: 'NOT_FOUND' },
+        })
+      }
+
+      // 檢查權限
+      if (conversation.userId !== user.userId && user.role !== 'ADMIN') {
+        throw new GraphQLError('無權存取此對話', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      // 根據角色標記對應訊息為已讀
+      if (user.role === 'ADMIN') {
+        // 管理員標記用戶訊息為已讀
+        await prisma.message.updateMany({
+          where: {
+            conversationId,
+            senderType: 'USER',
+            isRead: false,
+          },
+          data: { isRead: true },
+        })
+      } else {
+        // 用戶標記管理員訊息為已讀
+        await prisma.message.updateMany({
+          where: {
+            conversationId,
+            senderType: 'ADMIN',
+            isRead: false,
+          },
+          data: { isRead: true },
+        })
+      }
+
+      return true
+    },
+
     // 更新對話狀態（管理員）
     updateConversationStatus: async (
       _: any,

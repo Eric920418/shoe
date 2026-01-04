@@ -487,7 +487,7 @@ export default function CartPage() {
                             <span className="text-xs uppercase tracking-wide text-gray-500">
                               尺碼
                             </span>
-                            <span>EU {sizeEu}</span>
+                            <span>{sizeEu}</span>
                           </div>
                         )}
                       </div>

@@ -207,7 +207,7 @@ export default function OrdersPage() {
                           {item.productName || item.product?.name || '未知產品'}
                         </h3>
                         <div className="text-sm text-gray-600">
-                          {item.sizeEu && <span>尺碼: EU {item.sizeEu}</span>}
+                          {item.sizeEu && <span>尺碼: {item.sizeEu}</span>}
                           {item.color && <span className="ml-3">顏色: {item.color}</span>}
                         </div>
                         <div className="mt-1 text-sm text-gray-600">
