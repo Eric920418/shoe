@@ -744,7 +744,7 @@ export default function HelpPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* Email 客服 */}
             <a
-              href="mailto:support@shoes.com"
+              href="mailto:caishenmaixie@gmail.com"
               className="group bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all border border-gray-200 hover:border-orange-300"
             >
               <div className="flex items-start gap-4">
@@ -754,7 +754,7 @@ export default function HelpPage() {
                     Email 客服
                   </h3>
                   <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                    support@shoes.com<br />
+                    caishenmaixie@gmail.com<br />
                     24 小時內回覆
                   </p>
                   <span className="inline-block text-sm font-semibold text-orange-600">
@@ -773,8 +773,8 @@ export default function HelpPage() {
                     電話客服
                   </h3>
                   <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                    0800-123-456<br />
-                    週一至週日 9:00 - 21:00
+                    0923-101-058<br />
+                    週一至週日 10:30 - 21:00
                   </p>
                   <span className="inline-block text-sm font-semibold text-orange-600">
                     立即撥打 →

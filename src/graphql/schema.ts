@@ -1342,8 +1342,9 @@ export const typeDefs = gql`
   # 聊天室系統
   enum ConversationStatus {
     OPEN
-    CLOSED
+    IN_PROGRESS
     RESOLVED
+    CLOSED
   }
 
   enum SenderType {

@@ -1177,8 +1177,9 @@ model PopularProductsConfig {
 
 enum ConversationStatus {
   OPEN
-  CLOSED
+  IN_PROGRESS
   RESOLVED
+  CLOSED
 }
 
 enum SenderType {
