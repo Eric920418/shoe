@@ -357,11 +357,6 @@ export default function AdminChatsPage() {
                             {conv.user.name} ({conv.user.email})
                           </p>
                         </div>
-                        {unreadCount > 0 && (
-                          <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                            {unreadCount}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${status.color}`}>
