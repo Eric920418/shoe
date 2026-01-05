@@ -520,7 +520,9 @@ export const orderResolvers = {
         let shippingFee = 0
         switch (input.shippingMethod) {
           case 'SEVEN_ELEVEN':
-            shippingFee = 60
+          case 'FAMILY_MART':
+          case 'HILIFE':
+            shippingFee = 60 // 超商取貨統一運費 60 元
             break
           case 'HOME_DELIVERY':
             shippingFee = 120

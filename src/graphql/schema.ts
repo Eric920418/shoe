@@ -136,6 +136,8 @@ export const typeDefs = gql`
   # 配送方式
   enum ShippingMethod {
     SEVEN_ELEVEN    # 7-11取貨（運費60元，走金流+物流）
+    FAMILY_MART     # 全家取貨（運費60元，走金流+物流）
+    HILIFE          # 萊爾富取貨（運費60元，走金流+物流）
     HOME_DELIVERY   # 宅配（運費120元，只走金流）
     SELF_PICKUP     # 自取（免運費，只走金流）
   }
@@ -2180,6 +2182,7 @@ export const typeDefs = gql`
   input OrderItemInput {
     productId: ID!
     variantId: ID
+    sizeChartId: ID        # 尺碼 ID（用於訪客結帳）
     sizeEu: String!
     quantity: Int!
   }

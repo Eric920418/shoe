@@ -1030,6 +1030,27 @@ pnpm prisma migrate reset
 - **技術變更**：`src/graphql/resolvers/productResolvers.ts:135-143`
 - **效果**：搜尋結果更全面，用戶更容易找到想要的產品
 
+### 🔥 近期重點更新（2026-01-05）
+
+#### ✅ 超商取貨付款功能修正與擴展（2026-01-05）
+- **問題修正**：
+  1. **CVSCOM 參數錯誤** - 原本設定為 `1`（取貨不付款），修正為 `2`（取貨付款/貨到付款）
+  2. **OrderItemInput 缺少 sizeChartId** - 導致訪客結帳 400 錯誤
+- **功能擴展**：
+  1. 新增全家（FAMILY_MART）取貨付款選項
+  2. 新增萊爾富（HILIFE）取貨付款選項
+  3. 運費統一為 60 元
+- **CVSCOM 參數說明**（根據藍新金流 API 文件）：
+  - `0` = 不開啟
+  - `1` = 啟用超商取貨「不付款」
+  - `2` = 啟用超商取貨「付款」（貨到付款）
+  - `3` = 同時啟用不付款及付款
+- **修改檔案**：
+  - `src/lib/newebpay-correct.ts` - CVSCOM 參數修正
+  - `src/graphql/schema.ts` - ShippingMethod enum 和 OrderItemInput
+  - `src/graphql/resolvers/orderResolvers.ts` - 運費計算
+  - `app/checkout/page.tsx` - 前端選項
+
 ### 🔥 近期重點更新（2025-12-30）
 
 #### ✅ Vercel Image Transformations 用量優化（2025-12-30）

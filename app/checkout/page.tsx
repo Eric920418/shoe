@@ -47,7 +47,7 @@ interface CheckoutFormData {
   shippingName: string
   shippingPhone: string
   // 配送方式
-  shippingMethod: 'SEVEN_ELEVEN' | 'HOME_DELIVERY' | 'SELF_PICKUP'
+  shippingMethod: 'SEVEN_ELEVEN' | 'FAMILY_MART' | 'HILIFE' | 'HOME_DELIVERY' | 'SELF_PICKUP'
   // 宅配地址（只有選擇宅配時需要）
   homeDeliveryAddress?: string
   homeDeliveryCity?: string
@@ -216,7 +216,8 @@ function CheckoutContent() {
 
   // 計算總金額（扣除優惠券和購物金）
   // 根據配送方式計算運費
-  const shippingFee = formData.shippingMethod === 'SEVEN_ELEVEN' ? 60
+  const cvsShippingMethods = ['SEVEN_ELEVEN', 'FAMILY_MART', 'HILIFE']
+  const shippingFee = cvsShippingMethods.includes(formData.shippingMethod) ? 60
     : formData.shippingMethod === 'HOME_DELIVERY' ? 120
     : 0 // SELF_PICKUP 免運費
   const couponDiscount = appliedCoupon?.discount || 0
@@ -486,8 +487,11 @@ function CheckoutContent() {
                   收件人資訊
                 </h2>
                 <p className="text-sm text-gray-600 mb-6">
-                  {formData.shippingMethod === 'SEVEN_ELEVEN'
-                    ? 'ℹ️ 收件地址將在付款後的物流頁面選擇 7-11 門市'
+                  {['SEVEN_ELEVEN', 'FAMILY_MART', 'HILIFE'].includes(formData.shippingMethod)
+                    ? `ℹ️ 收件地址將在付款後的物流頁面選擇${
+                        formData.shippingMethod === 'SEVEN_ELEVEN' ? '7-11' :
+                        formData.shippingMethod === 'FAMILY_MART' ? '全家' : '萊爾富'
+                      }門市`
                     : formData.shippingMethod === 'HOME_DELIVERY'
                     ? 'ℹ️ 請在下方配送方式區塊填寫宅配地址'
                     : 'ℹ️ 請攜帶訂單編號至店面取貨'
@@ -556,6 +560,56 @@ function CheckoutContent() {
                         />
                         <div>
                           <div className="font-semibold text-black">7-ELEVEN 取貨</div>
+                          <div className="text-sm text-gray-600">選擇門市，到店取貨</div>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-black">運費 $60</div>
+                    </div>
+                  </label>
+
+                  {/* 全家取貨 */}
+                  <label className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.shippingMethod === 'FAMILY_MART'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="FAMILY_MART"
+                          checked={formData.shippingMethod === 'FAMILY_MART'}
+                          onChange={handleChange}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-semibold text-black">全家取貨</div>
+                          <div className="text-sm text-gray-600">選擇門市，到店取貨</div>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-black">運費 $60</div>
+                    </div>
+                  </label>
+
+                  {/* 萊爾富取貨 */}
+                  <label className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.shippingMethod === 'HILIFE'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="HILIFE"
+                          checked={formData.shippingMethod === 'HILIFE'}
+                          onChange={handleChange}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-semibold text-black">萊爾富取貨</div>
                           <div className="text-sm text-gray-600">選擇門市，到店取貨</div>
                         </div>
                       </div>
