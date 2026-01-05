@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.4.6 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-05
+**版本**: 2.4.7 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-05
 
 ---
 
@@ -919,6 +919,15 @@ pnpm prisma migrate reset
 
 ### 🔥 近期重點更新（2026-01-05）
 
+#### ✅ 購物車單品刪除按鈕優化（v2.4.7）
+- **問題描述**：購物車刪除按鈕（X 圖示）不夠明顯，用戶難以發現
+- **優化方案**：
+  - 改用垃圾桶圖標（更直觀的刪除符號）
+  - 增加點擊區域大小（padding）
+  - 懸停時變成紅色背景 + 紅色圖標
+  - 圓角按鈕設計，提升視覺辨識度
+- **影響範圍**：`app/cart/page.tsx`
+
 #### ✅ 客服聊天系統功能強化（v2.4.6）
 
 **1. 圖片上傳功能**
@@ -1032,14 +1041,13 @@ pnpm prisma migrate reset
 
 ### 🔥 近期重點更新（2026-01-05）
 
-#### ✅ 超商取貨付款功能修正與擴展（2026-01-05）
+#### ✅ 超商取貨付款功能修正（2026-01-05）
 - **問題修正**：
   1. **CVSCOM 參數錯誤** - 原本設定為 `1`（取貨不付款），修正為 `2`（取貨付款/貨到付款）
   2. **OrderItemInput 缺少 sizeChartId** - 導致訪客結帳 400 錯誤
-- **功能擴展**：
-  1. 新增全家（FAMILY_MART）取貨付款選項
-  2. 新增萊爾富（HILIFE）取貨付款選項
-  3. 運費統一為 60 元
+- **配送方式簡化**：
+  - 統一為 `CVS_PICKUP`（超商取貨），藍新頁面自動顯示 7-11、全家、萊爾富可選
+  - 運費統一 60 元
 - **CVSCOM 參數說明**（根據藍新金流 API 文件）：
   - `0` = 不開啟
   - `1` = 啟用超商取貨「不付款」
@@ -1047,9 +1055,9 @@ pnpm prisma migrate reset
   - `3` = 同時啟用不付款及付款
 - **修改檔案**：
   - `src/lib/newebpay-correct.ts` - CVSCOM 參數修正
-  - `src/graphql/schema.ts` - ShippingMethod enum 和 OrderItemInput
+  - `src/graphql/schema.ts` - ShippingMethod enum 簡化 + OrderItemInput
   - `src/graphql/resolvers/orderResolvers.ts` - 運費計算
-  - `app/checkout/page.tsx` - 前端選項
+  - `app/checkout/page.tsx` - 前端選項簡化
 
 ### 🔥 近期重點更新（2025-12-30）
 
@@ -1622,4 +1630,4 @@ const { data: dealConfigData } = useQuery(GET_TODAYS_DEAL, {
 
 ---
 
-**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.6 | **最後更新**: 2026-01-05
+**專案狀態**: 生產就緒 ✅ | **版本**: 2.4.7 | **最後更新**: 2026-01-05

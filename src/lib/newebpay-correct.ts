@@ -262,11 +262,8 @@ export function createPaymentData(params: {
   // 5. 🔥 核心判斷邏輯：只有 'SEVEN_ELEVEN' 才加物流參數
   console.log(`🛡️ [PaymentCheck] 訂單號: ${params.merchantOrderNo}, 配送方式: "${cleanShippingMethod}"`);
 
-  // 超商取貨配送方式列表
-  const cvsShippingMethods = ['SEVEN_ELEVEN', 'FAMILY_MART', 'HILIFE'];
-
-  if (cvsShippingMethods.includes(cleanShippingMethod)) {
-    console.log(`✅ 判定為 [${cleanShippingMethod} 店到店] -> 啟用 LgsType`);
+  if (cleanShippingMethod === 'CVS_PICKUP') {
+    console.log('✅ 判定為 [超商取貨] -> 啟用 LgsType');
     tradeData.LgsType = 'C2C'; // 店到店模式
     // 🔥 CVSCOM 參數值說明（根據藍新金流 API 文件）：
     // 0 = 不開啟

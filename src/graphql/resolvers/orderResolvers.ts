@@ -519,9 +519,7 @@ export const orderResolvers = {
         // 根據配送方式計算運費
         let shippingFee = 0
         switch (input.shippingMethod) {
-          case 'SEVEN_ELEVEN':
-          case 'FAMILY_MART':
-          case 'HILIFE':
+          case 'CVS_PICKUP':
             shippingFee = 60 // 超商取貨統一運費 60 元
             break
           case 'HOME_DELIVERY':
@@ -531,7 +529,6 @@ export const orderResolvers = {
             shippingFee = 0
             break
           default:
-            // 如果沒有提供配送方式，預設為 7-11 取貨
             shippingFee = 60
         }
         let discount = 0

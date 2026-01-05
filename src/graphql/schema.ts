@@ -135,9 +135,7 @@ export const typeDefs = gql`
 
   # 配送方式
   enum ShippingMethod {
-    SEVEN_ELEVEN    # 7-11取貨（運費60元，走金流+物流）
-    FAMILY_MART     # 全家取貨（運費60元，走金流+物流）
-    HILIFE          # 萊爾富取貨（運費60元，走金流+物流）
+    CVS_PICKUP      # 超商取貨（運費60元，走金流+物流，藍新頁面選門市）
     HOME_DELIVERY   # 宅配（運費120元，只走金流）
     SELF_PICKUP     # 自取（免運費，只走金流）
   }
