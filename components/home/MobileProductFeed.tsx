@@ -40,8 +40,29 @@ export default function MobileProductFeed({
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
+  const [isFilterFixed, setIsFilterFixed] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLDivElement>(null)
   const ITEMS_PER_PAGE = 20
+
+  // 監聽滾動，判斷篩選器是否應該固定
+  useEffect(() => {
+    const filterEl = filterRef.current
+    if (!filterEl) return
+
+    // 記錄篩選器的初始位置
+    const filterTop = filterEl.offsetTop
+
+    const handleScroll = () => {
+      // 當頁面滾動超過篩選器的初始位置時，固定篩選器
+      const scrollY = window.scrollY
+      const headerHeight = 106 // Header 高度
+      setIsFilterFixed(scrollY > filterTop - headerHeight)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
 
   // 從 URL 解析篩選狀態
@@ -341,11 +362,27 @@ export default function MobileProductFeed({
     </>
   )
 
+  // 計算篩選器高度（猜你喜歡 + 排序按鈕）
+  const filterHeight = 88 // 約 88px
+
   return (
     <div className="mt-2">
-      {/* 篩選器 - 使用 sticky 定位，滾動時固定在 Header 下方 */}
-      <div className="sticky top-[106px] z-40 bg-white shadow-sm">
-        <FilterContent />
+      {/* 篩選器容器 */}
+      <div ref={filterRef}>
+        {/* 固定時顯示的篩選器 */}
+        {isFilterFixed && (
+          <div
+            className="fixed top-[106px] left-0 right-0 z-40 bg-white shadow-md md:hidden"
+            style={{ willChange: 'transform' }}
+          >
+            <FilterContent />
+          </div>
+        )}
+
+        {/* 原位置的篩選器（固定時作為佔位） */}
+        <div className={isFilterFixed ? 'opacity-0' : ''}>
+          <FilterContent />
+        </div>
       </div>
 
       {/* 商品瀑布流 */}
