@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Star, Flame, Zap } from 'lucide-react'
+import { Star, Flame, Zap, Search, Heart, ShoppingCart } from 'lucide-react'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery } from '@apollo/client'
 import { GET_HOMEPAGE_PRODUCTS, GET_CATEGORIES, GET_BRANDS } from '@/graphql/queries'
 import WishlistButton from '@/components/product/WishlistButton'
 import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
+import { useCart } from '@/contexts/CartContext'
 
 // 排序類型
 type SortType = 'recommend' | 'sales' | 'newest' | 'price_asc' | 'price_desc'
@@ -34,6 +35,8 @@ export default function MobileProductFeed({
 }: MobileProductFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { cartCount, wishlistCount } = useCart()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const [products, setProducts] = useState<any[]>([])
   const [loadedCount, setLoadedCount] = useState(0) // 追蹤已載入的產品數量
@@ -367,9 +370,67 @@ export default function MobileProductFeed({
     <div className="mt-2">
       {/* 篩選器容器 */}
       <div ref={filterRef}>
-        {/* 固定時顯示的篩選器 - 直接固定在最頂部 */}
+        {/* 固定時顯示的搜尋欄 + 篩選器 */}
         {isFilterFixed && (
           <div className="fixed top-0 left-0 right-0 z-[100] bg-white shadow-md md:hidden">
+            {/* 搜尋欄 */}
+            <div className="bg-white border-b px-2 py-2">
+              <div className="flex items-center gap-2">
+                {/* Logo */}
+                <Link href="/" className="flex-shrink-0">
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-sm px-2 py-1 rounded-lg">
+                    財神賣鞋
+                  </div>
+                </Link>
+
+                {/* 搜索框 */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (searchQuery.trim()) {
+                      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+                    }
+                  }}
+                  className="flex-1 relative"
+                >
+                  <input
+                    type="text"
+                    placeholder="搜索商品..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 text-sm border-2 border-orange-500 rounded-full focus:outline-none focus:border-red-500"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-0 top-0 bottom-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 rounded-r-full"
+                  >
+                    <Search size={18} />
+                  </button>
+                </form>
+
+                {/* 購物車和收藏 */}
+                <div className="flex items-center gap-1">
+                  <Link href="/wishlist" className="relative p-1.5">
+                    <Heart size={20} className="text-gray-600" />
+                    {wishlistCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                        {wishlistCount > 99 ? '99+' : wishlistCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link href="/cart" className="relative p-1.5">
+                    <ShoppingCart size={20} className="text-gray-600" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                        {cartCount > 99 ? '99+' : cartCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* 篩選器 */}
             <FilterContent />
           </div>
         )}
