@@ -142,20 +142,7 @@ export default function HomePageClient({
           )}
         </div>
 
-        {/* 分隔標題 - 猜你喜歡 */}
-        <div className="bg-white mt-2 py-3 px-4 border-y border-gray-100">
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
-            <span className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-              <span className="text-orange-500">✦</span>
-              猜你喜歡
-              <span className="text-orange-500">✦</span>
-            </span>
-            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
-          </div>
-        </div>
-
-        {/* 蝦皮風格商品瀑布流 */}
+        {/* 蝦皮風格商品瀑布流（含「猜你喜歡」標題和篩選器） */}
         <Suspense fallback={
           <div className="px-2 py-4">
             <div className="grid grid-cols-2 gap-2">
