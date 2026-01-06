@@ -289,7 +289,8 @@ export default function MobileProductFeed({
   return (
     <div className="mt-2">
       {/* 「猜你喜歡」標題 + 懸浮篩選器 - 固定在 Header 下方 */}
-      <div className="sticky top-[104px] z-40 bg-white shadow-sm">
+      {/* Header 高度約 112px (頂部工具欄 56px + 主導航欄 56px) */}
+      <div className="sticky top-[112px] z-40 bg-white shadow-sm">
         {/* 猜你喜歡標題 */}
         <div className="py-2.5 px-4 border-b border-gray-100">
           <div className="flex items-center justify-center gap-2">

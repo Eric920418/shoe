@@ -125,7 +125,7 @@ export default function HomePageClient({
       <AnnouncementWrapper />
 
       {/* ===== 手機版佈局 ===== */}
-      <div className="md:hidden">
+      <div className="md:hidden min-h-screen">
         {/* 手機版上方促銷區塊 */}
         <div className="px-2">
           {mobileTopConfigs.length > 0 ? (
