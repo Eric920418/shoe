@@ -40,8 +40,29 @@ export default function MobileProductFeed({
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
+  const [isFilterFixed, setIsFilterFixed] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const filterSentinelRef = useRef<HTMLDivElement>(null)
   const ITEMS_PER_PAGE = 20
+
+  // 偵測篩選器是否應該固定（使用 scroll 事件）
+  useEffect(() => {
+    const handleScroll = () => {
+      const sentinel = filterSentinelRef.current
+      if (!sentinel) return
+
+      const rect = sentinel.getBoundingClientRect()
+      // 當 sentinel 頂部滾動到視窗頂部（加上 Header 高度）以上時，固定篩選器
+      // Header 約 100-120px，這裡設定 100px 作為閾值
+      setIsFilterFixed(rect.top < 100)
+    }
+
+    // 初始檢查
+    handleScroll()
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // 從 URL 解析篩選狀態
   const parseFiltersFromUrl = useCallback((): FilterState => {
@@ -286,59 +307,187 @@ export default function MobileProductFeed({
   // 檢查是否有啟用篩選（使用前面定義的 hasFilters）
   const hasActiveFilters = hasFilters
 
-  return (
-    <div className="mt-2">
-      {/* 「猜你喜歡」標題 + 懸浮篩選器 - 固定在 Header 下方 */}
-      {/* Header 高度約 112px (頂部工具欄 56px + 主導航欄 56px) */}
-      <div className="sticky top-[112px] z-40 bg-white shadow-sm">
-        {/* 猜你喜歡標題 */}
-        <div className="py-2.5 px-4 border-b border-gray-100">
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
-            <span className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-              <span className="text-orange-500">✦</span>
-              猜你喜歡
-              <span className="text-orange-500">✦</span>
-            </span>
-            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
-          </div>
+  // 篩選器內容（用於固定和非固定狀態）
+  const FilterContent = () => (
+    <>
+      {/* 猜你喜歡標題 */}
+      <div className="py-2.5 px-4 border-b border-gray-100 bg-white">
+        <div className="flex items-center justify-center gap-2">
+          <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
+          <span className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+            <span className="text-orange-500">✦</span>
+            猜你喜歡
+            <span className="text-orange-500">✦</span>
+          </span>
+          <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
         </div>
+      </div>
 
-        {/* 排序選項 */}
-        <div className="flex items-center px-2 py-2 gap-1 overflow-x-auto scrollbar-hide border-b border-gray-100">
-          {sortOptions.map((option) => (
-            <button
-              key={option.key}
-              onClick={() => handleSortChange(option.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
-                filters.sortBy === option.key
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-
-          {/* 篩選按鈕 */}
+      {/* 排序選項 */}
+      <div className="flex items-center px-2 py-2 gap-1 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white">
+        {sortOptions.map((option) => (
           <button
-            onClick={() => {
-              setTempFilters(filters)
-              setShowFilterPanel(true)
-            }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1 ${
-              hasActiveFilters
-                ? 'bg-orange-100 text-orange-600 border border-orange-300'
-                : 'bg-gray-100 text-gray-600'
+            key={option.key}
+            onClick={() => handleSortChange(option.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+              filters.sortBy === option.key
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            篩選
-            {hasActiveFilters && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
+            {option.label}
           </button>
+        ))}
+
+        {/* 篩選按鈕 */}
+        <button
+          onClick={() => {
+            setTempFilters(filters)
+            setShowFilterPanel(true)
+          }}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1 ${
+            hasActiveFilters
+              ? 'bg-orange-100 text-orange-600 border border-orange-300'
+              : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          篩選
+          {hasActiveFilters && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
+        </button>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="mt-2">
+      {/* 偵測點 - 當這個元素離開視窗時，固定篩選器 */}
+      <div ref={filterSentinelRef} className="h-0" />
+
+      {/* 固定的篩選器（當滾動過偵測點時顯示） */}
+      {isFilterFixed && (
+        <div className="fixed top-0 left-0 right-0 z-[60] shadow-md md:hidden">
+          <FilterContent />
         </div>
+      )}
+
+      {/* 原位置的篩選器 */}
+      <div className={isFilterFixed ? 'invisible' : ''}>
+        <FilterContent />
+      </div>
+
+      {/* 固定時的佔位空間 */}
+      {isFilterFixed && <div className="h-[88px]" />}
+
+      {/* 商品瀑布流 */}
+      <div className="px-2 py-2 bg-gray-50">
+        <div className="grid grid-cols-2 gap-2">
+          {products.map((product, index) => (
+            <div
+              key={`${product.id}-${index}`}
+              className={`bg-white rounded-lg overflow-hidden shadow-sm ${
+                product.isFlashSale ? 'ring-2 ring-red-400' : ''
+              }`}
+            >
+              <Link href={`/products/${product.slug}`}>
+                {/* 商品圖片 */}
+                <div className="relative aspect-square bg-gray-100">
+                  <ProductCardImage
+                    src={product.image}
+                    alt={product.name}
+                    hoverScale={false}
+                  />
+
+                  {/* 特價標籤 */}
+                  {product.isFlashSale && (
+                    <div className="absolute top-0 left-0 bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-0.5 rounded-br-lg flex items-center gap-1">
+                      <Zap size={10} className="fill-current" />
+                      <span className="text-[10px] font-bold">限時特賣</span>
+                    </div>
+                  )}
+                  {product.isOnSale && !product.isFlashSale && (
+                    <div className="absolute top-0 left-0 bg-red-500 text-white px-2 py-0.5 rounded-br-lg">
+                      <span className="text-[10px] font-bold">{product.discount}% OFF</span>
+                    </div>
+                  )}
+
+                  {/* 願望清單按鈕 */}
+                  <div className="absolute top-1 right-1 z-10">
+                    <WishlistButton productId={product.id} size="sm" />
+                  </div>
+                </div>
+
+                {/* 商品資訊 */}
+                <div className="p-2">
+                  <h3 className="text-xs text-gray-800 line-clamp-2 min-h-[32px] mb-1">
+                    {product.name}
+                  </h3>
+
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-red-500 font-bold text-sm">
+                      ${product.price}
+                    </span>
+                    {product.originalPrice > product.price && (
+                      <span className="text-gray-400 text-[10px] line-through">
+                        ${product.originalPrice}
+                      </span>
+                    )}
+                  </div>
+
+                  {product.rating > 0 && (
+                    <div className="flex items-center justify-end text-[10px] text-gray-500">
+                      <div className="flex items-center gap-0.5">
+                        <Star size={10} className="text-yellow-400 fill-current" />
+                        <span>{product.rating.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {product.insertedAsSale && (
+                    <div className="mt-1 flex items-center gap-1 text-[10px] text-orange-600">
+                      <Flame size={10} />
+                      <span>熱銷特惠</span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* 載入更多指示器 */}
+        <div ref={loadMoreRef} className="py-4 text-center">
+          {isLoadingMore || loading ? (
+            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+              <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              載入中...
+            </div>
+          ) : hasMore ? (
+            <span className="text-gray-400 text-xs">向下滾動載入更多</span>
+          ) : products.length > 0 ? (
+            <span className="text-gray-400 text-xs">已顯示全部商品</span>
+          ) : null}
+        </div>
+
+        {/* 空狀態 */}
+        {!loading && products.length === 0 && (
+          <div className="py-12 text-center">
+            <div className="text-gray-400 mb-2">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm">沒有找到符合條件的商品</p>
+            <button
+              onClick={resetFilters}
+              className="mt-3 text-orange-500 text-sm font-medium"
+            >
+              清除篩選條件
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 篩選面板 */}
@@ -503,119 +652,6 @@ export default function MobileProductFeed({
           </div>
         </div>
       )}
-
-      {/* 商品瀑布流 */}
-      <div className="px-2 py-2 bg-gray-50">
-        <div className="grid grid-cols-2 gap-2">
-          {products.map((product, index) => (
-            <div
-              key={`${product.id}-${index}`}
-              className={`bg-white rounded-lg overflow-hidden shadow-sm ${
-                product.isFlashSale ? 'ring-2 ring-red-400' : ''
-              }`}
-            >
-              <Link href={`/products/${product.slug}`}>
-                {/* 商品圖片 - 使用 ProductCardImage 減少 Vercel 用量 */}
-                <div className="relative aspect-square bg-gray-100">
-                  <ProductCardImage
-                    src={product.image}
-                    alt={product.name}
-                    hoverScale={false}
-                  />
-
-                  {/* 特價標籤 */}
-                  {product.isFlashSale && (
-                    <div className="absolute top-0 left-0 bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-0.5 rounded-br-lg flex items-center gap-1">
-                      <Zap size={10} className="fill-current" />
-                      <span className="text-[10px] font-bold">限時特賣</span>
-                    </div>
-                  )}
-                  {product.isOnSale && !product.isFlashSale && (
-                    <div className="absolute top-0 left-0 bg-red-500 text-white px-2 py-0.5 rounded-br-lg">
-                      <span className="text-[10px] font-bold">{product.discount}% OFF</span>
-                    </div>
-                  )}
-
-                  {/* 願望清單按鈕 */}
-                  <div className="absolute top-1 right-1 z-10">
-                    <WishlistButton productId={product.id} size="sm" />
-                  </div>
-                </div>
-
-                {/* 商品資訊 */}
-                <div className="p-2">
-                  {/* 商品名稱 */}
-                  <h3 className="text-xs text-gray-800 line-clamp-2 min-h-[32px] mb-1">
-                    {product.name}
-                  </h3>
-
-                  {/* 價格 */}
-                  <div className="flex items-end gap-1 mb-1">
-                    <span className="text-red-500 font-bold text-sm">
-                      ${product.price}
-                    </span>
-                    {product.originalPrice > product.price && (
-                      <span className="text-gray-400 text-[10px] line-through">
-                        ${product.originalPrice}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 評分 */}
-                  {product.rating > 0 && (
-                    <div className="flex items-center justify-end text-[10px] text-gray-500">
-                      <div className="flex items-center gap-0.5">
-                        <Star size={10} className="text-yellow-400 fill-current" />
-                        <span>{product.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 特價產品額外標籤 */}
-                  {product.insertedAsSale && (
-                    <div className="mt-1 flex items-center gap-1 text-[10px] text-orange-600">
-                      <Flame size={10} />
-                      <span>熱銷特惠</span>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
-
-        {/* 載入更多指示器 */}
-        <div ref={loadMoreRef} className="py-4 text-center">
-          {isLoadingMore || loading ? (
-            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-              <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              載入中...
-            </div>
-          ) : hasMore ? (
-            <span className="text-gray-400 text-xs">向下滾動載入更多</span>
-          ) : products.length > 0 ? (
-            <span className="text-gray-400 text-xs">已顯示全部商品</span>
-          ) : null}
-        </div>
-
-        {/* 空狀態 */}
-        {!loading && products.length === 0 && (
-          <div className="py-12 text-center">
-            <div className="text-gray-400 mb-2">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <p className="text-gray-500 text-sm">沒有找到符合條件的商品</p>
-            <button
-              onClick={resetFilters}
-              className="mt-3 text-orange-500 text-sm font-medium"
-            >
-              清除篩選條件
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* 快速加入購物車 Modal */}
       {modalProduct && (
