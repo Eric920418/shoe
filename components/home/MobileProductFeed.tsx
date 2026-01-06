@@ -45,16 +45,31 @@ export default function MobileProductFeed({
   const filterSentinelRef = useRef<HTMLDivElement>(null)
   const ITEMS_PER_PAGE = 20
 
-  // 偵測篩選器是否應該固定（使用 scroll 事件）
+  // 偵測篩選器是否應該固定（使用 scroll 事件 + requestAnimationFrame 優化性能）
   useEffect(() => {
-    const handleScroll = () => {
-      const sentinel = filterSentinelRef.current
-      if (!sentinel) return
+    let ticking = false
+    let lastFixed = false
 
-      const rect = sentinel.getBoundingClientRect()
-      // 當 sentinel 頂部滾動到視窗頂部（加上 Header 高度）以上時，固定篩選器
-      // Header 約 100-120px，這裡設定 100px 作為閾值
-      setIsFilterFixed(rect.top < 100)
+    const handleScroll = () => {
+      if (ticking) return
+
+      ticking = true
+      requestAnimationFrame(() => {
+        const sentinel = filterSentinelRef.current
+        if (sentinel) {
+          const rect = sentinel.getBoundingClientRect()
+          // 當 sentinel 頂部滾動到 Header 下方時，固定篩選器
+          // Header 高度約 110px
+          const shouldFix = rect.top < 110
+
+          // 只在狀態真正改變時才更新，避免不必要的重渲染
+          if (shouldFix !== lastFixed) {
+            lastFixed = shouldFix
+            setIsFilterFixed(shouldFix)
+          }
+        }
+        ticking = false
+      })
     }
 
     // 初始檢查
@@ -366,9 +381,9 @@ export default function MobileProductFeed({
       {/* 偵測點 - 當這個元素離開視窗時，固定篩選器 */}
       <div ref={filterSentinelRef} className="h-0" />
 
-      {/* 固定的篩選器（當滾動過偵測點時顯示） */}
+      {/* 固定的篩選器（當滾動過偵測點時顯示，在 Header 下方） */}
       {isFilterFixed && (
-        <div className="fixed top-0 left-0 right-0 z-[60] shadow-md md:hidden">
+        <div className="fixed top-[110px] left-0 right-0 z-40 shadow-md md:hidden">
           <FilterContent />
         </div>
       )}
