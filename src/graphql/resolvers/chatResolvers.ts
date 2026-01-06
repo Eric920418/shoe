@@ -91,6 +91,23 @@ export const chatResolvers = {
       }
     },
 
+    // 獲取管理員未讀訊息總數
+    adminUnreadMessageCount: async (_: any, __: any, { user }: GraphQLContext) => {
+      if (!user || user.role !== 'ADMIN') {
+        throw new GraphQLError('權限不足', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      // 計算所有用戶發送的未讀訊息數量
+      return await prisma.message.count({
+        where: {
+          senderType: 'USER',
+          isRead: false,
+        },
+      })
+    },
+
     // 獲取對話詳情
     conversation: async (
       _: any,

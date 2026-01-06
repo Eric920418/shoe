@@ -1424,6 +1424,12 @@ export const GET_RECENT_ORDERS = gql`
   }
 `
 
+export const GET_ADMIN_UNREAD_MESSAGE_COUNT = gql`
+  query GetAdminUnreadMessageCount {
+    adminUnreadMessageCount
+  }
+`
+
 // ============================================
 // SKU 庫存管理相關查詢（管理員專用）
 // ============================================

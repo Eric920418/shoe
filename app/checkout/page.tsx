@@ -755,6 +755,8 @@ function CheckoutContent() {
                       // 訪客購物車與會員購物車數據結構不同
                       const productName = isGuest ? item.productName : item.product.name
                       const productImage = isGuest ? item.productImage : parseImages(item.product.images)[0]
+                      const variantColor = isGuest ? item.variantName : item.variant?.color
+                      const sizeValue = isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu)
                       const quantity = item.quantity
                       const subtotal = isGuest ? (item.price * item.quantity) : item.subtotal
 
@@ -782,7 +784,11 @@ function CheckoutContent() {
                               {productName}
                             </p>
                             <p className="text-xs text-gray-600 mt-1">
-                              尺寸: {item.sizeEu} | 數量: {quantity}
+                              {variantColor && `顏色: ${variantColor}`}
+                              {variantColor && sizeValue && ' | '}
+                              {sizeValue && `尺寸: ${sizeValue}`}
+                              {(variantColor || sizeValue) && ' | '}
+                              數量: {quantity}
                             </p>
                             <p className="text-sm font-medium text-black mt-1">
                               NT$ {subtotal.toLocaleString()}

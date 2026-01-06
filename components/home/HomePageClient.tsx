@@ -108,6 +108,14 @@ export default function HomePageClient({
     config => config.componentType !== 'SALE_COUNTDOWN'
   )
 
+  // 定義手機版要顯示在上方的組件類型（按順序）
+  const mobileTopComponents = ['HERO_SLIDER', 'SALE_COUNTDOWN', 'FLASH_SALE', 'CATEGORY_GRID', 'DAILY_DEALS', 'SUPER_DEALS']
+
+  // 篩選出手機版上方要顯示的組件
+  const mobileTopConfigs = mobileTopComponents
+    .map(type => componentsConfig.find(c => c.componentType === type && c.isActive))
+    .filter(Boolean)
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 導航欄 - 始終顯示 */}
@@ -116,24 +124,56 @@ export default function HomePageClient({
       {/* 系統公告 - 始終顯示 */}
       <AnnouncementWrapper />
 
-      {/* ===== 手機版：蝦皮風格商品瀑布流 ===== */}
-      <Suspense fallback={
-        <div className="md:hidden px-2 py-4">
-          <div className="grid grid-cols-2 gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm animate-pulse">
-                <div className="aspect-square bg-gray-200" />
-                <div className="p-2 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              </div>
-            ))}
+      {/* ===== 手機版佈局 ===== */}
+      <div className="md:hidden">
+        {/* 手機版上方促銷區塊 */}
+        <div className="px-2">
+          {mobileTopConfigs.length > 0 ? (
+            mobileTopConfigs.map(config => renderComponent(config))
+          ) : (
+            // 預設佈局
+            <>
+              <MarketplaceHero serverProducts={products} />
+              <FlashSale serverProducts={products} serverFlashSale={flashSale} />
+              <CategoryGrid serverCategoryDisplays={categoryDisplays} />
+              <DailyDeals serverProducts={products} serverDealConfig={todaysDeal} />
+              <SuperDeals />
+            </>
+          )}
+        </div>
+
+        {/* 分隔標題 - 猜你喜歡 */}
+        <div className="bg-white mt-2 py-3 px-4 border-y border-gray-100">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
+            <span className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+              <span className="text-orange-500">✦</span>
+              猜你喜歡
+              <span className="text-orange-500">✦</span>
+            </span>
+            <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent flex-1" />
           </div>
         </div>
-      }>
-        <MobileProductFeed serverProducts={products} />
-      </Suspense>
+
+        {/* 蝦皮風格商品瀑布流 */}
+        <Suspense fallback={
+          <div className="px-2 py-4">
+            <div className="grid grid-cols-2 gap-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm animate-pulse">
+                  <div className="aspect-square bg-gray-200" />
+                  <div className="p-2 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        }>
+          <MobileProductFeed serverProducts={products} />
+        </Suspense>
+      </div>
 
       {/* ===== 電腦版：原有組件佈局 ===== */}
       <div className="hidden md:block">

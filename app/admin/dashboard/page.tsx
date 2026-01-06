@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@apollo/client'
-import { GET_DASHBOARD_STATS, GET_RECENT_ORDERS } from '@/graphql/queries'
+import { GET_DASHBOARD_STATS, GET_RECENT_ORDERS, GET_ADMIN_UNREAD_MESSAGE_COUNT } from '@/graphql/queries'
 import { format } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 
@@ -25,6 +25,14 @@ export default function DashboardPage() {
     fetchPolicy: 'network-only',
   })
 
+  // 獲取管理員未讀訊息數
+  const { data: unreadData } = useQuery(GET_ADMIN_UNREAD_MESSAGE_COUNT, {
+    fetchPolicy: 'network-only',
+    pollInterval: 30000, // 每 30 秒輪詢一次
+  })
+
+  const unreadCount = unreadData?.adminUnreadMessageCount || 0
+
   const stats = statsData?.dashboardStats || {
     totalOrders: 0,
     totalRevenue: 0,
@@ -41,10 +49,10 @@ export default function DashboardPage() {
   const recentOrders = ordersData?.recentOrders || []
 
   const quickActions = [
-    { label: '新增產品', icon: '➕', href: '/admin/products/new', color: 'bg-blue-500' },
-    { label: '處理訂單', icon: '📦', href: '/admin/orders', color: 'bg-green-500' },
-    { label: '發送優惠', icon: '🎫', href: '/admin/coupons', color: 'bg-purple-500' },
-    { label: '查看聊天', icon: '💬', href: '/admin/chats', color: 'bg-pink-500' },
+    { label: '新增產品', icon: '➕', href: '/admin/products/new', color: 'bg-blue-500', badge: 0 },
+    { label: '處理訂單', icon: '📦', href: '/admin/orders', color: 'bg-green-500', badge: 0 },
+    { label: '發送優惠', icon: '🎫', href: '/admin/coupons', color: 'bg-purple-500', badge: 0 },
+    { label: '查看聊天', icon: '💬', href: '/admin/chats', color: 'bg-pink-500', badge: unreadCount },
   ]
 
   const statusColors = {
@@ -91,10 +99,15 @@ export default function DashboardPage() {
             <Link
               key={action.label}
               href={action.href}
-              className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200"
+              className="relative flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-200"
             >
-              <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white mb-2`}>
+              <div className={`relative w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white mb-2`}>
                 <span className="text-lg">{action.icon}</span>
+                {action.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                    {action.badge > 99 ? '99+' : action.badge}
+                  </span>
+                )}
               </div>
               <span className="text-xs text-center text-gray-700">{action.label}</span>
             </Link>
@@ -266,11 +279,16 @@ export default function DashboardPage() {
           <Link
             key={action.label}
             href={action.href}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+            className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 ${action.color} rounded-lg flex items-center justify-center text-white`}>
+              <div className={`relative w-12 h-12 ${action.color} rounded-lg flex items-center justify-center text-white`}>
                 <span className="text-xl">{action.icon}</span>
+                {action.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full px-1 animate-pulse">
+                    {action.badge > 99 ? '99+' : action.badge}
+                  </span>
+                )}
               </div>
               <span className="font-medium text-gray-900">{action.label}</span>
             </div>

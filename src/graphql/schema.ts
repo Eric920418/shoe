@@ -138,6 +138,9 @@ export const typeDefs = gql`
     CVS_PICKUP      # 超商取貨（運費60元，走金流+物流，藍新頁面選門市）
     HOME_DELIVERY   # 宅配（運費120元，只走金流）
     SELF_PICKUP     # 自取（免運費，只走金流）
+    # 舊版枚舉值（向後相容，資料庫中已存在的訂單）
+    SEVEN_ELEVEN    # 舊版：7-11 超商取貨
+    FAMILY_MART     # 舊版：全家超商取貨
   }
 
   # 優惠券類型
@@ -1777,6 +1780,7 @@ export const typeDefs = gql`
     conversation(id: ID!): Conversation
     # Admin: 聊天室管理
     allConversations(skip: Int, take: Int, status: String): ConversationsResponse!
+    adminUnreadMessageCount: Int!
 
     # 評論
     productReviews(productId: ID!, skip: Int, take: Int): [Review!]!

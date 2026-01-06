@@ -287,8 +287,8 @@ export default function MobileProductFeed({
   const hasActiveFilters = hasFilters
 
   return (
-    <div className="md:hidden">
-      {/* 懸浮篩選器 - 固定在 Header 下方 */}
+    <div>
+      {/* 懸浮篩選器 - 固定在「猜你喜歡」標題下方 */}
       <div className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
         {/* 排序選項 */}
         <div className="flex items-center px-2 py-2 gap-1 overflow-x-auto scrollbar-hide">
