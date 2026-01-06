@@ -50,17 +50,15 @@ export default function MobileProductFeed({
     const filterEl = filterRef.current
     if (!filterEl) return
 
-    // 記錄篩選器的初始位置
-    const filterTop = filterEl.offsetTop
-
     const handleScroll = () => {
-      // 當頁面滾動超過篩選器的初始位置時，固定篩選器
-      const scrollY = window.scrollY
-      const headerHeight = 106 // Header 高度
-      setIsFilterFixed(scrollY > filterTop - headerHeight)
+      // 取得篩選器相對於視窗的位置
+      const rect = filterEl.getBoundingClientRect()
+      // 當篩選器頂部碰到視窗頂部時，固定它
+      setIsFilterFixed(rect.top <= 0)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // 初始檢查
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -369,12 +367,9 @@ export default function MobileProductFeed({
     <div className="mt-2">
       {/* 篩選器容器 */}
       <div ref={filterRef}>
-        {/* 固定時顯示的篩選器 */}
+        {/* 固定時顯示的篩選器 - 直接固定在最頂部 */}
         {isFilterFixed && (
-          <div
-            className="fixed top-[106px] left-0 right-0 z-40 bg-white shadow-md md:hidden"
-            style={{ willChange: 'transform' }}
-          >
+          <div className="fixed top-0 left-0 right-0 z-[100] bg-white shadow-md md:hidden">
             <FilterContent />
           </div>
         )}
