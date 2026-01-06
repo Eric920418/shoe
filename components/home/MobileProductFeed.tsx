@@ -40,44 +40,9 @@ export default function MobileProductFeed({
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
-  const [isFilterFixed, setIsFilterFixed] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const filterSentinelRef = useRef<HTMLDivElement>(null)
   const ITEMS_PER_PAGE = 20
 
-  // 偵測篩選器是否應該固定（使用 scroll 事件 + requestAnimationFrame 優化性能）
-  useEffect(() => {
-    let ticking = false
-    let lastFixed = false
-
-    const handleScroll = () => {
-      if (ticking) return
-
-      ticking = true
-      requestAnimationFrame(() => {
-        const sentinel = filterSentinelRef.current
-        if (sentinel) {
-          const rect = sentinel.getBoundingClientRect()
-          // 當 sentinel 頂部滾動到 Header 下方時，固定篩選器
-          // Header 高度約 110px
-          const shouldFix = rect.top < 110
-
-          // 只在狀態真正改變時才更新，避免不必要的重渲染
-          if (shouldFix !== lastFixed) {
-            lastFixed = shouldFix
-            setIsFilterFixed(shouldFix)
-          }
-        }
-        ticking = false
-      })
-    }
-
-    // 初始檢查
-    handleScroll()
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   // 從 URL 解析篩選狀態
   const parseFiltersFromUrl = useCallback((): FilterState => {
@@ -378,23 +343,10 @@ export default function MobileProductFeed({
 
   return (
     <div className="mt-2">
-      {/* 偵測點 - 當這個元素離開視窗時，固定篩選器 */}
-      <div ref={filterSentinelRef} className="h-0" />
-
-      {/* 固定的篩選器（當滾動過偵測點時顯示，在 Header 下方） */}
-      {isFilterFixed && (
-        <div className="fixed top-[110px] left-0 right-0 z-40 shadow-md md:hidden">
-          <FilterContent />
-        </div>
-      )}
-
-      {/* 原位置的篩選器 */}
-      <div className={isFilterFixed ? 'invisible' : ''}>
+      {/* 篩選器 - 使用 sticky 定位，滾動時固定在 Header 下方 */}
+      <div className="sticky top-[106px] z-40 bg-white shadow-sm">
         <FilterContent />
       </div>
-
-      {/* 固定時的佔位空間 */}
-      {isFilterFixed && <div className="h-[88px]" />}
 
       {/* 商品瀑布流 */}
       <div className="px-2 py-2 bg-gray-50">
