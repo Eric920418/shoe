@@ -235,7 +235,7 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length)
-    }, 4000)
+    }, 2000)
     return () => clearInterval(timer)
   }, [banners.length, currentSlide]) // 加入依賴，確保使用最新的 banners.length
 
@@ -337,15 +337,15 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
           {/* 輪播控制 */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={20} className="sm:w-6 sm:h-6" />
           </button>
 
           {/* 指示器 */}
