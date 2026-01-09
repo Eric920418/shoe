@@ -94,6 +94,12 @@ function verifyTradeSha(tradeInfo: string, tradeSha: string): boolean {
   return computed === tradeSha.toUpperCase();
 }
 
+// 重定向輔助函數（使用 303 狀態碼，讓瀏覽器用 GET 方法）
+// 這是必要的，因為 POST 請求的 307 重定向會保留 POST 方法
+function redirectWithGet(url: string): NextResponse {
+  return NextResponse.redirect(new URL(url, SITE_URL), { status: 303 });
+}
+
 // 診斷函數：顯示密鑰詳細資訊
 function debugKeyInfo(): void {
   console.log('=== 密鑰診斷資訊 ===');
@@ -152,9 +158,7 @@ export async function POST(request: NextRequest) {
 
     if (!status || !tradeInfo || !tradeSha) {
       console.error('❌ CustomerURL 缺少必要參數');
-      return NextResponse.redirect(
-        new URL('/payment/error?message=門市選擇資料不完整', SITE_URL)
-      );
+      return redirectWithGet('/payment/error?message=門市選擇資料不完整');
     }
 
     // 解密資料
@@ -254,9 +258,7 @@ export async function POST(request: NextRequest) {
         const errorDetails = encodeURIComponent(
           `解密失敗: ${decryptError || '未知錯誤'}。收到欄位: ${Object.keys(allFormData).join(', ')}`
         );
-        return NextResponse.redirect(
-          new URL(`/payment/error?message=${errorDetails}`, SITE_URL)
-        );
+        return redirectWithGet(`/payment/error?message=${errorDetails}`);
       }
     }
 
@@ -287,9 +289,7 @@ export async function POST(request: NextRequest) {
     const merchantOrderNo = result?.MerchantOrderNo;
     if (!merchantOrderNo) {
       console.error('❌ 解密資料中沒有 MerchantOrderNo');
-      return NextResponse.redirect(
-        new URL('/payment/error?message=無法取得訂單編號', SITE_URL)
-      );
+      return redirectWithGet('/payment/error?message=無法取得訂單編號');
     }
 
     const payment = await prisma.payment.findUnique({
@@ -299,9 +299,7 @@ export async function POST(request: NextRequest) {
 
     if (!payment) {
       console.error('❌ 找不到支付記錄:', merchantOrderNo);
-      return NextResponse.redirect(
-        new URL('/payment/error?message=找不到訂單', SITE_URL)
-      );
+      return redirectWithGet('/payment/error?message=找不到訂單');
     }
 
     // 儲存門市資訊到訂單
@@ -325,25 +323,16 @@ export async function POST(request: NextRequest) {
       console.log('✅ 門市資訊已儲存到訂單:', payment.order.id);
 
       // 重定向到成功頁面
-      return NextResponse.redirect(
-        new URL(`/payment/success?orderId=${payment.order.id}&type=cod`, SITE_URL)
-      );
+      return redirectWithGet(`/payment/success?orderId=${payment.order.id}&type=cod`);
     } else {
       const message = decryptedData.Message || '門市選擇失敗';
       console.log('❌ 門市選擇失敗:', message);
-      return NextResponse.redirect(
-        new URL(
-          `/payment/failed?orderId=${payment.order.id}&message=${encodeURIComponent(message)}`,
-          SITE_URL
-        )
-      );
+      return redirectWithGet(`/payment/failed?orderId=${payment.order.id}&message=${encodeURIComponent(message)}`);
     }
   } catch (error: any) {
     console.error('❌ CustomerURL 處理失敗:', error);
     console.error('錯誤堆疊:', error.stack);
-    return NextResponse.redirect(
-      new URL(`/payment/error?message=處理門市選擇時發生錯誤: ${encodeURIComponent(error.message)}`, SITE_URL)
-    );
+    return redirectWithGet(`/payment/error?message=處理門市選擇時發生錯誤: ${encodeURIComponent(error.message)}`);
   }
 }
 
