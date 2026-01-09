@@ -59,6 +59,39 @@ export async function POST(request: NextRequest) {
         tradeInfo = formData.get('TradeInfo') as string;
         tradeSha = formData.get('TradeSha') as string;
         console.log('使用 formData() 解析成功');
+
+        // 🏪 檢查是否為 CVSCOM 明文格式
+        const cvsStoreID = formData.get('CVSStoreID') || formData.get('StoreCode');
+        const cvsStoreName = formData.get('CVSStoreName') || formData.get('StoreName');
+        const cvsAddress = formData.get('CVSAddress') || formData.get('StoreAddr');
+        const merchantOrderNo = formData.get('MerchantOrderNo');
+
+        console.log('🏪 formData CVSCOM 參數:', { cvsStoreID, cvsStoreName, cvsAddress, merchantOrderNo });
+
+        if (merchantOrderNo && (cvsStoreID || cvsStoreName)) {
+          console.log('📦 formData: 偵測到 CVSCOM 門市選擇返回');
+          const payment = await prisma.payment.findUnique({
+            where: { merchantOrderNo: merchantOrderNo as string },
+            include: { order: true },
+          });
+
+          if (payment) {
+            await prisma.order.update({
+              where: { id: payment.order.id },
+              data: {
+                shippingCity: (cvsStoreName as string) || payment.order.shippingCity,
+                shippingStreet: (cvsAddress as string) || payment.order.shippingStreet,
+                shippingZipCode: (cvsStoreID as string) || payment.order.shippingZipCode,
+                status: 'CONFIRMED',
+                paymentStatus: 'PENDING',
+              },
+            });
+            console.log('✅ CVSCOM 門市資訊已儲存 (formData)');
+            return NextResponse.redirect(
+              new URL(`/payment/success?orderId=${payment.order.id}&type=cod`, SITE_URL)
+            );
+          }
+        }
       } catch (error) {
         console.error('formData() 解析失敗:', error);
         // 方法 2: 使用 text() 然後手動解析
@@ -82,6 +115,39 @@ export async function POST(request: NextRequest) {
       tradeInfo = params.get('TradeInfo');
       tradeSha = params.get('TradeSha');
       console.log('使用備用方法解析');
+
+      // 🏪 檢查是否為 CVSCOM 明文格式（超商門市選擇返回）
+      const cvsStoreID = params.get('CVSStoreID') || params.get('StoreCode');
+      const cvsStoreName = params.get('CVSStoreName') || params.get('StoreName');
+      const cvsAddress = params.get('CVSAddress') || params.get('StoreAddr');
+      const merchantOrderNo = params.get('MerchantOrderNo');
+
+      console.log('🏪 POST CVSCOM 參數檢查:', { cvsStoreID, cvsStoreName, cvsAddress, merchantOrderNo });
+
+      if (merchantOrderNo && (cvsStoreID || cvsStoreName)) {
+        console.log('📦 POST: 偵測到 CVSCOM 門市選擇返回（明文格式）');
+        const payment = await prisma.payment.findUnique({
+          where: { merchantOrderNo },
+          include: { order: true },
+        });
+
+        if (payment) {
+          await prisma.order.update({
+            where: { id: payment.order.id },
+            data: {
+              shippingCity: cvsStoreName || payment.order.shippingCity,
+              shippingStreet: cvsAddress || payment.order.shippingStreet,
+              shippingZipCode: cvsStoreID || payment.order.shippingZipCode,
+              status: 'CONFIRMED',
+              paymentStatus: 'PENDING',
+            },
+          });
+          console.log('✅ CVSCOM 門市資訊已儲存');
+          return NextResponse.redirect(
+            new URL(`/payment/success?orderId=${payment.order.id}&type=cod`, SITE_URL)
+          );
+        }
+      }
     }
 
     console.log('=== 解析後的藍新金流返回資料 ===');
@@ -227,8 +293,59 @@ export async function GET(request: NextRequest) {
 
   console.log('用戶從藍新金流返回 (GET):', { status });
 
-  // 🔧 健康檢查：如果沒有參數，返回端點狀態
-  if (!status && !tradeInfo && !tradeSha) {
+  // 🏪 檢查是否為 CVSCOM 門市選擇返回（明文格式）
+  // 藍新金流的超商取貨可能直接返回門市資訊，不使用加密格式
+  const cvsStoreID = searchParams.get('CVSStoreID') || searchParams.get('StoreCode');
+  const cvsStoreName = searchParams.get('CVSStoreName') || searchParams.get('StoreName');
+  const cvsAddress = searchParams.get('CVSAddress') || searchParams.get('StoreAddr');
+  const merchantOrderNo = searchParams.get('MerchantOrderNo');
+
+  console.log('🏪 CVSCOM 參數檢查:', { cvsStoreID, cvsStoreName, cvsAddress, merchantOrderNo });
+
+  // 如果有 CVSCOM 門市資訊，優先處理
+  if (merchantOrderNo && (cvsStoreID || cvsStoreName)) {
+    console.log('📦 偵測到 CVSCOM 門市選擇返回');
+    try {
+      // 查找訂單
+      const payment = await prisma.payment.findUnique({
+        where: { merchantOrderNo },
+        include: { order: true },
+      });
+
+      if (!payment) {
+        console.error('找不到支付記錄:', merchantOrderNo);
+        return NextResponse.redirect(
+          new URL('/payment/error?message=找不到訂單', SITE_URL)
+        );
+      }
+
+      // 儲存門市資訊
+      console.log('📍 儲存超商門市資訊到訂單');
+      await prisma.order.update({
+        where: { id: payment.order.id },
+        data: {
+          shippingCity: cvsStoreName || payment.order.shippingCity,
+          shippingStreet: cvsAddress || payment.order.shippingStreet,
+          shippingZipCode: cvsStoreID || payment.order.shippingZipCode,
+          status: 'CONFIRMED',
+          paymentStatus: 'PENDING', // 貨到付款
+        },
+      });
+      console.log('✅ 門市資訊已儲存');
+
+      return NextResponse.redirect(
+        new URL(`/payment/success?orderId=${payment.order.id}&type=cod`, SITE_URL)
+      );
+    } catch (error) {
+      console.error('處理 CVSCOM 返回失敗:', error);
+      return NextResponse.redirect(
+        new URL('/payment/error?message=處理門市資訊失敗', SITE_URL)
+      );
+    }
+  }
+
+  // 🔧 健康檢查：如果沒有任何參數，返回端點狀態
+  if (!status && !tradeInfo && !tradeSha && !merchantOrderNo) {
     console.log('📍 健康檢查請求 - 無藍新金流參數');
     return NextResponse.json({
       status: 'ok',
@@ -240,6 +357,8 @@ export async function GET(request: NextRequest) {
 
   if (!status || !tradeInfo || !tradeSha) {
     console.error('❌ 缺少必要參數:', { status: !!status, tradeInfo: !!tradeInfo, tradeSha: !!tradeSha });
+    // 記錄所有收到的參數，幫助調試
+    console.log('📋 所有收到的參數:', Object.fromEntries(searchParams.entries()));
     return NextResponse.redirect(
       new URL('/payment/error?message=資料不完整', SITE_URL)
     );

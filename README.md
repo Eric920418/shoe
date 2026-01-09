@@ -900,6 +900,33 @@ rclone copy public/uploads r2:your-bucket/uploads --progress
    - 確保外層參數：UID_, Version_, RespondType_, EncryptData_, HashData_
    - 確保內層只放業務欄位：LgsType, ShipType, MerchantOrderNo 等
 
+### 超商取貨（CVSCOM）回調問題排查
+
+如果超商取貨選擇門市後，訂單沒有顯示門市資訊：
+
+1. **檢查 ReturnURL 環境變數**
+   - 訪問 `/api/newebpay/debug` 確認配置
+   - 確保 `NEWEBPAY_RETURN_URL` 設置為完整的 HTTPS URL
+   - 例如：`https://yourdomain.com/api/newebpay/return`
+
+2. **測試 Return 端點可達性**
+   ```bash
+   # 直接訪問確認端點正常
+   curl https://yourdomain.com/api/newebpay/return
+   # 應該返回 {"status":"ok",...}
+   ```
+
+3. **檢查 Vercel 日誌**
+   - 搜索 `🚨 藍新金流 RETURN` 相關日誌
+   - 如果沒有任何日誌，表示藍新金流無法回調
+   - 確認 Vercel 環境變數設置正確
+
+4. **常見問題**
+   - ReturnURL 未設置或格式錯誤
+   - 使用 HTTP 而非 HTTPS
+   - 網域名稱錯誤或拼寫錯誤
+   - 藍新金流測試環境無法連接到您的網站
+
 ### 資料庫遷移安全規則
 
 ⚠️ **禁止使用 `--accept-data-loss` 參數**（根據 CLAUDE.md 規範）

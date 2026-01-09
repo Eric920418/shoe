@@ -32,7 +32,12 @@
       "WebFetch(domain:firebasestorage.googleapis.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(pnpm prisma generate:*)",
-      "WebFetch(domain:www.xn--cjzl80byf571b.tw)"
+      "WebFetch(domain:www.xn--cjzl80byf571b.tw)",
+      "WebFetch(domain:ihower.tw)",
+      "WebFetch(domain:publish-01.obsidian.md)",
+      "WebFetch(domain:ctaohe.github.io)",
+      "WebFetch(domain:blog.tinybook.cc)",
+      "WebFetch(domain:www.newebpay.com)"
     ],
     "deny": [],
     "ask": []
