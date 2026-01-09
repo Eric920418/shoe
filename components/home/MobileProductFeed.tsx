@@ -76,22 +76,13 @@ export default function MobileProductFeed({
     return { categoryIds, brandIds, minPrice, maxPrice, sortBy }
   }, [searchParams])
 
-  // 快捷分類類型
-  type QuickCategoryType = 'all' | 'women' | 'men_kids' | 'other'
-
   // 篩選狀態 - 從 URL 初始化
   const [filters, setFilters] = useState<FilterState>(parseFiltersFromUrl)
-  const [showFilterPanel, setShowFilterPanel] = useState(false)
-  const [tempFilters, setTempFilters] = useState<FilterState>(filters)
-
-  // 快捷分類狀態
-  const [selectedQuickCategory, setSelectedQuickCategory] = useState<QuickCategoryType>('all')
 
   // 當 URL 變化時更新篩選狀態（處理返回鍵）
   useEffect(() => {
     const urlFilters = parseFiltersFromUrl()
     setFilters(urlFilters)
-    setTempFilters(urlFilters)
     setLoadedCount(0)
     setHasMore(true)
   }, [searchParams, parseFiltersFromUrl])
@@ -283,20 +274,6 @@ export default function MobileProductFeed({
     updateUrlWithFilters(newFilters)
   }
 
-  // 套用篩選 - 更新 URL（會觸發 searchParams 變化，自動更新 filters 狀態）
-  const applyFilters = () => {
-    updateUrlWithFilters(tempFilters)
-    setShowFilterPanel(false)
-  }
-
-  // 重置篩選 - 清空 URL 參數
-  const resetFilters = () => {
-    const reset: FilterState = { categoryIds: [], brandIds: [], sortBy: 'recommend' }
-    setTempFilters(reset)
-    updateUrlWithFilters(reset)
-    setShowFilterPanel(false)
-  }
-
   // 格式化銷量
   const formatSales = (count: number) => {
     if (count >= 10000) return `${(count / 10000).toFixed(1)}萬`
@@ -311,9 +288,6 @@ export default function MobileProductFeed({
     { key: 'price_asc', label: '價格↑' },
     { key: 'price_desc', label: '價格↓' },
   ]
-
-  // 檢查是否有啟用篩選（使用前面定義的 hasFilters）
-  const hasActiveFilters = hasFilters
 
   // 篩選器內容（用於固定和非固定狀態）
   const FilterContent = () => (
@@ -346,25 +320,6 @@ export default function MobileProductFeed({
             {option.label}
           </button>
         ))}
-
-        {/* 篩選按鈕 */}
-        <button
-          onClick={() => {
-            setTempFilters(filters)
-            setShowFilterPanel(true)
-          }}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 flex items-center gap-1 ${
-            hasActiveFilters
-              ? 'bg-orange-100 text-orange-600 border border-orange-300'
-              : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          篩選
-          {hasActiveFilters && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}
-        </button>
       </div>
     </>
   )
@@ -545,131 +500,10 @@ export default function MobileProductFeed({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
-            <p className="text-gray-500 text-sm">沒有找到符合條件的商品</p>
-            <button
-              onClick={resetFilters}
-              className="mt-3 text-orange-500 text-sm font-medium"
-            >
-              清除篩選條件
-            </button>
+            <p className="text-gray-500 text-sm">暫無商品</p>
           </div>
         )}
       </div>
-
-      {/* 篩選面板 */}
-      {showFilterPanel && (
-        <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowFilterPanel(false)}>
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] overflow-y-auto animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 標題 */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-              <h3 className="font-bold text-base">篩選條件</h3>
-              <button
-                onClick={() => setShowFilterPanel(false)}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* 快捷分類（三個按鈕） */}
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">分類</h4>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setSelectedQuickCategory('women')}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedQuickCategory === 'women'
-                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="text-lg block mb-1">👠</span>
-                  女鞋
-                </button>
-                <button
-                  onClick={() => setSelectedQuickCategory('men_kids')}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedQuickCategory === 'men_kids'
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="text-lg block mb-1">👟</span>
-                  男鞋和童鞋
-                </button>
-                <button
-                  onClick={() => setSelectedQuickCategory('other')}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedQuickCategory === 'other'
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="text-lg block mb-1">📦</span>
-                  其他
-                </button>
-              </div>
-              {selectedQuickCategory !== 'all' && (
-                <button
-                  onClick={() => setSelectedQuickCategory('all')}
-                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  清除分類選擇
-                </button>
-              )}
-            </div>
-
-            {/* 價格範圍 */}
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">價格範圍</h4>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="最低"
-                  value={tempFilters.minPrice || ''}
-                  onChange={(e) => setTempFilters(prev => ({
-                    ...prev,
-                    minPrice: e.target.value ? Number(e.target.value) : undefined
-                  }))}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                />
-                <span className="text-gray-400">-</span>
-                <input
-                  type="number"
-                  placeholder="最高"
-                  value={tempFilters.maxPrice || ''}
-                  onChange={(e) => setTempFilters(prev => ({
-                    ...prev,
-                    maxPrice: e.target.value ? Number(e.target.value) : undefined
-                  }))}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                />
-              </div>
-            </div>
-
-            {/* 按鈕區 */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-3">
-              <button
-                onClick={resetFilters}
-                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-600"
-              >
-                重置
-              </button>
-              <button
-                onClick={applyFilters}
-                className="flex-1 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-medium"
-              >
-                套用篩選
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 快速加入購物車 Modal */}
       {modalProduct && (

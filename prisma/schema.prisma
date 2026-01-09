@@ -142,11 +142,13 @@ model Category {
   image           String?
   sortOrder       Int              @default(0)
   isActive        Boolean          @default(true)
+  mainCategory    MainCategory     @default(OTHER) // 所屬主分類（女鞋/男鞋&童鞋/其他）
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   categoryDisplay CategoryDisplay?
   products        Product[]
 
+  @@index([mainCategory, isActive, sortOrder])
   @@map("categories")
 }
 
@@ -1208,6 +1210,13 @@ enum ProductGender {
   WOMEN
   UNISEX
   KIDS
+}
+
+// 主分類（用於篩選器）
+enum MainCategory {
+  WOMEN    // 女鞋
+  MEN_KIDS // 男鞋和童鞋
+  OTHER    // 其他
 }
 
 enum OrderStatus {

@@ -37,7 +37,8 @@
       "WebFetch(domain:publish-01.obsidian.md)",
       "WebFetch(domain:ctaohe.github.io)",
       "WebFetch(domain:blog.tinybook.cc)",
-      "WebFetch(domain:www.newebpay.com)"
+      "WebFetch(domain:www.newebpay.com)",
+      "Bash(pnpm exec tsc:*)"
     ],
     "deny": [],
     "ask": []

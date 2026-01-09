@@ -53,6 +53,13 @@ export const typeDefs = gql`
     KIDS
   }
 
+  # 主分類（用於篩選器）
+  enum MainCategory {
+    WOMEN    # 女鞋
+    MEN_KIDS # 男鞋和童鞋
+    OTHER    # 其他
+  }
+
   # 尺码合适度（鞋店專屬）
   enum SizeFit {
     TOO_SMALL
@@ -296,6 +303,7 @@ export const typeDefs = gql`
     image: String
     sortOrder: Int!
     isActive: Boolean!
+    mainCategory: MainCategory!
     products: [Product!]!
     productCount: Int!
     createdAt: DateTime!
@@ -2291,6 +2299,7 @@ export const typeDefs = gql`
     slug: String
     image: String
     sortOrder: Int
+    mainCategory: MainCategory
   }
 
   input UpdateCategoryInput {
@@ -2299,6 +2308,7 @@ export const typeDefs = gql`
     image: String
     sortOrder: Int
     isActive: Boolean
+    mainCategory: MainCategory
   }
 
   input CreateBrandInput {

@@ -155,6 +155,7 @@ export const GET_CATEGORIES = gql`
       name
       slug
       isActive
+      mainCategory
       productCount
     }
   }
@@ -1072,6 +1073,7 @@ export const UPDATE_CATEGORY = gql`
       name
       sortOrder
       isActive
+      mainCategory
       updatedAt
     }
   }
