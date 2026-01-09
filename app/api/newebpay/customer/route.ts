@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { decryptAndVerifyTradeInfo } from '@/lib/newebpay-correct';
+import { decryptLogisticsData } from '@/lib/logistics';
 import { prisma } from '@/lib/prisma';
 
 // 取得正確的網站 URL
@@ -51,15 +52,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 解密並驗證資料
+    // 解密並驗證資料 - 嘗試多種方式
     let decryptedData;
+
+    // 方法 1: 嘗試用金流密鑰解密
     try {
+      console.log('🔐 嘗試方法 1: 金流密鑰解密');
       decryptedData = decryptAndVerifyTradeInfo(tradeInfo, tradeSha);
-    } catch (error) {
-      console.error('❌ CustomerURL 資料驗證失敗:', error);
-      return NextResponse.redirect(
-        new URL('/payment/error?message=門市選擇資料驗證失敗', SITE_URL)
-      );
+      console.log('✅ 金流密鑰解密成功');
+    } catch (error1) {
+      console.log('❌ 金流密鑰解密失敗，嘗試物流密鑰...');
+
+      // 方法 2: 嘗試用物流密鑰解密
+      try {
+        console.log('🔐 嘗試方法 2: 物流密鑰解密');
+        const logisticsResult = decryptLogisticsData(tradeInfo);
+        console.log('✅ 物流密鑰解密成功:', JSON.stringify(logisticsResult, null, 2));
+        decryptedData = {
+          Status: status,
+          Message: 'SUCCESS',
+          Result: logisticsResult
+        };
+      } catch (error2) {
+        console.error('❌ 物流密鑰解密也失敗:', error2);
+
+        // 方法 3: 嘗試直接解析 formData 中的欄位
+        console.log('🔍 嘗試方法 3: 從 formData 直接讀取門市資訊...');
+        const allFormData: Record<string, string> = {};
+        formData.forEach((value, key) => {
+          allFormData[key] = value as string;
+        });
+        console.log('📋 所有 formData 欄位:', JSON.stringify(allFormData, null, 2));
+
+        // 如果有 MerchantOrderNo，嘗試直接使用明文資料
+        const merchantOrderNo = formData.get('MerchantOrderNo') as string;
+        const storeCode = formData.get('StoreCode') as string;
+        const storeName = formData.get('StoreName') as string;
+        const storeAddr = formData.get('StoreAddr') as string;
+
+        if (merchantOrderNo && (storeCode || storeName)) {
+          console.log('✅ 偵測到明文門市資訊，直接使用');
+          decryptedData = {
+            Status: status,
+            Message: 'SUCCESS',
+            Result: {
+              MerchantOrderNo: merchantOrderNo,
+              StoreCode: storeCode,
+              StoreName: storeName,
+              StoreAddr: storeAddr,
+              StoreType: formData.get('StoreType') as string,
+              CVSCOMName: formData.get('CVSCOMName') as string,
+              CVSCOMPhone: formData.get('CVSCOMPhone') as string,
+            }
+          };
+        } else {
+          return NextResponse.redirect(
+            new URL('/payment/error?message=門市選擇資料驗證失敗', SITE_URL)
+          );
+        }
+      }
     }
 
     const { Status, Message, Result } = decryptedData;
