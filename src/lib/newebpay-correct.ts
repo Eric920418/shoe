@@ -273,9 +273,13 @@ export function createPaymentData(params: {
     tradeData.CVSCOM = 2; // 啟用超商取貨付款（貨到付款）
     console.log('   📦 啟用 CVSCOM = 2（超商取貨付款/貨到付款）');
 
-    // 🔥 重要：對於 CVSCOM 模式，藍新金流選擇門市後會返回資訊
-    // 確保 ReturnURL 正確接收門市資訊
-    console.log('   🔗 ReturnURL (將接收門市資訊):', tradeData.ReturnURL);
+    // 🔥 關鍵：CVSCOM 模式需要 CustomerURL 來接收門市選擇的回調
+    // 選擇門市後會觸發 CustomerURL，不是 ReturnURL！
+    // NotifyURL 只有在消費者實際到超商付款取貨後才會被觸發
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://xn--cjzl80byf571b.tw';
+    tradeData.CustomerURL = `${baseUrl}/api/newebpay/customer`;
+    console.log('   🏪 CustomerURL (接收門市選擇):', tradeData.CustomerURL);
+    console.log('   🔗 ReturnURL (付款完成後):', tradeData.ReturnURL);
   } else {
     console.log('🚫 判定為 [純金流/宅配/自取] -> 強制移除 LgsType');
     // 確保完全移除，不留痕跡
