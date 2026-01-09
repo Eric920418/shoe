@@ -1,0 +1,10 @@
+# API名稱與目錄對照
+|目錄                   |API名稱|                                             
+|:--                    |:--|
+|/createShipment        |建立物流配送單|
+|/queryShipment         |查詢物流配送單|
+|/getShipmentNo         |取得寄件單號|
+|/printLabel            |物流標籤列印|
+|/modifyShipment        |修改物流配送單|
+|/storeMap              |物流門市地圖選取|
+|/trace                 |查詢物流貨態歷程|

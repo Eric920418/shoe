@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.4.7 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-05
+**版本**: 2.4.9 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-09
 
 ---
 
@@ -902,30 +902,38 @@ rclone copy public/uploads r2:your-bucket/uploads --progress
 
 ### 超商取貨（CVSCOM）回調問題排查
 
+**重要：CVSCOM 門市選擇使用 `CustomerURL`，不是 `ReturnURL`！**
+
+藍新金流的三種回調 URL：
+- **CustomerURL**: 用戶選擇門市後觸發（CVSCOM 專用）
+- **ReturnURL**: 一般金流付款完成後觸發
+- **NotifyURL**: 消費者實際到超商付款取貨後觸發（背景通知）
+
 如果超商取貨選擇門市後，訂單沒有顯示門市資訊：
 
-1. **檢查 ReturnURL 環境變數**
-   - 訪問 `/api/newebpay/debug` 確認配置
-   - 確保 `NEWEBPAY_RETURN_URL` 設置為完整的 HTTPS URL
-   - 例如：`https://yourdomain.com/api/newebpay/return`
+1. **確認 CustomerURL 端點存在**
+   - 訪問 `/api/newebpay/customer` 確認端點存在
+   - 應該返回 `{"status":"ok",...}`
 
-2. **測試 Return 端點可達性**
-   ```bash
-   # 直接訪問確認端點正常
-   curl https://yourdomain.com/api/newebpay/return
-   # 應該返回 {"status":"ok",...}
-   ```
-
-3. **檢查 Vercel 日誌**
-   - 搜索 `🚨 藍新金流 RETURN` 相關日誌
+2. **檢查 Vercel 日誌**
+   - 搜索 `🏪🏪🏪 藍新金流 CustomerURL` 相關日誌
    - 如果沒有任何日誌，表示藍新金流無法回調
-   - 確認 Vercel 環境變數設置正確
+   - 確認 `NEXT_PUBLIC_SITE_URL` 環境變數設置正確
 
-4. **常見問題**
-   - ReturnURL 未設置或格式錯誤
+3. **確認程式碼設置了 CustomerURL**
+   - 在 `src/lib/newebpay-correct.ts` 的 `createPaymentData` 函數中
+   - CVSCOM 模式應自動設置：`tradeData.CustomerURL = \`${baseUrl}/api/newebpay/customer\``
+
+4. **解密失敗排查**
+   - 如果收到回調但解密失敗，檢查 `NEWEBPAY_HASH_KEY` 和 `NEWEBPAY_HASH_IV` 長度
+   - HashKey 應為 32 字元，HashIV 應為 16 字元
+   - 確認使用正確環境的憑證（測試/正式）
+
+5. **常見問題**
+   - CVSCOM 參數未設置（應為 `2` = 取貨付款）
+   - CustomerURL 未在 tradeData 中設置
    - 使用 HTTP 而非 HTTPS
-   - 網域名稱錯誤或拼寫錯誤
-   - 藍新金流測試環境無法連接到您的網站
+   - HashKey/HashIV 錯誤或長度不對
 
 ### 資料庫遷移安全規則
 
@@ -944,7 +952,24 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
-### 🔥 近期重點更新（2026-01-06）
+### 🔥 近期重點更新（2026-01-09）
+
+#### ✅ CVSCOM CustomerURL 端點修正（v2.4.9）
+- **問題描述**：超商取貨付款選擇門市後，門市資訊未儲存到訂單
+- **根本原因**：CVSCOM 門市選擇的回調是發送到 `CustomerURL`，不是 `ReturnURL` 或 `NotifyURL`
+- **解決方案**：
+  - 新增 `/api/newebpay/customer` 端點接收門市選擇回調
+  - 在 `createPaymentData` 中為 CVSCOM 模式自動設置 `CustomerURL` 參數
+  - 實作多種 AES 解密方法以處理不同格式
+- **技術說明**：
+  - 藍新金流三種回調 URL：
+    - `CustomerURL` - 用戶選擇門市後觸發（CVSCOM 專用）
+    - `ReturnURL` - 一般金流付款完成後觸發
+    - `NotifyURL` - 消費者實際付款後觸發
+- **影響範圍**：
+  - `app/api/newebpay/customer/route.ts` - 新增端點
+  - `src/lib/newebpay-correct.ts` - 添加 CustomerURL 參數
+  - `README.md` - 更新故障排除文件
 
 #### ✅ 管理後台聊天未讀訊息徽章（v2.4.8）
 - **功能描述**：在管理後台儀表板的「查看聊天」按鈕右上角顯示未讀訊息數量徽章
