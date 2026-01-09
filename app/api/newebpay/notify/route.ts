@@ -195,6 +195,15 @@ export async function POST(request: NextRequest) {
     console.log('訂單編號:', Result.MerchantOrderNo);
     console.log('交易金額:', Result.Amt);
 
+    // 🔍 記錄完整的回傳資料（用於調試超商取貨資訊）
+    console.log('=== 藍新金流完整回傳資料 ===');
+    console.log(JSON.stringify(Result, null, 2));
+    console.log('超商門市代號 (StoreCode):', Result.StoreCode);
+    console.log('超商門市名稱 (StoreName):', Result.StoreName);
+    console.log('超商門市地址 (StoreAddr):', Result.StoreAddr);
+    console.log('超商類型 (StoreType):', Result.StoreType);
+    console.log('================================');
+
     // 檢查交易狀態
     if (Status !== 'SUCCESS') {
       console.error('⚠️  交易失敗:', Message);
@@ -320,13 +329,28 @@ async function updatePaymentRecord(
 
     // 更新訂單狀態
     if (status === 'SUCCESS') {
+      // 準備訂單更新資料
+      const orderUpdateData: any = {
+        paymentStatus: 'PAID',
+        paidAt: updateData.payTime,
+        status: 'CONFIRMED', // 付款成功後自動確認訂單
+      };
+
+      // 🏪 如果是超商取貨，儲存門市資訊
+      if (Result.StoreCode || Result.StoreName || Result.StoreAddr) {
+        console.log('📍 偵測到超商取貨資訊，儲存到訂單中');
+        // 用現有欄位儲存超商門市資訊
+        // shippingCity -> 門市名稱
+        // shippingStreet -> 門市地址
+        // shippingZipCode -> 門市代號
+        if (Result.StoreName) orderUpdateData.shippingCity = Result.StoreName;
+        if (Result.StoreAddr) orderUpdateData.shippingStreet = Result.StoreAddr;
+        if (Result.StoreCode) orderUpdateData.shippingZipCode = Result.StoreCode;
+      }
+
       await prisma.order.update({
         where: { id: payment.orderId },
-        data: {
-          paymentStatus: 'PAID',
-          paidAt: updateData.payTime,
-          status: 'CONFIRMED', // 付款成功後自動確認訂單
-        },
+        data: orderUpdateData,
       });
 
       console.log(`訂單 ${payment.order.orderNumber} 支付成功`);

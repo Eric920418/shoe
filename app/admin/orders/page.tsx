@@ -166,7 +166,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
+    <div className="space-y-4 lg:space-y-6">
       {/* 頁面標題 */}
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">訂單管理</h1>
@@ -369,9 +369,9 @@ export default function OrdersPage() {
       </div>
 
       {/* 桌面版表格 */}
-      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[1100px]">
             <thead className="bg-gray-50">
               <tr>
                 <th className="w-12 px-4 py-3">

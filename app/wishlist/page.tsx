@@ -149,7 +149,6 @@ export default function WishlistPage() {
               const product = item.product
               const images = Array.isArray(product.images) ? product.images : JSON.parse(product.images || '[]')
               const mainImage = images[0] || '/placeholder-product.png'
-              const isOutOfStock = product.stock === 0
 
               return (
                 <div
@@ -172,12 +171,7 @@ export default function WishlistPage() {
 
                       {/* Badges */}
                       <div className="absolute top-2 left-2 flex flex-col gap-2">
-                        {isOutOfStock && (
-                          <span className="px-2 py-1 bg-gray-900 text-white text-xs font-semibold rounded">
-                            售完
-                          </span>
-                        )}
-                        {product.isFeatured && !isOutOfStock && (
+                        {product.isFeatured && (
                           <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-semibold rounded">
                             精選
                           </span>
@@ -238,17 +232,9 @@ export default function WishlistPage() {
                           e.preventDefault()
                           router.push(`/products/${product.slug}`)
                         }}
-                        disabled={isOutOfStock}
-                        className={`
-                          w-full py-2 rounded-lg text-sm font-medium transition-colors
-                          ${
-                            isOutOfStock
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-gray-900 text-white hover:bg-gray-800'
-                          }
-                        `}
+                        className="w-full py-2 rounded-lg text-sm font-medium transition-colors bg-gray-900 text-white hover:bg-gray-800"
                       >
-                        {isOutOfStock ? '已售完' : '查看商品'}
+                        加入購物車
                       </button>
                     </div>
                   </Link>
