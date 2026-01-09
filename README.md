@@ -1059,9 +1059,14 @@ pnpm prisma migrate reset
 - **問題修正**：
   1. **CVSCOM 參數錯誤** - 原本設定為 `1`（取貨不付款），修正為 `2`（取貨付款/貨到付款）
   2. **OrderItemInput 缺少 sizeChartId** - 導致訪客結帳 400 錯誤
+  3. **超商門市資訊未儲存** - 付款成功後，從藍新回傳資料中提取並儲存超商門市資訊
 - **配送方式簡化**：
   - 統一為 `CVS_PICKUP`（超商取貨），藍新頁面自動顯示 7-11、全家、萊爾富可選
   - 運費統一 60 元
+- **超商門市資訊儲存**（付款成功後自動儲存）：
+  - `shippingCity` ← 門市名稱 (StoreName)
+  - `shippingStreet` ← 門市地址 (StoreAddr)
+  - `shippingZipCode` ← 門市代號 (StoreCode)
 - **CVSCOM 參數說明**（根據藍新金流 API 文件）：
   - `0` = 不開啟
   - `1` = 啟用超商取貨「不付款」
@@ -1072,6 +1077,8 @@ pnpm prisma migrate reset
   - `src/graphql/schema.ts` - ShippingMethod enum 簡化 + OrderItemInput
   - `src/graphql/resolvers/orderResolvers.ts` - 運費計算
   - `app/checkout/page.tsx` - 前端選項簡化
+  - `app/api/newebpay/notify/route.ts` - 儲存超商門市資訊
+  - `app/admin/orders/[id]/page.tsx` - 讀取並顯示超商門市資訊
 
 ### 🔥 近期重點更新（2025-12-30）
 

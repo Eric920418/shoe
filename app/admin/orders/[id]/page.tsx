@@ -72,6 +72,8 @@ export default function AdminOrderDetailPage() {
   useEffect(() => {
     if (!orderId || !data?.order) return
 
+    const order = data.order
+
     const fetchLogistics = async () => {
       setIsQueryingLogistics(true)
       try {
@@ -90,9 +92,29 @@ export default function AdminOrderDetailPage() {
         if (response.ok && result.data) {
           console.log('物流查詢結果:', result)
           setLogisticsInfo(result.data)
+        } else {
+          // 🏪 如果物流 API 查詢失敗，嘗試從訂單資料中讀取超商門市資訊
+          // 這些資訊是在付款成功時從藍新金流回傳並儲存的
+          if (order.shippingMethod === 'CVS_PICKUP' && (order.shippingCity || order.shippingStreet || order.shippingZipCode)) {
+            console.log('使用訂單中儲存的超商門市資訊')
+            setLogisticsInfo({
+              ReceiverStoreName: order.shippingCity || '',      // 門市名稱
+              ReceiverAddress: order.shippingStreet || '',       // 門市地址
+              ReceiverStoreID: order.shippingZipCode || '',      // 門市代號
+            })
+          }
         }
       } catch (error: any) {
         console.error('查詢物流資訊失敗:', error)
+        // 🏪 查詢失敗時，也嘗試從訂單資料中讀取
+        if (order.shippingMethod === 'CVS_PICKUP' && (order.shippingCity || order.shippingStreet || order.shippingZipCode)) {
+          console.log('查詢失敗，使用訂單中儲存的超商門市資訊')
+          setLogisticsInfo({
+            ReceiverStoreName: order.shippingCity || '',
+            ReceiverAddress: order.shippingStreet || '',
+            ReceiverStoreID: order.shippingZipCode || '',
+          })
+        }
       } finally {
         setIsQueryingLogistics(false)
       }

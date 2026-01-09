@@ -369,9 +369,9 @@ export default function OrdersPage() {
       </div>
 
       {/* 桌面版表格 */}
-      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px]">
+          <table className="w-full min-w-[1200px] table-fixed">
             <thead className="bg-gray-50">
               <tr>
                 <th className="w-12 px-4 py-3">
@@ -382,14 +382,14 @@ export default function OrdersPage() {
                     className="w-4 h-4 text-primary-600 rounded"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品數</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">付款狀態</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單狀態</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">建立時間</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                <th className="w-[220px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">訂單編號</th>
+                <th className="w-[180px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">客戶</th>
+                <th className="w-[70px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">商品數</th>
+                <th className="w-[100px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">金額</th>
+                <th className="w-[90px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">付款狀態</th>
+                <th className="w-[90px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">訂單狀態</th>
+                <th className="w-[150px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">建立時間</th>
+                <th className="w-[80px] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -416,36 +416,36 @@ export default function OrdersPage() {
                           className="w-4 h-4 text-primary-600 rounded"
                         />
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-gray-900 truncate">{order.orderNumber}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{customerName}</p>
-                          {customerEmail && <p className="text-xs text-gray-500">{customerEmail}</p>}
+                      <td className="px-4 py-4">
+                        <div className="truncate">
+                          <p className="text-sm font-medium text-gray-900 truncate">{customerName}</p>
+                          {customerEmail && <p className="text-xs text-gray-500 truncate">{customerEmail}</p>}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{itemCount} 件</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{itemCount} 件</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
                         ${order.total.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-sm ${paymentStatusLabels[order.paymentStatus]?.color || 'text-gray-600'}`}>
+                      <td className="px-4 py-4">
+                        <span className={`text-sm whitespace-nowrap ${paymentStatusLabels[order.paymentStatus]?.color || 'text-gray-600'}`}>
                           {paymentStatusLabels[order.paymentStatus]?.label || order.paymentStatus}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusLabels[order.status]?.color || 'bg-gray-100 text-gray-700'}`}>
+                      <td className="px-4 py-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${statusLabels[order.status]?.color || 'bg-gray-100 text-gray-700'}`}>
                           {statusLabels[order.status]?.label || order.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formattedDate}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{formattedDate}</td>
+                      <td className="px-4 py-4">
                         <Link
                           href={`/admin/orders/${order.id}`}
-                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium whitespace-nowrap"
                         >
-                          查看詳情
+                          詳情
                         </Link>
                       </td>
                     </tr>

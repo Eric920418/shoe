@@ -29,8 +29,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* 主內容區 - 響應式調整 */}
-        <main className="flex-1 lg:p-6 pb-20 lg:pb-6">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 min-w-0 lg:p-6 pb-20 lg:pb-6">
+          <div className="w-full">
             {/* 手機版內容區域 - 減少內邊距 */}
             <div className="p-4 lg:p-0">
               {children}
