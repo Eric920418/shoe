@@ -594,7 +594,7 @@ export default function CartPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">運費</span>
-                    <span className="text-green-600 font-medium">免運費</span>
+                    <span className="text-black font-medium">NT$ 49</span>
                   </div>
                   <div className="border-t border-gray-300 pt-4">
                     <div className="flex justify-between items-baseline">
@@ -602,7 +602,7 @@ export default function CartPage() {
                         總計
                       </span>
                       <span className="text-2xl font-black text-black">
-                        NT$ {selectedTotal.toLocaleString()}
+                        NT$ {(selectedTotal + 49).toLocaleString()}
                       </span>
                     </div>
                   </div>

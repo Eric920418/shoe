@@ -76,10 +76,16 @@ export default function MobileProductFeed({
     return { categoryIds, brandIds, minPrice, maxPrice, sortBy }
   }, [searchParams])
 
+  // 快捷分類類型
+  type QuickCategoryType = 'all' | 'women' | 'men_kids' | 'other'
+
   // 篩選狀態 - 從 URL 初始化
   const [filters, setFilters] = useState<FilterState>(parseFiltersFromUrl)
   const [showFilterPanel, setShowFilterPanel] = useState(false)
   const [tempFilters, setTempFilters] = useState<FilterState>(filters)
+
+  // 快捷分類狀態
+  const [selectedQuickCategory, setSelectedQuickCategory] = useState<QuickCategoryType>('all')
 
   // 當 URL 變化時更新篩選狀態（處理返回鍵）
   useEffect(() => {
@@ -570,100 +576,52 @@ export default function MobileProductFeed({
               </button>
             </div>
 
-            {/* 分類篩選（可複選） */}
+            {/* 快捷分類（三個按鈕） */}
             <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                分類
-                {tempFilters.categoryIds.length > 0 && (
-                  <span className="ml-2 text-orange-500">已選 {tempFilters.categoryIds.length}</span>
-                )}
-              </h4>
-              <div className="flex flex-wrap gap-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">分類</h4>
+              <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => setTempFilters(prev => ({ ...prev, categoryIds: [] }))}
-                  className={`px-3 py-1.5 rounded-full text-xs ${
-                    tempFilters.categoryIds.length === 0
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
+                  onClick={() => setSelectedQuickCategory('women')}
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedQuickCategory === 'women'
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  全部
+                  <span className="text-lg block mb-1">👠</span>
+                  女鞋
                 </button>
-                {categories.filter((c: any) => c.isActive).map((category: any) => {
-                  const isSelected = tempFilters.categoryIds.includes(category.id)
-                  return (
-                    <button
-                      key={category.id}
-                      onClick={() => setTempFilters(prev => ({
-                        ...prev,
-                        categoryIds: isSelected
-                          ? prev.categoryIds.filter(id => id !== category.id)
-                          : [...prev.categoryIds, category.id]
-                      }))}
-                      className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 ${
-                        isSelected
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {isSelected && (
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                      {category.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* 品牌篩選（可複選） */}
-            <div className="px-4 py-3 border-b border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                品牌
-                {tempFilters.brandIds.length > 0 && (
-                  <span className="ml-2 text-orange-500">已選 {tempFilters.brandIds.length}</span>
-                )}
-              </h4>
-              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setTempFilters(prev => ({ ...prev, brandIds: [] }))}
-                  className={`px-3 py-1.5 rounded-full text-xs ${
-                    tempFilters.brandIds.length === 0
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
+                  onClick={() => setSelectedQuickCategory('men_kids')}
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedQuickCategory === 'men_kids'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  全部
+                  <span className="text-lg block mb-1">👟</span>
+                  男鞋和童鞋
                 </button>
-                {brands.filter((b: any) => b.isActive).slice(0, 12).map((brand: any) => {
-                  const isSelected = tempFilters.brandIds.includes(brand.id)
-                  return (
-                    <button
-                      key={brand.id}
-                      onClick={() => setTempFilters(prev => ({
-                        ...prev,
-                        brandIds: isSelected
-                          ? prev.brandIds.filter(id => id !== brand.id)
-                          : [...prev.brandIds, brand.id]
-                      }))}
-                      className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 ${
-                        isSelected
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {isSelected && (
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                      {brand.name}
-                    </button>
-                  )
-                })}
+                <button
+                  onClick={() => setSelectedQuickCategory('other')}
+                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedQuickCategory === 'other'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="text-lg block mb-1">📦</span>
+                  其他
+                </button>
               </div>
+              {selectedQuickCategory !== 'all' && (
+                <button
+                  onClick={() => setSelectedQuickCategory('all')}
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  清除分類選擇
+                </button>
+              )}
             </div>
 
             {/* 價格範圍 */}

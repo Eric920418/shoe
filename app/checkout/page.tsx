@@ -216,7 +216,7 @@ function CheckoutContent() {
 
   // 計算總金額（扣除優惠券和購物金）
   // 根據配送方式計算運費
-  const shippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 60
+  const shippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 49
     : formData.shippingMethod === 'HOME_DELIVERY' ? 120
     : 0 // SELF_PICKUP 免運費
   const couponDiscount = appliedCoupon?.discount || 0
@@ -559,7 +559,7 @@ function CheckoutContent() {
                           <div className="text-sm text-gray-600">7-11、全家、萊爾富，付款時選擇門市</div>
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-black">運費 $60</div>
+                      <div className="text-lg font-bold text-black">運費 $49</div>
                     </div>
                   </label>
 

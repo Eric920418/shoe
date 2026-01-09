@@ -520,7 +520,7 @@ export const orderResolvers = {
         let shippingFee = 0
         switch (input.shippingMethod) {
           case 'CVS_PICKUP':
-            shippingFee = 60 // 超商取貨統一運費 60 元
+            shippingFee = 49 // 超商取貨統一運費 49 元
             break
           case 'HOME_DELIVERY':
             shippingFee = 120
@@ -529,7 +529,7 @@ export const orderResolvers = {
             shippingFee = 0
             break
           default:
-            shippingFee = 60
+            shippingFee = 49
         }
         let discount = 0
         let creditsUsed = 0

@@ -108,6 +108,16 @@ export async function POST(request: NextRequest) {
 
     const { Status, Message, Result } = decryptedData;
 
+    // 🔍 記錄完整的回傳資料（用於調試）
+    console.log('=== 藍新金流 Return 完整回傳資料 ===');
+    console.log(JSON.stringify(Result, null, 2));
+    console.log('PaymentType:', Result.PaymentType);
+    console.log('超商門市代號 (StoreCode):', Result.StoreCode);
+    console.log('超商門市名稱 (StoreName):', Result.StoreName);
+    console.log('超商門市地址 (StoreAddr):', Result.StoreAddr);
+    console.log('超商類型 (StoreType):', Result.StoreType);
+    console.log('=====================================');
+
     // 查找對應的訂單
     const payment = await prisma.payment.findUnique({
       where: { merchantOrderNo: Result.MerchantOrderNo },
@@ -121,6 +131,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 🏪 如果有超商門市資訊，儲存到訂單中（貨到付款時會在這裡回傳）
+    if (Result.StoreCode || Result.StoreName || Result.StoreAddr) {
+      console.log('📍 偵測到超商門市資訊，儲存到訂單中');
+      await prisma.order.update({
+        where: { id: payment.order.id },
+        data: {
+          shippingCity: Result.StoreName || payment.order.shippingCity,
+          shippingStreet: Result.StoreAddr || payment.order.shippingStreet,
+          shippingZipCode: Result.StoreCode || payment.order.shippingZipCode,
+        },
+      });
+      console.log('✅ 超商門市資訊已儲存');
+    }
+
     // 根據支付狀態重定向
     if (Status === 'SUCCESS') {
       // 支付成功
@@ -128,6 +152,23 @@ export async function POST(request: NextRequest) {
 
       // ATM/超商代碼需要顯示繳費資訊
       const paymentType = Result.PaymentType || payment.paymentType;
+
+      // 🏪 超商取貨付款（貨到付款）- 用戶選擇門市後返回
+      if (paymentType === 'CVSCOM') {
+        console.log('📦 超商取貨付款 - 訂單待取貨');
+        // 更新訂單狀態為「已確認」（等待用戶取貨付款）
+        await prisma.order.update({
+          where: { id: payment.order.id },
+          data: {
+            status: 'CONFIRMED',
+            paymentStatus: 'PENDING', // 尚未付款
+          },
+        });
+        return NextResponse.redirect(
+          new URL(`/payment/success?orderId=${payment.order.id}&type=cod`, SITE_URL)
+        );
+      }
+
       if (paymentType === 'VACC' || paymentType === 'CVS' || paymentType === 'BARCODE') {
         // 等待繳費的支付方式
         return NextResponse.redirect(
