@@ -189,6 +189,7 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
+    $mainCategory: MainCategory
     $search: String
   ) {
     products(
@@ -201,6 +202,7 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
+      mainCategory: $mainCategory
       search: $search
     ) {
       id

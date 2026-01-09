@@ -21,6 +21,7 @@ const GET_PRODUCTS = gql`
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
+    $mainCategory: MainCategory
   ) {
     products(
       take: $take
@@ -30,6 +31,7 @@ const GET_PRODUCTS = gql`
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
+      mainCategory: $mainCategory
     ) {
       id
       name
@@ -78,10 +80,18 @@ const GET_CATEGORIES = gql`
   }
 `
 
+// 主分類名稱對應
+const MAIN_CATEGORY_LABELS: Record<string, string> = {
+  'WOMEN': '女鞋',
+  'MEN_KIDS': '男鞋和童鞋',
+  'OTHER': '其他',
+}
+
 function ProductsPageContent() {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get('category') || ''
   const brandParam = searchParams.get('brand') || ''
+  const mainCategoryParam = searchParams.get('mainCategory') || ''
 
   const [sortBy, setSortBy] = useState('popular')
   const [selectedBrand, setSelectedBrand] = useState('all')
@@ -165,6 +175,7 @@ function ProductsPageContent() {
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
       maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
       gender: selectedGender !== 'all' ? selectedGender : undefined,
+      mainCategory: mainCategoryParam || undefined,
     },
     skip: !isReady,
     fetchPolicy: 'cache-and-network', // 確保每次 variables 改變時都會重新獲取數據
@@ -222,7 +233,9 @@ function ProductsPageContent() {
     ? brands.find((b: { id: string; name: string }) => b.id === selectedBrand)?.name
     : null
 
-  const pageTitle = currentCategoryName || currentBrandName || '所有商品'
+  const currentMainCategoryName = mainCategoryParam ? MAIN_CATEGORY_LABELS[mainCategoryParam] : null
+
+  const pageTitle = currentMainCategoryName || currentCategoryName || currentBrandName || '所有商品'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -232,7 +245,11 @@ function ProductsPageContent() {
           <div className="flex items-center gap-2 text-sm">
             <Link href="/" className="text-gray-500 hover:text-gray-700">首頁</Link>
             <span className="text-gray-400">/</span>
-            {currentCategoryName ? (
+            {currentMainCategoryName ? (
+              <>
+                <span className="text-gray-800 font-medium">{currentMainCategoryName}</span>
+              </>
+            ) : currentCategoryName ? (
               <>
                 <Link href="/all-categories" className="text-gray-500 hover:text-gray-700">全部分類</Link>
                 <span className="text-gray-400">/</span>

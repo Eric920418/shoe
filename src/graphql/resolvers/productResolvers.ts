@@ -78,6 +78,7 @@ export const productResolvers = {
         minPrice,
         maxPrice,
         gender,
+        mainCategory,
         search,
         where,
         orderBy = { createdAt: 'desc' },
@@ -92,6 +93,7 @@ export const productResolvers = {
         minPrice?: number
         maxPrice?: number
         gender?: string
+        mainCategory?: string
         search?: string
         where?: any
         orderBy?: any
@@ -102,8 +104,22 @@ export const productResolvers = {
       // 如果是後台管理查詢（noCache=true），不過濾 isActive
       const filters: any = noCache ? { ...where } : { isActive: true, ...where }
 
-      // 分類篩選 - 支援多分類（categoryIds 優先於 categoryId）
-      if (categoryIds && categoryIds.length > 0) {
+      // 主分類篩選 - 先查找該主分類下的所有分類 IDs
+      if (mainCategory) {
+        const categoriesInMain = await prisma.category.findMany({
+          where: { mainCategory: mainCategory as any, isActive: true },
+          select: { id: true },
+        })
+        const mainCategoryIds = categoriesInMain.map(c => c.id)
+        if (mainCategoryIds.length > 0) {
+          filters.categoryId = { in: mainCategoryIds }
+        } else {
+          // 如果該主分類下沒有分類，返回空結果
+          filters.id = { equals: 'no-match' }
+        }
+      }
+      // 分類篩選 - 支援多分類（categoryIds 優先於 categoryId，但主分類優先級最高）
+      else if (categoryIds && categoryIds.length > 0) {
         filters.categoryId = { in: categoryIds }
       } else if (categoryId) {
         filters.categoryId = categoryId

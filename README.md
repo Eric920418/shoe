@@ -954,6 +954,33 @@ pnpm prisma migrate reset
 
 ### 🔥 近期重點更新（2026-01-09）
 
+#### ✅ 三大主分類系統（v2.5.0）
+- **功能描述**：產品分類新增「主分類」層級，將所有分類歸納至三大主分類
+- **三大主分類**：
+  - **女鞋** - 所有女性鞋款分類
+  - **男鞋和童鞋** - 男性及兒童鞋款分類
+  - **其他** - 配件、鞋墊等其他分類
+- **後台管理功能**：
+  - 視覺化看板式分類管理介面
+  - 可新增、編輯、刪除子分類
+  - 快速移動分類到其他主分類（下拉選單）
+  - 統計每個主分類的分類數量
+- **前台變更**：
+  - 移除手機版篩選面板，簡化用戶體驗
+  - 保留排序功能（推薦/熱銷/新品/價格）
+- **資料庫變更**：
+  - `categories` 表新增 `mainCategory` 欄位（MainCategory enum: WOMEN/MEN_KIDS/OTHER）
+  - 預設值為 OTHER，確保相容性
+- **影響範圍**：
+  - `prisma/schema.prisma` - 新增 MainCategory enum 和欄位
+  - `src/graphql/schema.ts` - 更新 GraphQL schema
+  - `src/graphql/queries.ts` - 更新查詢定義
+  - `src/graphql/resolvers/productResolvers.ts` - 支持 mainCategory 篩選
+  - `app/admin/categories/page.tsx` - 全新看板式分類管理頁面
+  - `app/products/page.tsx` - 支持 mainCategory URL 參數
+  - `components/sections/CategoryGrid.tsx` - 改為三大主分類按鈕
+  - `components/home/MobileProductFeed.tsx` - 移除篩選面板
+
 #### ✅ CVSCOM CustomerURL 端點修正（v2.4.9）
 - **問題描述**：超商取貨付款選擇門市後，門市資訊未儲存到訂單
 - **根本原因**：CVSCOM 門市選擇的回調是發送到 `CustomerURL`，不是 `ReturnURL` 或 `NotifyURL`

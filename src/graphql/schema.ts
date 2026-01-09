@@ -1691,6 +1691,7 @@ export const typeDefs = gql`
       minPrice: Float
       maxPrice: Float
       gender: ProductGender
+      mainCategory: MainCategory
       search: String
       where: JSON
       orderBy: JSON
