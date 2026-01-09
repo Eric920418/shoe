@@ -1,6 +1,10 @@
 /**
  * 列印物流標籤 API
  * POST /api/admin/logistics/print-label
+ *
+ * 支援超商取貨付款（CVSCOM）訂單
+ * - 使用訂單中儲存的門市資訊（從 CustomerURL 回調取得）
+ * - 支援貨到付款訂單（paymentStatus = PENDING）
  */
 
 // 強制使用 Node.js runtime（需要 crypto 模組）
@@ -9,7 +13,7 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { printLogisticsLabel } from '@/lib/logistics'
+import { printLogisticsLabel, createShipment } from '@/lib/logistics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,66 +62,88 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 檢查訂單是否已付款
-    const unpaidOrders = orders.filter((order) => order.paymentStatus !== 'PAID')
-    if (unpaidOrders.length > 0) {
+    // 過濾出超商取貨訂單（支援 CVS_PICKUP 和舊的 SEVEN_ELEVEN）
+    const cvsOrders = orders.filter(
+      (order) => order.shippingMethod === 'CVS_PICKUP' || order.shippingMethod === 'SEVEN_ELEVEN'
+    )
+
+    if (cvsOrders.length === 0) {
       return NextResponse.json(
-        {
-          error: `以下訂單尚未付款，無法列印標籤：${unpaidOrders.map((o) => o.orderNumber).join(', ')}`,
-        },
+        { error: '只有超商取貨的訂單需要列印物流標籤' },
         { status: 400 }
       )
     }
 
-    // 只處理 7-11 取貨的訂單
-    const sevenElevenOrders = orders.filter((order) => order.shippingMethod === 'SEVEN_ELEVEN')
-    if (sevenElevenOrders.length === 0) {
+    // 檢查訂單是否有門市資訊
+    // 門市資訊儲存在：shippingCity = 門市名稱, shippingStreet = 門市地址, shippingZipCode = 門市代號
+    const ordersWithoutStore = cvsOrders.filter(
+      (order) => !order.shippingZipCode || !order.shippingCity
+    )
+
+    if (ordersWithoutStore.length > 0) {
       return NextResponse.json(
         {
-          error: '只有 7-11 取貨的訂單需要列印物流標籤',
+          error: `以下訂單尚未選擇超商門市：${ordersWithoutStore.map((o) => o.orderNumber).join(', ')}`,
         },
         { status: 400 }
       )
     }
-
-    // 取得訂單編號
-    const orderNumbers = sevenElevenOrders.map((order) => order.orderNumber)
 
     console.log('=== 列印物流標籤 DEBUG ===')
     console.log('收到的 orderIds:', orderIds)
     console.log('查到的訂單數量:', orders.length)
-    console.log('訂單編號:', orderNumbers)
+    console.log('超商取貨訂單數量:', cvsOrders.length)
     console.log('物流類型: C2C (店到店)')
-    console.log('========================')
 
-    // ⚠️ C2C 店到店需要先建立物流單（提供測試用的超商資訊）
-    // 在列印前先嘗試建立物流單（如果已存在會回傳錯誤，但不影響列印）
-    const order = sevenElevenOrders[0]
+    // 處理每個訂單
+    const results = []
 
-    try {
-      console.log('嘗試建立物流單...')
-      const { createShipment } = await import('@/lib/logistics')
+    for (const order of cvsOrders) {
+      console.log(`\n--- 處理訂單: ${order.orderNumber} ---`)
+      console.log('門市代號:', order.shippingZipCode)
+      console.log('門市名稱:', order.shippingCity)
+      console.log('門市地址:', order.shippingStreet)
 
-      // 測試用超商資訊（實際應該由客戶選擇）
-      await createShipment({
-        merchantOrderNo: order.orderNumber,
-        receiverName: order.shippingName,
-        receiverPhone: order.shippingPhone,
-        receiverStoreId: '991182', // 測試用：7-ELEVEN 門市代號
-        receiverStoreName: '測試門市',
-        goodsName: `訂單 ${order.orderNumber}`,
-        goodsAmount: Number(order.total),
-        senderName: '鞋店',
-        senderPhone: '0912345678',
+      // 取得 Payment 中的 merchantOrderNo（藍新金流使用的訂單編號）
+      const merchantOrderNo = order.payment?.merchantOrderNo || order.orderNumber
+
+      try {
+        // 先建立物流單（如果已存在會回傳錯誤，但不影響後續列印）
+        console.log('嘗試建立物流單...')
+        console.log('使用的 merchantOrderNo:', merchantOrderNo)
+
+        await createShipment({
+          merchantOrderNo: merchantOrderNo,
+          receiverName: order.shippingName,
+          receiverPhone: order.shippingPhone,
+          receiverStoreId: order.shippingZipCode!, // 門市代號
+          receiverStoreName: order.shippingCity!,  // 門市名稱
+          goodsName: `訂單 ${order.orderNumber}`,
+          goodsAmount: Number(order.total),
+          senderName: '鞋特賣',
+          senderPhone: '0912345678', // TODO: 從環境變數讀取
+        })
+        console.log('✅ 物流單建立成功')
+      } catch (createError: any) {
+        // 如果物流單已存在，會回傳錯誤，但可以繼續列印
+        console.log('建立物流單失敗（可能已存在）:', createError.message)
+      }
+
+      results.push({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        merchantOrderNo: merchantOrderNo,
+        storeName: order.shippingCity,
+        storeId: order.shippingZipCode,
       })
-      console.log('✅ 物流單建立成功')
-    } catch (createError: any) {
-      // 如果物流單已存在，會回傳錯誤，但可以繼續列印
-      console.log('建立物流單失敗（可能已存在）:', createError.message)
     }
 
     // 呼叫物流 API 列印標籤
-    const result = await printLogisticsLabel(orderNumbers)
+    // 使用 payment 的 merchantOrderNo（因為藍新金流是用這個編號）
+    const merchantOrderNos = results.map((r) => r.merchantOrderNo)
+    console.log('\n呼叫 printLogisticsLabel，訂單編號:', merchantOrderNos)
+
+    const result = await printLogisticsLabel(merchantOrderNos)
 
     // 提取列印網址（藍新會回傳 PrintUrl）
     const printUrl =
@@ -133,7 +159,7 @@ export async function POST(request: NextRequest) {
         id: { in: orderIds },
       },
       data: {
-        shippingStatus: 'PROCESSING', // 不需要更新 shippingMethod，已經是 SEVEN_ELEVEN
+        shippingStatus: 'PROCESSING',
       },
     })
 
@@ -141,8 +167,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: printUrl ? '已生成物流標籤列印頁面' : '列印標籤請求已發送',
       data: result,
-      printUrl, // 提供給前端用來開啟列印頁面
-      orderNumbers,
+      printUrl,
+      orders: results,
     })
   } catch (error: any) {
     console.error('列印物流標籤失敗:', error)

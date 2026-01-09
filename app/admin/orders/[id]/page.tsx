@@ -651,8 +651,8 @@ export default function AdminOrderDetailPage() {
 
             {/* 操作按鈕 */}
             <div className="pt-6 border-t border-gray-200 space-y-3">
-              {/* 列印寄貨單按鈕 - 只有 7-11 取貨才顯示 */}
-              {order.paymentStatus === 'PAID' && order.shippingMethod === 'SEVEN_ELEVEN' && (
+              {/* 列印寄貨單按鈕 - 超商取貨訂單且已選擇門市 */}
+              {order.shippingMethod === 'CVS_PICKUP' && logisticsInfo?.ReceiverStoreID && (
                 <button
                   onClick={handlePrintLabel}
                   disabled={isPrinting}
@@ -668,10 +668,17 @@ export default function AdminOrderDetailPage() {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                       </svg>
-                      <span>列印寄貨單（7-11）</span>
+                      <span>列印寄貨單</span>
                     </>
                   )}
                 </button>
+              )}
+
+              {/* 超商取貨但尚未選擇門市 */}
+              {order.shippingMethod === 'CVS_PICKUP' && !logisticsInfo?.ReceiverStoreID && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                  ⚠️ 客戶尚未選擇超商門市，無法列印寄貨單
+                </div>
               )}
 
               {/* 狀態更新按鈕 */}
