@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
     console.log('order.shippingMethod:', order.shippingMethod, '(type:', typeof order.shippingMethod, ')');
     console.log('傳給 createPaymentData:', order.shippingMethod || undefined);
     console.log('金額: NT$', Number(order.total));
+    console.log('🔗 NotifyURL:', NEWEBPAY_CONFIG.notifyUrl);
+    console.log('🔗 ReturnURL:', NEWEBPAY_CONFIG.returnUrl);
+    console.log('🔗 ClientBackURL:', NEWEBPAY_CONFIG.clientBackUrl);
     console.log('====================================');
 
     // 建立或更新 Payment 記錄

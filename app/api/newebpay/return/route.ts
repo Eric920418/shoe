@@ -31,10 +31,15 @@ export const dynamic = 'force-dynamic';
 // ============================================
 
 export async function POST(request: NextRequest) {
+  // 🚨 最優先日誌 - 確認請求到達
+  console.log('🚨🚨🚨 藍新金流 RETURN POST 請求收到！🚨🚨🚨');
+  console.log('時間戳:', new Date().toISOString());
   console.log('=== 藍新金流返回請求開始 ===');
   console.log('請求方法:', request.method);
   console.log('Content-Type:', request.headers.get('content-type'));
   console.log('User-Agent:', request.headers.get('user-agent'));
+  console.log('完整 URL:', request.url);
+  console.log('來源 IP:', request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown');
 
   try {
     let status: string | null = null;
@@ -209,6 +214,11 @@ export async function POST(request: NextRequest) {
 // ============================================
 
 export async function GET(request: NextRequest) {
+  // 🚨 最優先日誌 - 確認請求到達
+  console.log('🚨🚨🚨 藍新金流 RETURN GET 請求收到！🚨🚨🚨');
+  console.log('時間戳:', new Date().toISOString());
+  console.log('完整 URL:', request.url);
+
   // 某些情況下藍新金流可能使用 GET 方式返回
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('Status');
@@ -217,7 +227,19 @@ export async function GET(request: NextRequest) {
 
   console.log('用戶從藍新金流返回 (GET):', { status });
 
+  // 🔧 健康檢查：如果沒有參數，返回端點狀態
+  if (!status && !tradeInfo && !tradeSha) {
+    console.log('📍 健康檢查請求 - 無藍新金流參數');
+    return NextResponse.json({
+      status: 'ok',
+      endpoint: '/api/newebpay/return',
+      timestamp: new Date().toISOString(),
+      message: '藍新金流 Return 端點正常運作',
+    });
+  }
+
   if (!status || !tradeInfo || !tradeSha) {
+    console.error('❌ 缺少必要參數:', { status: !!status, tradeInfo: !!tradeInfo, tradeSha: !!tradeSha });
     return NextResponse.redirect(
       new URL('/payment/error?message=資料不完整', SITE_URL)
     );
