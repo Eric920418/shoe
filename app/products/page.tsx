@@ -17,7 +17,6 @@ const GET_PRODUCTS = gql`
     $take: Int
     $skip: Int
     $categoryIds: [String!]
-    $brandId: String
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
@@ -27,7 +26,6 @@ const GET_PRODUCTS = gql`
       take: $take
       skip: $skip
       categoryIds: $categoryIds
-      brandId: $brandId
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
@@ -51,21 +49,6 @@ const GET_PRODUCTS = gql`
         name
         slug
       }
-      brand {
-        id
-        name
-        slug
-      }
-    }
-  }
-`
-
-const GET_BRANDS = gql`
-  query GetBrands {
-    brands {
-      id
-      name
-      slug
     }
   }
 `
@@ -76,6 +59,7 @@ const GET_CATEGORIES = gql`
       id
       name
       slug
+      mainCategory
     }
   }
 `
@@ -90,11 +74,9 @@ const MAIN_CATEGORY_LABELS: Record<string, string> = {
 function ProductsPageContent() {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get('category') || ''
-  const brandParam = searchParams.get('brand') || ''
   const mainCategoryParam = searchParams.get('mainCategory') || ''
 
   const [sortBy, setSortBy] = useState('popular')
-  const [selectedBrand, setSelectedBrand] = useState('all')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState('all')
   const [selectedGender, setSelectedGender] = useState<string>('all')
@@ -103,24 +85,25 @@ function ProductsPageContent() {
   const [showFilters, setShowFilters] = useState(false)
   const [urlProcessed, setUrlProcessed] = useState(false)
 
-  // 查詢品牌列表
-  const { data: brandsData } = useQuery(GET_BRANDS)
-
   // 查詢分類列表
   const { data: categoriesData } = useQuery(GET_CATEGORIES)
 
-  const brands = brandsData?.brands || []
-  const categories = categoriesData?.categories || []
+  const allCategories = categoriesData?.categories || []
+
+  // 根據主分類篩選可用的子分類
+  const categories = mainCategoryParam
+    ? allCategories.filter((c: { mainCategory: string }) => c.mainCategory === mainCategoryParam)
+    : allCategories
 
   // 當 URL 參數改變時，重置處理狀態（確保 SPA 導航時能重新處理）
   useEffect(() => {
     setUrlProcessed(false)
-  }, [categoryParam, brandParam])
+  }, [categoryParam])
 
   // 從 URL 參數初始化
   useEffect(() => {
     if (urlProcessed) return
-    if (!categoriesData || !brandsData) return
+    if (!categoriesData) return
 
     // 根據 URL 參數設置篩選條件
     if (categoryParam && categories.length > 0) {
@@ -139,22 +122,8 @@ function ProductsPageContent() {
       setSelectedCategories([])
     }
 
-    if (brandParam && brands.length > 0) {
-      const brand = brands.find(
-        (b: { id: string; slug: string; name: string }) =>
-          b.slug === brandParam || b.id === brandParam || b.name === brandParam
-      )
-      if (brand) {
-        setSelectedBrand(brand.id)
-      } else {
-        setSelectedBrand('all')
-      }
-    } else {
-      setSelectedBrand('all')
-    }
-
     setUrlProcessed(true)
-  }, [categoryParam, brandParam, categories, brands, categoriesData, brandsData, urlProcessed])
+  }, [categoryParam, categories, categoriesData, urlProcessed])
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev =>
@@ -165,12 +134,11 @@ function ProductsPageContent() {
   }
 
   // 是否準備好查詢
-  const isReady = urlProcessed || (!categoryParam && !brandParam)
+  const isReady = urlProcessed || !categoryParam
 
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, {
     variables: {
       take: 10000, // 顯示所有產品
-      brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
       categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
       maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
@@ -229,13 +197,9 @@ function ProductsPageContent() {
       ? `${selectedCategories.length} 個分類`
       : null
 
-  const currentBrandName = selectedBrand !== 'all'
-    ? brands.find((b: { id: string; name: string }) => b.id === selectedBrand)?.name
-    : null
-
   const currentMainCategoryName = mainCategoryParam ? MAIN_CATEGORY_LABELS[mainCategoryParam] : null
 
-  const pageTitle = currentMainCategoryName || currentCategoryName || currentBrandName || '所有商品'
+  const pageTitle = currentMainCategoryName || currentCategoryName || '所有商品'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,12 +219,6 @@ function ProductsPageContent() {
                 <span className="text-gray-400">/</span>
                 <span className="text-gray-800 font-medium">{currentCategoryName}</span>
               </>
-            ) : currentBrandName ? (
-              <>
-                <Link href="/brands" className="text-gray-500 hover:text-gray-700">品牌專區</Link>
-                <span className="text-gray-400">/</span>
-                <span className="text-gray-800 font-medium">{currentBrandName}</span>
-              </>
             ) : (
               <span className="text-gray-800 font-medium">所有商品</span>
             )}
@@ -277,25 +235,27 @@ function ProductsPageContent() {
               篩選條件
             </h3>
 
-            {/* 性別篩選 */}
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-700 mb-3">性別</h4>
-              <div className="space-y-2">
-                {genderOptions.map(option => (
-                  <label key={option.value} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={option.value}
-                      checked={selectedGender === option.value}
-                      onChange={(e) => setSelectedGender(e.target.value)}
-                      className="text-orange-500"
-                    />
-                    <span className="text-sm text-gray-600">{option.label}</span>
-                  </label>
-                ))}
+            {/* 性別篩選 - 只在沒有主分類時顯示 */}
+            {!mainCategoryParam && (
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-700 mb-3">性別</h4>
+                <div className="space-y-2">
+                  {genderOptions.map(option => (
+                    <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={option.value}
+                        checked={selectedGender === option.value}
+                        onChange={(e) => setSelectedGender(e.target.value)}
+                        className="text-orange-500"
+                      />
+                      <span className="text-sm text-gray-600">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 分類篩選 */}
             <div className="mb-6">
@@ -310,37 +270,6 @@ function ProductsPageContent() {
                       className="text-orange-500 rounded"
                     />
                     <span className="text-sm text-gray-600">{cat.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* 品牌篩選 */}
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-700 mb-3">品牌</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="brand"
-                    value="all"
-                    checked={selectedBrand === 'all'}
-                    onChange={(e) => setSelectedBrand(e.target.value)}
-                    className="text-orange-500"
-                  />
-                  <span className="text-sm text-gray-600">全部品牌</span>
-                </label>
-                {brands.map((brand: { id: string; name: string }) => (
-                  <label key={brand.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="brand"
-                      value={brand.id}
-                      checked={selectedBrand === brand.id}
-                      onChange={(e) => setSelectedBrand(e.target.value)}
-                      className="text-orange-500"
-                    />
-                    <span className="text-sm text-gray-600">{brand.name}</span>
                   </label>
                 ))}
               </div>
@@ -422,35 +351,39 @@ function ProductsPageContent() {
               {showFilters && (
                 <div className="lg:hidden mt-4 pt-4 border-t">
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 性別 */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2 text-sm">性別</h4>
-                      <select
-                        value={selectedGender}
-                        onChange={(e) => setSelectedGender(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded text-sm"
-                      >
-                        {genderOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {/* 品牌 */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2 text-sm">品牌</h4>
-                      <select
-                        value={selectedBrand}
-                        onChange={(e) => setSelectedBrand(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded text-sm"
-                      >
-                        <option value="all">全部品牌</option>
-                        {brands.map((brand: { id: string; name: string }) => (
-                          <option key={brand.id} value={brand.id}>{brand.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* 性別 - 只在沒有主分類時顯示 */}
+                    {!mainCategoryParam && (
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-2 text-sm">性別</h4>
+                        <select
+                          value={selectedGender}
+                          onChange={(e) => setSelectedGender(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded text-sm"
+                        >
+                          {genderOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {/* 分類 - 只在有主分類時顯示（顯示該主分類下的子分類） */}
+                    {mainCategoryParam && categories.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-2 text-sm">分類</h4>
+                        <select
+                          value={selectedCategories[0] || 'all'}
+                          onChange={(e) => setSelectedCategories(e.target.value === 'all' ? [] : [e.target.value])}
+                          className="w-full px-2 py-1.5 border rounded text-sm"
+                        >
+                          <option value="all">全部分類</option>
+                          {categories.map((cat: { id: string; name: string }) => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     {/* 價格 */}
-                    <div className="col-span-2">
+                    <div className={!mainCategoryParam ? 'col-span-2' : ''}>
                       <h4 className="font-medium text-gray-700 mb-2 text-sm">價格範圍</h4>
                       <select
                         value={priceRange}
@@ -505,7 +438,7 @@ function ProductsPageContent() {
                   ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
                   : "space-y-4"
               }>
-                {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; createdAt: string; category: { id: string; name: string; slug: string }; brand: { id: string; name: string; slug: string } }) => {
+                {sortedProducts.map((product: { id: string; name: string; slug: string; price: string; originalPrice: string; images: string[]; stock: number; soldCount: number; averageRating: number; reviewCount: number; isFeatured: boolean; isNewArrival: boolean; createdAt: string; category: { id: string; name: string; slug: string } }) => {
                   const images = Array.isArray(product.images) ? product.images : []
                   const mainImage = images.length > 0 ? images[0] : '/placeholder-product.png'
                   const price = parseFloat(product.price)
@@ -545,7 +478,6 @@ function ProductsPageContent() {
                         </div>
 
                         <div className="p-3">
-                          <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
                           <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
                             {product.name}
                           </h3>
@@ -589,7 +521,6 @@ function ProductsPageContent() {
                           <div className="flex-1">
                             <div className="flex items-start justify-between">
                               <div>
-                                <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
                                 <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
                                 {product.averageRating && Number(product.averageRating) > 0 && (
                                   <div className="flex items-center gap-2 mb-2">

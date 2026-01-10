@@ -31,7 +31,6 @@ const prismaClientSingleton = () => {
               price: true,
               originalPrice: true,
               images: true,
-              brand: true,
               isNew: true,
               isSale: true,
               _count: {
@@ -157,7 +156,6 @@ export async function batchGetProducts(ids: string[]) {
         slug: true,
         price: true,
         images: true,
-        brand: true,
       },
     })
 
@@ -192,11 +190,7 @@ export async function preloadPopularData() {
     await setCachedData(`product:${product.id}`, product, 600)
   }
 
-  // 預載入品牌
-  const brands = await prisma.brand.findMany()
-  await setCachedData('brands:all', brands, 3600)
-
-  return { popularProducts, brands }
+  return { popularProducts }
 }
 
 // 清理快取
@@ -232,7 +226,6 @@ export const optimizedQueries = {
     take?: number
     skip?: number
     category?: string
-    brand?: string
   }) {
     const cacheKey = `products:${JSON.stringify(options)}`
     const cached = await getCachedData(cacheKey)
@@ -242,7 +235,6 @@ export const optimizedQueries = {
     const products = await prisma.product.findMany({
       where: {
         ...(options.category && { category: options.category }),
-        ...(options.brand && { brand: options.brand }),
       },
       take: options.take || 20,
       skip: options.skip || 0,
@@ -253,7 +245,6 @@ export const optimizedQueries = {
         price: true,
         originalPrice: true,
         images: true,
-        brand: true,
         isNew: true,
         isSale: true,
       },

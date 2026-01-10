@@ -12,7 +12,6 @@ import Breadcrumb from '@/components/common/Breadcrumb'
 
 export default function NewArrivalsPage() {
   const [sortBy, setSortBy] = useState('newest')
-  const [selectedBrand, setSelectedBrand] = useState('all')
   const [selectedSize, setSelectedSize] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -21,7 +20,6 @@ export default function NewArrivalsPage() {
     {
       id: 1,
       name: 'Nike Air Zoom Pegasus 40',
-      brand: 'Nike',
       price: 3990,
       image: '/api/placeholder/300/300',
       arrivalDate: '2024秋季新款',
@@ -34,7 +32,6 @@ export default function NewArrivalsPage() {
     {
       id: 2,
       name: 'Adidas Forum Low',
-      brand: 'Adidas',
       price: 3290,
       image: '/api/placeholder/300/300',
       arrivalDate: '本週新品',
@@ -47,7 +44,6 @@ export default function NewArrivalsPage() {
     {
       id: 3,
       name: 'New Balance 9060',
-      brand: 'New Balance',
       price: 4590,
       image: '/api/placeholder/300/300',
       arrivalDate: '限量發售',
@@ -60,7 +56,6 @@ export default function NewArrivalsPage() {
     {
       id: 4,
       name: 'Puma Suede XL',
-      brand: 'Puma',
       price: 2790,
       image: '/api/placeholder/300/300',
       arrivalDate: '今日上架',
@@ -73,7 +68,6 @@ export default function NewArrivalsPage() {
     {
       id: 5,
       name: 'Converse Run Star Hike',
-      brand: 'Converse',
       price: 3490,
       image: '/api/placeholder/300/300',
       arrivalDate: '預購中',
@@ -86,7 +80,6 @@ export default function NewArrivalsPage() {
     {
       id: 6,
       name: 'Vans Knu Skool',
-      brand: 'Vans',
       price: 2990,
       image: '/api/placeholder/300/300',
       arrivalDate: '明日發售',
@@ -98,7 +91,6 @@ export default function NewArrivalsPage() {
     }
   ]
 
-  const brands = ['all', 'Nike', 'Adidas', 'New Balance', 'Puma', 'Converse', 'Vans']
   const sizes = ['all', '36', '37', '38', '39', '40', '41', '42', '43', '44']
 
   return (
@@ -149,26 +141,6 @@ export default function NewArrivalsPage() {
         {/* 篩選區 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* 品牌篩選 */}
-            <div className="flex-1">
-              <p className="text-sm text-gray-600 mb-2">品牌</p>
-              <div className="flex flex-wrap gap-2">
-                {brands.map(brand => (
-                  <button
-                    key={brand}
-                    onClick={() => setSelectedBrand(brand)}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      selectedBrand === brand
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {brand === 'all' ? '全部品牌' : brand}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* 尺碼篩選 */}
             <div className="flex-1">
               <p className="text-sm text-gray-600 mb-2">尺碼</p>
@@ -283,7 +255,6 @@ export default function NewArrivalsPage() {
                   </div>
 
                   <div className="p-3">
-                    <p className="text-xs text-gray-500 mb-1">{product.brand}</p>
                     <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
                       {product.name}
                     </h3>
@@ -338,7 +309,7 @@ export default function NewArrivalsPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">{product.brand} · {product.arrivalDate}</p>
+                          <p className="text-xs text-gray-500 mb-1">{product.arrivalDate}</p>
                           <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
                           <div className="flex flex-wrap gap-1 mb-2">
                             {product.features.map((feature, idx) => (

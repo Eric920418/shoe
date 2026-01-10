@@ -39,7 +39,7 @@ export async function generateMetadata({
 
   return {
     title: `${product.name} - SHOE STORE`,
-    description: product.description || `購買 ${product.name}，來自 ${product.brand?.name || '知名品牌'}`,
+    description: product.description || `購買 ${product.name}，優質鞋款`,
   }
 }
 

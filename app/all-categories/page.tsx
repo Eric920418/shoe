@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import {
   ChevronRight, Zap,
-  User, Heart, Baby, Search, Grid3X3, Flame, Crown, Star
+  User, Heart, Baby, Search, Grid3X3, Flame, Star
 } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 
@@ -17,18 +17,6 @@ export default async function AllCategoriesPage() {
       },
       categoryDisplay: true
     }
-  })
-
-  // 從資料庫獲取品牌
-  const brands = await prisma.brand.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-    include: {
-      _count: {
-        select: { products: { where: { isActive: true } } }
-      }
-    },
-    take: 12
   })
 
   return (
@@ -103,45 +91,6 @@ export default async function AllCategoriesPage() {
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-8 mb-6 text-center">
             <p className="text-gray-500">目前沒有分類</p>
-          </div>
-        )}
-
-        {/* 品牌專區 */}
-        {brands.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Crown className="text-yellow-500" size={20} />
-              <h2 className="text-lg font-bold text-gray-800">品牌專區</h2>
-              <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">HOT</span>
-            </div>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {brands.map((brand) => (
-                <Link
-                  key={brand.id}
-                  href={`/products?brand=${brand.slug}`}
-                  className="group bg-gray-50 rounded-lg p-3 hover:bg-orange-50 transition-colors border border-gray-100 hover:border-orange-200 text-center"
-                >
-                  <div className="h-10 mb-2 flex items-center justify-center">
-                    {brand.logo ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={brand.logo}
-                        alt={brand.name}
-                        width={60}
-                        height={30}
-                        className="opacity-70 group-hover:opacity-100 transition-opacity object-contain"
-                      />
-                    ) : (
-                      <span className="text-xl font-bold text-gray-400 group-hover:text-orange-500 transition-colors">
-                        {brand.name.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-medium text-gray-800 text-sm group-hover:text-orange-600 transition-colors">{brand.name}</p>
-                  <p className="text-xs text-gray-500">{brand._count.products} 款</p>
-                </Link>
-              ))}
-            </div>
           </div>
         )}
 

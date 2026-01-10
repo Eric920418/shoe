@@ -43,39 +43,6 @@ export function slugify(text: string): string {
 }
 
 /**
- * 為品牌生成唯一的 slug
- * @param name 品牌名稱
- * @param excludeId 排除的品牌 ID（更新時使用）
- * @returns 唯一的 slug
- */
-export async function generateUniqueBrandSlug(
-  name: string,
-  excludeId?: string
-): Promise<string> {
-  let slug = slugify(name)
-  let counter = 1
-  let isUnique = false
-
-  while (!isUnique) {
-    const existing = await prisma.brand.findUnique({
-      where: { slug },
-      select: { id: true },
-    })
-
-    // 如果沒有找到，或找到的是自己（更新情況），就是唯一的
-    if (!existing || (excludeId && existing.id === excludeId)) {
-      isUnique = true
-    } else {
-      // 如果重複，加上數字後綴
-      slug = `${slugify(name)}-${counter}`
-      counter++
-    }
-  }
-
-  return slug
-}
-
-/**
  * 為分類生成唯一的 slug
  * @param name 分類名稱
  * @param excludeId 排除的分類 ID（更新時使用）

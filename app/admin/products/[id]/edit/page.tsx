@@ -11,7 +11,6 @@ import { useMutation, useQuery } from '@apollo/client'
 import {
   UPDATE_PRODUCT,
   GET_PRODUCT_BY_ID,
-  GET_BRANDS,
   GET_CATEGORIES,
   GET_PRODUCTS,
   GET_PRODUCT_SIZE_CHARTS,
@@ -33,7 +32,6 @@ interface ProductFormData {
   description: string
   images: string[]
   categoryId: string
-  brandId: string
   price: number | ''
   originalPrice: number | ''
   isFeatured: boolean
@@ -90,7 +88,6 @@ export default function EditProductPage() {
           description: data.product.description || '',
           images,
           categoryId: data.product.category?.id || '',
-          brandId: data.product.brand?.id || '',
           price: data.product.price || '',
           originalPrice: data.product.originalPrice || '',
           isFeatured: data.product.isFeatured || false,
@@ -117,8 +114,6 @@ export default function EditProductPage() {
     },
   })
 
-  // 獲取品牌列表
-  const { data: brandsData, loading: brandsLoading, error: brandsError } = useQuery(GET_BRANDS)
   // 獲取分類列表
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES)
   // 獲取產品選項（鞋型、閉合方式、產品特性）
@@ -133,7 +128,6 @@ export default function EditProductPage() {
   const [updateProduct] = useMutation(UPDATE_PRODUCT, {
     refetchQueries: [
       { query: GET_PRODUCTS },
-      { query: GET_BRANDS },
       { query: GET_CATEGORIES },
     ],
     awaitRefetchQueries: true,
@@ -178,7 +172,6 @@ export default function EditProductPage() {
     if (!formData.name.trim()) newErrors.name = '請輸入產品名稱'
     // slug 改為選填，後端會自動生成
     if (!formData.categoryId) newErrors.categoryId = '請選擇分類'
-    if (!formData.brandId) newErrors.brandId = '請選擇品牌'
     if (formData.price === '' || formData.price <= 0)
       newErrors.price = '請輸入有效的價格'
     // 移除庫存驗證，因為庫存由尺碼獨立管理
@@ -220,7 +213,6 @@ export default function EditProductPage() {
         description: formData.description,
         images: formData.images,
         categoryId: formData.categoryId,
-        brandId: formData.brandId || null,
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stock: 0, // 庫存由尺碼管理，此處固定為 0
@@ -429,35 +421,6 @@ export default function EditProductPage() {
               )}
               {categoriesError && (
                 <p className="text-sm text-red-600 mt-1">無法載入分類列表：{categoriesError.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                品牌 <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.brandId}
-                onChange={(e) => updateField('brandId', e.target.value)}
-                disabled={brandsLoading}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.brandId ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">
-                  {brandsLoading ? '載入中...' : brandsError ? '載入失敗' : '請選擇品牌'}
-                </option>
-                {brandsData?.brands?.map((brand: any) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name} {brand.productCount > 0 ? `(${brand.productCount})` : ''}
-                  </option>
-                ))}
-              </select>
-              {errors.brandId && (
-                <p className="text-sm text-red-600 mt-1">{errors.brandId}</p>
-              )}
-              {brandsError && (
-                <p className="text-sm text-red-600 mt-1">無法載入品牌列表：{brandsError.message}</p>
               )}
             </div>
           </div>

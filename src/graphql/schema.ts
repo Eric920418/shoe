@@ -310,23 +310,6 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
-  # 品牌類型
-  type Brand {
-    id: ID!
-    name: String!
-    slug: String!
-    logo: String
-    website: String
-    country: String
-    isActive: Boolean!
-    isFeatured: Boolean!
-    sortOrder: Int!
-    products: [Product!]!
-    productCount: Int!
-    createdAt: DateTime!
-    updatedAt: DateTime!
-  }
-
   # 產品類型（鞋店專屬）
   type Product {
     id: ID!
@@ -341,7 +324,6 @@ export const typeDefs = gql`
     minStock: Int!
     weight: Decimal
     categoryId: String!
-    brandId: String
     images: JSON!
     isActive: Boolean!
     isFeatured: Boolean!
@@ -367,7 +349,6 @@ export const typeDefs = gql`
     packagingVolume: PackagingVolume! # 包裝體積大小
     minPackagingUnits: Int! # 最小包裝單位（例如：1雙一盒）
     # 关联
-    brand: Brand
     category: Category!
     variants: [ProductVariant!]!
     sizeCharts: [SizeChart!]!
@@ -1686,8 +1667,6 @@ export const typeDefs = gql`
       take: Int
       categoryId: String
       categoryIds: [String!]
-      brandId: String
-      brandIds: [String!]
       minPrice: Float
       maxPrice: Float
       gender: ProductGender
@@ -1697,11 +1676,9 @@ export const typeDefs = gql`
       orderBy: JSON
     ): [Product!]!
 
-    # 分類與品牌
+    # 分類
     category(id: ID, slug: String): Category
     categories(where: JSON): [Category!]!
-    brand(id: ID, slug: String): Brand
-    brands(where: JSON): [Brand!]!
 
     # 購物車
     cart: Cart
@@ -1990,11 +1967,6 @@ export const typeDefs = gql`
     updateCategory(id: ID!, input: UpdateCategoryInput!): Category!
     deleteCategory(id: ID!): Boolean!
 
-    # 品牌管理（管理員）
-    createBrand(input: CreateBrandInput!): Brand!
-    updateBrand(id: ID!, input: UpdateBrandInput!): Brand!
-    deleteBrand(id: ID!): Boolean!
-
     # 優惠券
     claimCoupon(code: String!): UserCoupon!
     # Admin: 優惠券管理
@@ -2208,7 +2180,6 @@ export const typeDefs = gql`
     cost: Decimal
     stock: Int!
     categoryId: ID!
-    brandId: ID
     images: JSON
     isActive: Boolean
     isFeatured: Boolean
@@ -2232,7 +2203,6 @@ export const typeDefs = gql`
     slug: String
     description: String
     categoryId: ID
-    brandId: ID
     price: Decimal
     originalPrice: Decimal
     stock: Int
@@ -2310,26 +2280,6 @@ export const typeDefs = gql`
     sortOrder: Int
     isActive: Boolean
     mainCategory: MainCategory
-  }
-
-  input CreateBrandInput {
-    name: String!
-    slug: String
-    logo: String
-    website: String
-    country: String
-    sortOrder: Int
-  }
-
-  input UpdateBrandInput {
-    name: String
-    slug: String
-    logo: String
-    website: String
-    country: String
-    sortOrder: Int
-    isActive: Boolean
-    isFeatured: Boolean
   }
 
   input CreateCouponInput {

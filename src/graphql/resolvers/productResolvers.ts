@@ -4,8 +4,8 @@
 
 import { GraphQLError } from 'graphql'
 import { prisma } from '@/lib/prisma'
-import { ProductCache, CategoryCache, BrandCache, SizeChartCache } from '@/lib/cache'
-import { generateUniqueBrandSlug, generateUniqueCategorySlug, generateUniqueProductSlug } from '@/lib/slugify'
+import { ProductCache, CategoryCache, SizeChartCache } from '@/lib/cache'
+import { generateUniqueCategorySlug, generateUniqueProductSlug } from '@/lib/slugify'
 import { incrementViewCount } from '@/lib/redis'
 
 interface GraphQLContext {
@@ -30,7 +30,6 @@ export const productResolvers = {
           where: id ? { id } : { slug },
           include: {
             category: true,
-            brand: true,
             variants: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
             sizeCharts: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
             reviews: { where: { isApproved: true, isPublic: true }, take: 10, orderBy: { createdAt: 'desc' } },
@@ -73,8 +72,6 @@ export const productResolvers = {
         take = 20,
         categoryId,
         categoryIds,
-        brandId,
-        brandIds,
         minPrice,
         maxPrice,
         gender,
@@ -88,8 +85,6 @@ export const productResolvers = {
         take?: number
         categoryId?: string
         categoryIds?: string[]
-        brandId?: string
-        brandIds?: string[]
         minPrice?: number
         maxPrice?: number
         gender?: string
@@ -125,13 +120,6 @@ export const productResolvers = {
         filters.categoryId = categoryId
       }
 
-      // 品牌篩選 - 支援多品牌（brandIds 優先於 brandId）
-      if (brandIds && brandIds.length > 0) {
-        filters.brandId = { in: brandIds }
-      } else if (brandId) {
-        filters.brandId = brandId
-      }
-
       // 性別篩選
       if (gender) {
         filters.gender = gender
@@ -148,13 +136,12 @@ export const productResolvers = {
         }
       }
 
-      // 關鍵字搜尋（搜尋產品名稱、描述、分類名稱、品牌名稱）
+      // 關鍵字搜尋（搜尋產品名稱、描述、分類名稱）
       if (search) {
         filters.OR = [
           { name: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
           { category: { name: { contains: search, mode: 'insensitive' } } },
-          { brand: { name: { contains: search, mode: 'insensitive' } } },
         ]
       }
 
@@ -167,7 +154,6 @@ export const productResolvers = {
           orderBy,
           include: {
             category: true,
-            brand: true,
             variants: { where: { isActive: true }, take: 1 },
             // ✅ 性能優化：不預先載入 sizeCharts，改用 aggregation 計算 totalStock
           },
@@ -204,7 +190,7 @@ export const productResolvers = {
 
       // 正常情況使用快取
       const categoryKey = categoryIds?.length ? categoryIds.sort().join(',') : (categoryId || 'all')
-      const cacheParams = `${skip}:${take}:${categoryKey}:${brandId || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+      const cacheParams = `${skip}:${take}:${categoryKey}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
       return await ProductCache.getList(cacheParams, fetchProducts)
     },
 
@@ -218,7 +204,7 @@ export const productResolvers = {
             products: {
               where: { isActive: true },
               take: 10,
-              include: { brand: true },
+              include: { category: true },
             },
           },
         })
@@ -233,7 +219,7 @@ export const productResolvers = {
             products: {
               where: { isActive: true },
               take: 10,
-              include: { brand: true },
+              include: { category: true },
             },
           },
         })
@@ -246,7 +232,7 @@ export const productResolvers = {
               products: {
                 where: { isActive: true },
                 take: 10,
-                include: { brand: true },
+                include: { category: true },
               },
             },
           })
@@ -262,34 +248,6 @@ export const productResolvers = {
     categories: async (_: any, { where }: { where?: any }) => {
       return await CategoryCache.getList(async () => {
         return await prisma.category.findMany({
-          where: { ...where, isActive: true },
-          orderBy: { sortOrder: 'asc' },
-          include: {
-            _count: {
-              select: { products: { where: { isActive: true } } }
-            }
-          }
-        })
-      })
-    },
-
-    // 獲取品牌
-    brand: async (_: any, { id, slug }: { id?: string; slug?: string }) => {
-      return await prisma.brand.findUnique({
-        where: id ? { id } : { slug },
-        include: {
-          products: {
-            where: { isActive: true },
-            take: 10,
-          },
-        },
-      })
-    },
-
-    // 獲取所有品牌（帶快取，包含產品數量）
-    brands: async (_: any, { where }: { where?: any }) => {
-      return await BrandCache.getList(async () => {
-        return await prisma.brand.findMany({
           where: { ...where, isActive: true },
           orderBy: { sortOrder: 'asc' },
           include: {
@@ -387,7 +345,6 @@ export const productResolvers = {
           data: cleanedInput,
           include: {
             category: true,
-            brand: true,
           },
         })
 
@@ -423,10 +380,8 @@ export const productResolvers = {
           let message = '創建失敗：'
           if (field.includes('categoryId')) {
             message += '所選的分類不存在，請重新選擇分類'
-          } else if (field.includes('brandId')) {
-            message += '所選的品牌不存在，請重新選擇品牌'
           } else {
-            message += '關聯的資料不存在，請檢查分類或品牌是否有效'
+            message += '關聯的資料不存在，請檢查分類是否有效'
           }
           throw new GraphQLError(message, {
             extensions: { code: 'FOREIGN_KEY_VIOLATION', field },
@@ -504,7 +459,6 @@ export const productResolvers = {
           data: updateData,
           include: {
             category: true,
-            brand: true,
           },
         })
 
@@ -666,101 +620,6 @@ export const productResolvers = {
       return true
     },
 
-    // 創建品牌（管理員）
-    createBrand: async (_: any, { input }: { input: any }, context: GraphQLContext) => {
-      if (!context.userId || context.userRole !== 'ADMIN') {
-        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      try {
-        // 自動生成 slug（如果未提供）
-        const slug = input.slug || await generateUniqueBrandSlug(input.name)
-
-        const brand = await prisma.brand.create({
-          data: {
-            ...input,
-            slug,
-            sortOrder: input.sortOrder || 0,
-          },
-        })
-
-        // 清除品牌快取
-        await BrandCache.invalidate()
-
-        return brand
-      } catch (error: any) {
-        console.error('創建品牌失敗:', error)
-        throw new GraphQLError(`創建品牌失敗: ${error.message}`, {
-          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
-        })
-      }
-    },
-
-    // 更新品牌（管理員）
-    updateBrand: async (_: any, { id, input }: { id: string; input: any }, context: GraphQLContext) => {
-      if (!context.userId || context.userRole !== 'ADMIN') {
-        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      try {
-        // 如果更新了名稱且沒有提供 slug，自動重新生成 slug
-        let updateData = { ...input }
-        if (input.name && !input.slug) {
-          updateData.slug = await generateUniqueBrandSlug(input.name, id)
-        }
-
-        const brand = await prisma.brand.update({
-          where: { id },
-          data: updateData,
-        })
-
-        // 清除品牌快取
-        await BrandCache.invalidate()
-
-        return brand
-      } catch (error: any) {
-        console.error('更新品牌失敗:', error)
-        throw new GraphQLError(`更新品牌失敗: ${error.message}`, {
-          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
-        })
-      }
-    },
-
-    // 刪除品牌（管理員）
-    deleteBrand: async (_: any, { id }: { id: string }, context: GraphQLContext) => {
-      if (!context.userId || context.userRole !== 'ADMIN') {
-        throw new GraphQLError('權限不足', { extensions: { code: 'FORBIDDEN' } })
-      }
-
-      try {
-        // 檢查是否有產品關聯
-        const productCount = await prisma.product.count({
-          where: { brandId: id },
-        })
-
-        if (productCount > 0) {
-          throw new GraphQLError(`無法刪除品牌，因為還有 ${productCount} 個產品使用此品牌`, {
-            extensions: { code: 'BAD_REQUEST' },
-          })
-        }
-
-        await prisma.brand.delete({ where: { id } })
-
-        // 清除品牌快取
-        await BrandCache.invalidate()
-
-        return true
-      } catch (error: any) {
-        console.error('刪除品牌失敗:', error)
-        if (error instanceof GraphQLError) {
-          throw error
-        }
-        throw new GraphQLError(`刪除品牌失敗: ${error.message}`, {
-          extensions: { code: 'INTERNAL_SERVER_ERROR', originalError: error },
-        })
-      }
-    },
-
     // 創建產品變體（顏色）（管理員）
     createProductVariant: async (_: any, { input }: { input: any }, context: GraphQLContext) => {
       if (!context.userId || context.userRole !== 'ADMIN') {
@@ -918,7 +777,7 @@ export const productResolvers = {
     },
   },
 
-  // 移除 Product.category 和 Product.brand 的 field resolver
+  // 移除 Product.category 的 field resolver
   // 因為已經在查詢中使用 include，不需要額外查詢，避免 N+1 問題
 
   Category: {
@@ -930,19 +789,6 @@ export const productResolvers = {
       // Fallback：單獨查詢（效能較差，但確保相容性）
       return await prisma.product.count({
         where: { categoryId: category.id, isActive: true },
-      })
-    },
-  },
-
-  Brand: {
-    productCount: async (brand: any) => {
-      // ✅ 優先使用預先載入的 _count（避免 N+1 查詢）
-      if (brand._count?.products !== undefined) {
-        return brand._count.products
-      }
-      // Fallback：單獨查詢（效能較差，但確保相容性）
-      return await prisma.product.count({
-        where: { brandId: brand.id, isActive: true },
       })
     },
   },

@@ -15,7 +15,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { GET_CART, CREATE_ORDER } from '@/graphql/queries'
+import { GET_CART, CREATE_ORDER, GET_ME } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import PackagingOptionSelector from '@/components/checkout/PackagingOptionSelector'
@@ -111,6 +111,12 @@ function CheckoutContent() {
   const { data: cartData, loading: cartLoading } = useQuery(GET_CART, {
     skip: !isAuthenticated,
     fetchPolicy: 'network-only',
+  })
+
+  // 獲取會員資訊（包含免運門檻）
+  const { data: meData } = useQuery(GET_ME, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-first',
   })
 
   // 創建訂單 Mutation
@@ -215,10 +221,15 @@ function CheckoutContent() {
   const cartIsEmpty = cartItems.length === 0
 
   // 計算總金額（扣除優惠券和購物金）
-  // 根據配送方式計算運費
-  const shippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 49
+  // 根據配送方式計算基礎運費
+  const baseShippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 49
     : formData.shippingMethod === 'HOME_DELIVERY' ? 120
     : 0 // SELF_PICKUP 免運費
+
+  // 檢查會員免運門檻
+  const freeShippingThreshold = meData?.me?.membershipTierConfig?.freeShippingThreshold
+  const qualifiesForFreeShipping = !isGuest && freeShippingThreshold !== undefined && cartSubtotal >= Number(freeShippingThreshold)
+  const shippingFee = qualifiesForFreeShipping ? 0 : baseShippingFee
   const couponDiscount = appliedCoupon?.discount || 0
   const creditDiscount = isGuest ? 0 : creditsToUse
   const totalDiscount = couponDiscount + creditDiscount

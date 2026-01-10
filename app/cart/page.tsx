@@ -377,7 +377,6 @@ export default function CartPage() {
               }
               const productImage = getVariantImage()
               const productSlug = isGuest ? '#' : `/products/${item.product.slug}`
-              const brandName = isGuest ? null : item.product?.brand?.name
               const variantName = isGuest ? item.variantName : item.variant?.color
               // ✅ 優先使用 sizeChart.size，沒有才使用 sizeEu
               const sizeEu = isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu)
@@ -438,11 +437,6 @@ export default function CartPage() {
                           >
                             {productName}
                           </Link>
-                          {brandName && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              {brandName}
-                            </p>
-                          )}
                         </div>
                         <button
                           onClick={() => handleRemoveItem(

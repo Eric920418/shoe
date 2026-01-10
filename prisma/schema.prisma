@@ -152,22 +152,7 @@ model Category {
   @@map("categories")
 }
 
-model Brand {
-  id         String    @id @default(cuid())
-  name       String    @unique
-  slug       String    @unique
-  logo       String?
-  website    String?
-  country    String?
-  isActive   Boolean   @default(true)
-  isFeatured Boolean   @default(false)
-  sortOrder  Int       @default(0)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  products   Product[]
-
-  @@map("brands")
-}
+// Brand model 已移除 - 品牌功能已停用
 
 model Product {
   id            String           @id @default(cuid())
@@ -181,7 +166,6 @@ model Product {
   minStock      Int              @default(0)
   weight        Decimal?         @db.Decimal(8, 2)
   categoryId    String
-  brandId       String?
   images        Json             @default("[]")
   isActive      Boolean          @default(true)
   isFeatured    Boolean          @default(false)
@@ -211,7 +195,6 @@ model Product {
   cartItems     CartItem[]
   orderItems    OrderItem[]
   variants      ProductVariant[]
-  brand         Brand?           @relation(fields: [brandId], references: [id])
   category      Category         @relation(fields: [categoryId], references: [id])
   reviews       Review[]
   sizeCharts    SizeChart[]
@@ -220,13 +203,12 @@ model Product {
 
   @@index([slug])
   @@index([isActive, categoryId])
-  @@index([isActive, brandId])
   @@index([isActive, gender])
   @@index([isActive, price])
   @@index([isActive, createdAt])
   @@index([isActive, isFeatured])
   @@index([isActive, isNewArrival])
-  @@index([categoryId, brandId, isActive])
+  @@index([categoryId, isActive])
   @@map("products")
 }
 

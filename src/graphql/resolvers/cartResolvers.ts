@@ -25,7 +25,6 @@ const CART_INCLUDE = {
       product: {
         include: {
           category: true,
-          brand: true,
         },
       },
       variant: true,

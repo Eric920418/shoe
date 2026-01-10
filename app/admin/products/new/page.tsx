@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMutation, useQuery } from '@apollo/client'
-import { CREATE_PRODUCT, GET_BRANDS, GET_CATEGORIES, GET_PRODUCTS, GET_ALL_PRODUCT_OPTIONS } from '@/graphql/queries'
+import { CREATE_PRODUCT, GET_CATEGORIES, GET_PRODUCTS, GET_ALL_PRODUCT_OPTIONS } from '@/graphql/queries'
 import toast from 'react-hot-toast'
 import ImageUpload from '@/components/admin/ImageUpload'
 import ProductOptionManager from '@/components/admin/ProductOptionManager'
@@ -20,7 +20,6 @@ interface ProductFormData {
   description: string
   images: string[]
   categoryId: string
-  brandId: string
   price: number | ''
   originalPrice: number | ''
   isFeatured: boolean
@@ -47,7 +46,6 @@ const initialFormData: ProductFormData = {
   description: '',
   images: [],
   categoryId: '',
-  brandId: '',
   price: '',
   originalPrice: '',
   isFeatured: false,
@@ -80,8 +78,6 @@ export default function NewProductPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 獲取品牌列表
-  const { data: brandsData, loading: brandsLoading, error: brandsError } = useQuery(GET_BRANDS)
   // 獲取分類列表
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES)
   // 獲取產品選項（鞋型、閉合方式、產品特性）
@@ -176,10 +172,6 @@ export default function NewProductPage() {
       newErrors.categoryId = '請選擇產品分類'
     }
 
-    if (!formData.brandId) {
-      newErrors.brandId = '請選擇產品品牌'
-    }
-
     if (formData.price === '' || formData.price <= 0) {
       newErrors.price = '請輸入大於 0 的售價'
     }
@@ -199,7 +191,6 @@ export default function NewProductPage() {
         const fieldNames: Record<string, string> = {
           name: '產品名稱',
           categoryId: '分類',
-          brandId: '品牌',
           price: '售價',
           originalPrice: '原價',
         }
@@ -229,7 +220,6 @@ export default function NewProductPage() {
         slug: formData.slug.trim() || undefined, // 只在有值時傳入 slug，否則讓後端自動生成
         description: formData.description.trim() || null,
         categoryId: formData.categoryId,
-        brandId: formData.brandId || null,
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stock: 0, // 庫存由尺碼管理，此處設為 0
@@ -371,36 +361,6 @@ export default function NewProductPage() {
               )}
               {categoriesError && (
                 <p className="text-sm text-red-600 mt-1">無法載入分類列表：{categoriesError.message}</p>
-              )}
-            </div>
-
-            {/* 品牌 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                品牌 <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.brandId}
-                onChange={(e) => updateField('brandId', e.target.value)}
-                disabled={brandsLoading}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.brandId ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">
-                  {brandsLoading ? '載入中...' : brandsError ? '載入失敗' : '請選擇品牌'}
-                </option>
-                {brandsData?.brands?.map((brand: any) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name} {brand.productCount > 0 ? `(${brand.productCount})` : ''}
-                  </option>
-                ))}
-              </select>
-              {errors.brandId && (
-                <p className="text-sm text-red-600 mt-1">{errors.brandId}</p>
-              )}
-              {brandsError && (
-                <p className="text-sm text-red-600 mt-1">無法載入品牌列表：{brandsError.message}</p>
               )}
             </div>
           </div>

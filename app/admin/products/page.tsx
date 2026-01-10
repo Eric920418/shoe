@@ -8,7 +8,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_PRODUCTS, GET_BRANDS, GET_CATEGORIES, DELETE_PRODUCT } from '@/graphql/queries'
+import { GET_PRODUCTS, GET_CATEGORIES, DELETE_PRODUCT } from '@/graphql/queries'
 import toast from 'react-hot-toast'
 
 const statusLabels = {
@@ -28,7 +28,6 @@ const genderLabels = {
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategories, setFilterCategories] = useState<string[]>([])
-  const [filterBrand, setFilterBrand] = useState('')
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
@@ -48,15 +47,9 @@ export default function ProductsPage() {
       take: 10000, // 後台管理需要顯示所有產品
       search: searchQuery || undefined,
       categoryIds: filterCategories.length > 0 ? filterCategories : undefined,
-      brandId: filterBrand || undefined,
     },
     fetchPolicy: 'network-only', // 總是從網路獲取最新資料
     nextFetchPolicy: 'cache-first', // 後續查詢使用快取
-  })
-
-  // 獲取品牌列表（用於篩選）
-  const { data: brandsData } = useQuery(GET_BRANDS, {
-    fetchPolicy: 'cache-and-network', // 使用快取但也從網路更新
   })
 
   // 獲取分類列表（用於篩選）
@@ -207,9 +200,9 @@ export default function ProductsPage() {
             className="lg:hidden px-3 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center gap-1"
           >
             <span className="text-sm">篩選</span>
-            {(filterBrand || filterCategories.length > 0) && (
+            {filterCategories.length > 0 && (
               <span className="bg-primary-600 text-white text-xs px-1.5 py-0.5 rounded-full">
-                {(filterBrand ? 1 : 0) + filterCategories.length}
+                {filterCategories.length}
               </span>
             )}
           </button>
@@ -217,20 +210,8 @@ export default function ProductsPage() {
 
         {/* 篩選選項 */}
         <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-200">
-            <div className="lg:col-span-2"></div>
-            <select
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-            >
-              <option value="">全部品牌</option>
-              {brandsData?.brands?.map((brand: any) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-200">
+            <div className="lg:col-span-1"></div>
             {/* 分類複選下拉選單 */}
             <div className="relative">
               <button
@@ -307,7 +288,7 @@ export default function ProductsPage() {
         {products.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <p className="text-gray-500">
-              {searchQuery || filterCategories.length > 0 || filterBrand
+              {searchQuery || filterCategories.length > 0
                 ? '沒有符合條件的產品'
                 : '暫無產品數據，請先新增產品'}
             </p>
@@ -352,7 +333,7 @@ export default function ProductsPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-gray-900 truncate">{product.name}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {product.brand?.name} {product.category?.name && `· ${product.category.name}`}
+                            {product.category?.name || '-'}
                           </p>
                         </div>
                         <span
@@ -449,8 +430,8 @@ export default function ProductsPage() {
             <tbody className="divide-y divide-gray-200">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                    {searchQuery || filterCategories.length > 0 || filterBrand
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    {searchQuery || filterCategories.length > 0
                       ? '沒有符合條件的產品'
                       : '暫無產品數據，請先新增產品'}
                   </td>
@@ -497,7 +478,7 @@ export default function ProductsPage() {
                           <div>
                             <p className="font-medium text-gray-900">{product.name}</p>
                             <p className="text-sm text-gray-500">
-                              {product.brand?.name} {product.gender && `· ${genderLabels[product.gender as keyof typeof genderLabels]}`}
+                              {product.gender && genderLabels[product.gender as keyof typeof genderLabels]}
                             </p>
                           </div>
                         </div>

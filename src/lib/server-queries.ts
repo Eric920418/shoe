@@ -51,14 +51,6 @@ export const getProductBySlug = cache(async (slug: string) => {
         slug,
       },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            logo: true,
-          },
-        },
         category: {
           select: {
             id: true,
@@ -136,7 +128,6 @@ export const getProductById = cache(async (id: string) => {
         id,
       },
       include: {
-        brand: true,
         category: true,
         variants: {
           where: {
@@ -170,7 +161,6 @@ export const getProducts = cache(async (params: {
   skip?: number
   take?: number
   categoryId?: string
-  brandId?: string
   minPrice?: number
   maxPrice?: number
   gender?: string
@@ -182,7 +172,6 @@ export const getProducts = cache(async (params: {
       skip = 0,
       take = 20,
       categoryId,
-      brandId,
       minPrice,
       maxPrice,
       gender,
@@ -196,10 +185,6 @@ export const getProducts = cache(async (params: {
 
     if (categoryId) {
       where.categoryId = categoryId
-    }
-
-    if (brandId) {
-      where.brandId = brandId
     }
 
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -233,13 +218,6 @@ export const getProducts = cache(async (params: {
         skip,
         take,
         include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
           category: {
             select: {
               id: true,
@@ -269,41 +247,6 @@ export const getProducts = cache(async (params: {
       total: 0,
       hasMore: false,
     }
-  }
-})
-
-/**
- * 獲取所有品牌（包含產品數量）
- */
-export const getBrands = cache(async () => {
-  try {
-    const brands = await prisma.brand.findMany({
-      where: {
-        isActive: true,
-      },
-      include: {
-        _count: {
-          select: {
-            products: {
-              where: {
-                isActive: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        sortOrder: 'asc',
-      },
-    })
-
-    return brands.map((brand) => ({
-      ...brand,
-      productCount: brand._count.products,
-    }))
-  } catch (error) {
-    console.error('Failed to fetch brands:', error)
-    return []
   }
 })
 
@@ -354,13 +297,6 @@ export const getFeaturedProducts = cache(async (limit: number = 10) => {
       },
       take: limit,
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
         category: {
           select: {
             id: true,
@@ -395,13 +331,6 @@ export const getNewArrivals = cache(async (limit: number = 10) => {
       },
       take: limit,
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
         category: {
           select: {
             id: true,
@@ -434,13 +363,6 @@ export const getBestSellers = cache(async (limit: number = 10) => {
       },
       take: limit,
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
         category: {
           select: {
             id: true,
@@ -494,13 +416,6 @@ export const getHomepageProducts = cache(async (limit: number = 30) => {
       },
       take: limit,
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
         category: {
           select: {
             id: true,

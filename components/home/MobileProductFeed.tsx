@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Star, Flame, Zap, Search, Heart, ShoppingCart } from 'lucide-react'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery } from '@apollo/client'
-import { GET_HOMEPAGE_PRODUCTS, GET_CATEGORIES, GET_BRANDS } from '@/graphql/queries'
+import { GET_HOMEPAGE_PRODUCTS, GET_CATEGORIES } from '@/graphql/queries'
 import WishlistButton from '@/components/product/WishlistButton'
 import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
 import { useCart } from '@/contexts/CartContext'
@@ -17,12 +17,10 @@ type SortType = 'recommend' | 'sales' | 'newest' | 'price_asc' | 'price_desc'
 interface MobileProductFeedProps {
   serverProducts?: any[]
   serverCategories?: any[]
-  serverBrands?: any[]
 }
 
 interface FilterState {
   categoryIds: string[]
-  brandIds: string[]
   minPrice?: number
   maxPrice?: number
   sortBy: SortType
@@ -31,7 +29,6 @@ interface FilterState {
 export default function MobileProductFeed({
   serverProducts,
   serverCategories,
-  serverBrands,
 }: MobileProductFeedProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -69,11 +66,10 @@ export default function MobileProductFeed({
   // 從 URL 解析篩選狀態
   const parseFiltersFromUrl = useCallback((): FilterState => {
     const categoryIds = searchParams.get('categories')?.split(',').filter(Boolean) || []
-    const brandIds = searchParams.get('brands')?.split(',').filter(Boolean) || []
     const minPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
     const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
     const sortBy = (searchParams.get('sort') as SortType) || 'recommend'
-    return { categoryIds, brandIds, minPrice, maxPrice, sortBy }
+    return { categoryIds, minPrice, maxPrice, sortBy }
   }, [searchParams])
 
   // 篩選狀態 - 從 URL 初始化
@@ -93,9 +89,6 @@ export default function MobileProductFeed({
 
     if (newFilters.categoryIds.length > 0) {
       params.set('categories', newFilters.categoryIds.join(','))
-    }
-    if (newFilters.brandIds.length > 0) {
-      params.set('brands', newFilters.brandIds.join(','))
     }
     if (newFilters.minPrice !== undefined) {
       params.set('minPrice', String(newFilters.minPrice))
@@ -120,14 +113,8 @@ export default function MobileProductFeed({
   })
   const categories = serverCategories || categoriesData?.categories || []
 
-  // 查詢品牌
-  const { data: brandsData } = useQuery(GET_BRANDS, {
-    skip: !!serverBrands,
-  })
-  const brands = serverBrands || brandsData?.brands || []
-
   // 判斷是否有篩選條件
-  const hasFilters = filters.categoryIds.length > 0 || filters.brandIds.length > 0 || !!filters.minPrice || !!filters.maxPrice
+  const hasFilters = filters.categoryIds.length > 0 || !!filters.minPrice || !!filters.maxPrice
 
   // 查詢產品 - 只在有篩選條件時執行（沒有篩選條件時使用 serverProducts）
   const { data, loading, fetchMore } = useQuery(GET_HOMEPAGE_PRODUCTS, {
@@ -135,7 +122,6 @@ export default function MobileProductFeed({
       skip: 0,
       take: ITEMS_PER_PAGE,
       categoryIds: filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
-      brandIds: filters.brandIds.length > 0 ? filters.brandIds : undefined,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
     },

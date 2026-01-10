@@ -186,11 +186,6 @@ export default function WishlistPage() {
 
                     {/* Product Info */}
                     <div className="p-4">
-                      {/* Brand */}
-                      {product.brand && (
-                        <p className="text-xs text-gray-500 mb-1">{product.brand.name}</p>
-                      )}
-
                       {/* Product Name */}
                       <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">
                         {product.name}

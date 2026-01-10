@@ -952,6 +952,23 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
+### 🔥 近期重點更新（2026-01-10）
+
+#### ✅ 移除品牌功能（v2.6.0）
+- **功能描述**：完全移除品牌（Brand）功能，簡化產品分類結構
+- **移除內容**：
+  - 資料庫：移除 `brands` 表和 `products.brandId` 欄位
+  - 後台：刪除品牌管理頁面 `/admin/brands`
+  - 前台：移除品牌篩選器、品牌顯示
+  - API：移除所有品牌相關的 GraphQL query 和 mutation
+- **影響範圍**：
+  - `prisma/schema.prisma` - 移除 Brand model 和 Product.brandId
+  - `src/graphql/schema.ts` - 移除 Brand 類型和相關操作
+  - `src/graphql/resolvers/productResolvers.ts` - 移除品牌 resolvers
+  - `app/products/page.tsx` - 移除品牌篩選
+  - `app/search/page.tsx` - 移除品牌篩選
+  - 刪除：`app/admin/brands/`、`app/brands/`、`app/brand-stores/`
+
 ### 🔥 近期重點更新（2026-01-09）
 
 #### ✅ 三大主分類系統（v2.5.0）
@@ -966,8 +983,10 @@ pnpm prisma migrate reset
   - 快速移動分類到其他主分類（下拉選單）
   - 統計每個主分類的分類數量
 - **前台變更**：
-  - 移除手機版篩選面板，簡化用戶體驗
-  - 保留排序功能（推薦/熱銷/新品/價格）
+  - 首頁分類網格改為三大主分類按鈕（女鞋/男鞋和童鞋/其他）
+  - 產品列表頁支援 `mainCategory` URL 參數篩選
+  - 當選擇主分類時，自動隱藏性別篩選器（避免重複篩選）
+  - 分類篩選器只顯示該主分類下的子分類
 - **資料庫變更**：
   - `categories` 表新增 `mainCategory` 欄位（MainCategory enum: WOMEN/MEN_KIDS/OTHER）
   - 預設值為 OTHER，確保相容性

@@ -38,7 +38,13 @@
       "WebFetch(domain:ctaohe.github.io)",
       "WebFetch(domain:blog.tinybook.cc)",
       "WebFetch(domain:www.newebpay.com)",
-      "Bash(pnpm exec tsc:*)"
+      "Bash(pnpm exec tsc:*)",
+      "Bash(DATABASE_URL='postgresql://neondb_owner:npg_bZsHC6edq3ac@ep-lucky-math-a1gqirvv-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require' pnpm prisma db push:*)",
+      "Bash(export:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(env -i HOME=\"$HOME\" PATH=\"$PATH\" DATABASE_URL='postgresql://neondb_owner:npg_bZsHC6edq3ac@ep-lucky-math-a1gqirvv-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require' npx prisma db push:*)",
+      "Bash(echo:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": [],
     "ask": []

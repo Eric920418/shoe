@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import {
   calculateMembershipTier,
   calculatePointsEarned,
+  isFreeShipping,
 } from '@/lib/membership'
 
 /**
@@ -198,7 +199,6 @@ export const orderResolvers = {
             include: {
               product: {
                 include: {
-                  brand: true,
                 },
               },
               variant: true,
@@ -285,7 +285,6 @@ export const orderResolvers = {
             include: {
               product: {
                 include: {
-                  brand: true,
                   category: true,
                 },
               },
@@ -415,7 +414,6 @@ export const orderResolvers = {
             include: {
               product: {
                 include: {
-                  brand: true,
                 },
               },
               variant: true,
@@ -453,9 +451,6 @@ export const orderResolvers = {
           for (const item of input.items) {
             const product = await prisma.product.findUnique({
               where: { id: item.productId },
-              include: {
-                brand: true,
-              },
             })
 
             if (!product) {
@@ -516,7 +511,7 @@ export const orderResolvers = {
           return sum + price * item.quantity
         }, 0)
 
-        // 根據配送方式計算運費
+        // 根據配送方式計算基礎運費
         let shippingFee = 0
         switch (input.shippingMethod) {
           case 'CVS_PICKUP':
@@ -530,6 +525,24 @@ export const orderResolvers = {
             break
           default:
             shippingFee = 49
+        }
+
+        // 檢查會員免運門檻
+        if (!isGuest && user && shippingFee > 0) {
+          // 獲取用戶的會員等級配置
+          const userWithTier = await prisma.user.findUnique({
+            where: { id: user.userId },
+            include: { membershipTier: true },
+          })
+
+          if (userWithTier?.membershipTier) {
+            // 使用會員等級的免運門檻判斷是否免運
+            const qualifiesForFreeShipping = isFreeShipping(subtotal, userWithTier.membershipTier)
+            if (qualifiesForFreeShipping) {
+              console.log(`🚚 會員 ${user.userId} 達到免運門檻 $${userWithTier.membershipTier.freeShippingThreshold}，訂單小計 $${subtotal}，免除運費 $${shippingFee}`)
+              shippingFee = 0
+            }
+          }
         }
         let discount = 0
         let creditsUsed = 0
@@ -686,8 +699,7 @@ export const orderResolvers = {
               include: {
                 product: {
                   include: {
-                    brand: true,
-                  },
+                    },
                 },
                 variant: true,
               },

@@ -34,7 +34,6 @@ export const wishlistResolvers = {
           include: {
             product: {
               include: {
-                brand: true,
                 category: true,
                 variants: {
                   where: { isActive: true },
@@ -141,7 +140,6 @@ export const wishlistResolvers = {
           include: {
             product: {
               include: {
-                brand: true,
                 category: true,
                 variants: {
                   where: { isActive: true },

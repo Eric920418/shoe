@@ -116,7 +116,6 @@ export const resolvers = {
   User: authResolvers.User,
   Product: productResolvers.Product,
   Category: productResolvers.Category,
-  Brand: productResolvers.Brand,
   SizeChart: sizeResolvers.SizeChart,
   Cart: cartResolvers.Cart,
   CartItem: cartResolvers.CartItem,

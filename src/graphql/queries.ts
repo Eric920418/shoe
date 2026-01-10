@@ -31,11 +31,6 @@ export const GET_PRODUCT_BY_SLUG = gql`
         name
         slug
       }
-      brand {
-        id
-        name
-        logo
-      }
       variants {
         id
         name
@@ -100,10 +95,6 @@ export const GET_PRODUCT_BY_ID = gql`
         id
         name
       }
-      brand {
-        id
-        name
-      }
     }
   }
 `
@@ -114,7 +105,6 @@ export const GET_PRODUCTS = gql`
     $take: Int
     $categoryId: String
     $categoryIds: [String!]
-    $brandId: String
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
@@ -125,7 +115,6 @@ export const GET_PRODUCTS = gql`
       take: $take
       categoryId: $categoryId
       categoryIds: $categoryIds
-      brandId: $brandId
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
@@ -138,9 +127,6 @@ export const GET_PRODUCTS = gql`
       originalPrice
       images
       totalStock
-      brand {
-        name
-      }
       category {
         name
       }
@@ -161,22 +147,6 @@ export const GET_CATEGORIES = gql`
   }
 `
 
-export const GET_BRANDS = gql`
-  query GetBrands {
-    brands {
-      id
-      name
-      slug
-      logo
-      website
-      country
-      isActive
-      isFeatured
-      productCount
-    }
-  }
-`
-
 // 首頁展示用產品查詢（包含銷售數據）
 export const GET_HOMEPAGE_PRODUCTS = gql`
   query GetHomepageProducts(
@@ -184,8 +154,6 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
     $take: Int
     $categoryId: String
     $categoryIds: [String!]
-    $brandId: String
-    $brandIds: [String!]
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
@@ -197,8 +165,6 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
       take: $take
       categoryId: $categoryId
       categoryIds: $categoryIds
-      brandId: $brandId
-      brandIds: $brandIds
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
@@ -216,9 +182,6 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
       viewCount
       averageRating
       reviewCount
-      brand {
-        name
-      }
       category {
         name
       }
@@ -249,9 +212,6 @@ export const GET_CART = gql`
           name
           slug
           images
-          brand {
-            name
-          }
         }
         variant {
           color
@@ -562,9 +522,6 @@ export const GET_ORDER = gql`
           name
           slug
           images
-          brand {
-            name
-          }
         }
         variant {
           id
@@ -686,6 +643,11 @@ export const GET_ME = gql`
       birthday
       gender
       membershipTier
+      membershipTierConfig {
+        id
+        name
+        freeShippingThreshold
+      }
       membershipPoints
       totalOrders
       totalSpent
@@ -1020,10 +982,6 @@ export const CREATE_PRODUCT = gql`
         id
         name
       }
-      brand {
-        id
-        name
-      }
       createdAt
     }
   }
@@ -1087,46 +1045,6 @@ export const DELETE_CATEGORY = gql`
   }
 `
 
-// 品牌管理
-export const CREATE_BRAND = gql`
-  mutation CreateBrand($input: CreateBrandInput!) {
-    createBrand(input: $input) {
-      id
-      name
-      slug
-      logo
-      website
-      country
-      sortOrder
-      isActive
-      isFeatured
-      createdAt
-    }
-  }
-`
-
-export const UPDATE_BRAND = gql`
-  mutation UpdateBrand($id: ID!, $input: UpdateBrandInput!) {
-    updateBrand(id: $id, input: $input) {
-      id
-      name
-      logo
-      website
-      country
-      sortOrder
-      isActive
-      isFeatured
-      updatedAt
-    }
-  }
-`
-
-export const DELETE_BRAND = gql`
-  mutation DeleteBrand($id: ID!) {
-    deleteBrand(id: $id)
-  }
-`
-
 // ============================================
 // 願望清單相關查詢
 // ============================================
@@ -1154,11 +1072,6 @@ export const GET_MY_WISHLIST = gql`
           id
           name
           slug
-        }
-        brand {
-          id
-          name
-          logo
         }
         variants {
           id

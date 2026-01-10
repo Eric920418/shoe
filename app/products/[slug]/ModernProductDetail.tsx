@@ -470,17 +470,6 @@ export default function ModernProductDetail({ product }: { product: any }) {
               </div>
             )}
 
-            {/* 品牌資訊 */}
-            {product.brand && (
-              <div className="border-t pt-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">品牌：</span>
-                  <span className="text-sm font-semibold text-black">
-                    {product.brand.name}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

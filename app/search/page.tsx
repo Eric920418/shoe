@@ -19,7 +19,6 @@ const SEARCH_PRODUCTS = gql`
     $take: Int
     $skip: Int
     $categoryId: String
-    $brandId: String
     $minPrice: Float
     $maxPrice: Float
     $gender: ProductGender
@@ -29,7 +28,6 @@ const SEARCH_PRODUCTS = gql`
       take: $take
       skip: $skip
       categoryId: $categoryId
-      brandId: $brandId
       minPrice: $minPrice
       maxPrice: $maxPrice
       gender: $gender
@@ -48,20 +46,6 @@ const SEARCH_PRODUCTS = gql`
         id
         name
       }
-      brand {
-        id
-        name
-      }
-    }
-  }
-`
-
-const GET_BRANDS = gql`
-  query GetBrands {
-    brands {
-      id
-      name
-      slug
     }
   }
 `
@@ -81,7 +65,6 @@ function SearchPageContent() {
   const searchQuery = searchParams.get('q') || ''
 
   const [sortBy, setSortBy] = useState('relevance')
-  const [selectedBrand, setSelectedBrand] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [priceRange, setPriceRange] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -91,7 +74,6 @@ function SearchPageContent() {
     variables: {
       search: searchQuery,
       take: 10000, // 顯示所有產品
-      brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
       categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
       maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
@@ -99,14 +81,10 @@ function SearchPageContent() {
     skip: !searchQuery,
   })
 
-  // 查詢品牌列表
-  const { data: brandsData } = useQuery(GET_BRANDS)
-
   // 查詢分類列表
   const { data: categoriesData } = useQuery(GET_CATEGORIES)
 
   const products = productsData?.products || []
-  const brands = brandsData?.brands || []
   const categories = categoriesData?.categories || []
 
   // 排序產品
@@ -169,36 +147,6 @@ function SearchPageContent() {
         {/* 篩選區 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* 品牌篩選 */}
-            <div className="flex-1">
-              <p className="text-sm text-gray-600 mb-2">品牌</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedBrand('all')}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    selectedBrand === 'all'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  全部品牌
-                </button>
-                {brands.slice(0, 6).map((brand: any) => (
-                  <button
-                    key={brand.id}
-                    onClick={() => setSelectedBrand(brand.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      selectedBrand === brand.id
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {brand.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* 分類篩選 */}
             <div className="flex-1">
               <p className="text-sm text-gray-600 mb-2">分類</p>
@@ -371,7 +319,7 @@ function SearchPageContent() {
 
                     <div className="p-3">
                       <p className="text-xs text-gray-500 mb-1">
-                        {product.brand?.name || product.category?.name}
+                        {product.category?.name}
                       </p>
                       <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
                         {product.name}
@@ -428,7 +376,7 @@ function SearchPageContent() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">
-                              {product.brand?.name} · {product.category?.name}
+                              {product.category?.name}
                             </p>
                             <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
                             {product.averageRating > 0 && (
