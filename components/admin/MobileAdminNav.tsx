@@ -31,7 +31,6 @@ const fullNavItems = [
     items: [
       { name: "產品列表", href: "/admin/products", icon: "👟" },
       { name: "分類管理", href: "/admin/categories", icon: "📁" },
-      { name: "品牌管理", href: "/admin/brands", icon: "🏷️" },
     ],
   },
   {
