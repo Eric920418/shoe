@@ -110,30 +110,40 @@ export async function calculateMembershipTier(
 }
 
 /**
- * 計算訂單可獲得的積分
- * 基礎規則：每消費 $10 = 1 積分
- * 會員等級加成：根據會員等級有不同的積分倍數
- *
- * 注意：積分僅用於記錄和展示，不可抵扣現金
- *
- * @param orderTotal 訂單總金額
- * @param tierConfig 會員等級配置
- * @returns 可獲得的積分
+ * 計算訂單可獲得的積分（已棄用）
+ * @deprecated 積分系統已簡化，請使用 calculateCreditReward 計算購物金回饋
  */
 export function calculatePointsEarned(
   orderTotal: number | Decimal,
   tierConfig: MembershipTierConfig
 ): number {
+  // 保留但返回 0，不再發放積分
+  return 0
+}
+
+/**
+ * 計算訂單可獲得的購物金回饋
+ * 基礎規則：每消費 $100 = 1 元購物金（1% 回饋）
+ * 會員等級加成：根據會員等級有不同的倍數（pointsMultiplier 作為購物金倍率）
+ *
+ * @param orderTotal 訂單總金額
+ * @param tierConfig 會員等級配置
+ * @returns 可獲得的購物金金額
+ */
+export function calculateCreditReward(
+  orderTotal: number | Decimal,
+  tierConfig: MembershipTierConfig
+): number {
   const total = typeof orderTotal === 'number' ? orderTotal : orderTotal.toNumber()
 
-  // 基礎積分：每 $10 = 1 積分
-  const basePoints = Math.floor(total / 10)
+  // 基礎購物金：每 $100 = 1 元購物金
+  const baseCredit = Math.floor(total / 100)
 
-  // 會員等級加成
+  // 會員等級加成（使用 pointsMultiplier 作為購物金倍率）
   const multiplier = tierConfig.pointsMultiplier.toNumber()
 
-  // 總積分（四捨五入）
-  return Math.round(basePoints * multiplier)
+  // 總購物金（四捨五入）
+  return Math.round(baseCredit * multiplier)
 }
 
 /**

@@ -27,10 +27,6 @@ const GET_BEST_SELLERS = gql`
         name
         slug
       }
-      brand {
-        name
-        slug
-      }
     }
   }
 `
@@ -68,7 +64,6 @@ export default function BestSellersPage() {
         discount,
         rank: idx + 1,
         category: product.category,
-        brand: product.brand,
       }
     })
   }, [data])

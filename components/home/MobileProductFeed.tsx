@@ -382,10 +382,13 @@ export default function MobileProductFeed({
           </div>
         )}
 
-        {/* 原位置的篩選器（固定時作為佔位） */}
-        <div className={isFilterFixed ? 'opacity-0' : ''}>
+        {/* 原位置的篩選器（固定時作為佔位，保持相同高度避免跳動） */}
+        <div className={isFilterFixed ? 'invisible' : ''}>
           <FilterContent />
         </div>
+
+        {/* 固定時的額外佔位空間（搜尋欄高度約 52px） */}
+        {isFilterFixed && <div className="h-[52px]" />}
       </div>
 
       {/* 商品瀑布流 */}

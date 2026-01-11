@@ -359,7 +359,7 @@ export default function MembershipTiersPage() {
                         </div>
 
                         <div>
-                          <div className="text-gray-500 mb-1">積分倍數</div>
+                          <div className="text-gray-500 mb-1">回饋倍數</div>
                           <div className="font-semibold text-blue-600">
                             {parseFloat(tier.pointsMultiplier).toFixed(1)}x
                           </div>
@@ -509,7 +509,7 @@ export default function MembershipTiersPage() {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            積分倍數 *
+                            回饋倍數 *
                           </label>
                           <input
                             type="number"
@@ -525,6 +525,9 @@ export default function MembershipTiersPage() {
                             step="0.1"
                             required
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            購物金回饋倍數（1.0x = 每$100回饋$1）
+                          </p>
                         </div>
 
                         <div>
@@ -734,7 +737,7 @@ export default function MembershipTiersPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    積分倍數 *
+                    回饋倍數 *
                   </label>
                   <input
                     type="number"
@@ -750,6 +753,9 @@ export default function MembershipTiersPage() {
                     step="0.1"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    購物金回饋倍數（1.0x = 每$100回饋$1）
+                  </p>
                 </div>
 
                 <div>

@@ -448,7 +448,6 @@ export const wishlistResolvers = {
       return await prisma.product.findUnique({
         where: { id: wishlistItem.productId },
         include: {
-          brand: true,
           category: true,
           variants: {
             where: { isActive: true },

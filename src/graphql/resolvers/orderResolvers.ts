@@ -6,7 +6,7 @@ import { GraphQLError } from 'graphql'
 import { prisma } from '@/lib/prisma'
 import {
   calculateMembershipTier,
-  calculatePointsEarned,
+  calculateCreditReward,
   isFreeShipping,
 } from '@/lib/membership'
 
@@ -69,7 +69,7 @@ interface GraphQLContext {
 }
 
 /**
- * 處理訂單完成後的會員升級和積分累積
+ * 處理訂單完成後的會員升級和購物金回饋
  * @param userId 用戶ID
  * @param orderId 訂單ID
  * @param orderTotal 訂單總金額
@@ -88,10 +88,10 @@ async function processCompletedOrder(
       select: {
         id: true,
         membershipTierId: true,
-        membershipPoints: true,
         totalSpent: true,
         totalOrders: true,
         isFirstTimeBuyer: true,
+        firstPurchaseAt: true,
       },
     })
 
@@ -107,64 +107,74 @@ async function processCompletedOrder(
     const newTier = await calculateMembershipTier(newTotalSpent)
     const oldTierId = currentUser.membershipTierId
 
-    // 4. 計算本次訂單可獲得的積分
-    const pointsEarned = calculatePointsEarned(total, newTier)
+    // 4. 計算本次訂單可獲得的購物金回饋（每 100 元 = 1 元購物金）
+    const creditReward = calculateCreditReward(total, newTier)
 
-    // 5. 計算新的積分總額
-    const newPoints = currentUser.membershipPoints + pointsEarned
-
-    // 6. 更新用戶資訊
+    // 5. 更新用戶資訊（不再更新 membershipPoints）
     await prisma.user.update({
       where: { id: userId },
       data: {
         totalSpent: newTotalSpent,
         totalOrders: currentUser.totalOrders + 1,
         membershipTierId: newTier.id,
-        membershipPoints: newPoints,
         isFirstTimeBuyer: false,
         firstPurchaseAt: currentUser.isFirstTimeBuyer ? new Date() : currentUser.firstPurchaseAt,
       },
     })
 
-    // 7. 記錄積分交易
-    await prisma.pointTransaction.create({
-      data: {
-        userId,
-        type: 'ORDER_REWARD',
-        amount: pointsEarned,
-        orderId,
-        description: `訂單完成獲得積分（訂單編號：${orderId.slice(0, 8)}...）`,
-      },
-    })
+    // 6. 發放購物金回饋（如果有的話）
+    if (creditReward > 0) {
+      // 設定購物金有效期（一年）
+      const validUntil = new Date()
+      validUntil.setFullYear(validUntil.getFullYear() + 1)
 
-    // 8. 如果會員等級提升，記錄額外的獎勵積分
-    if (newTier.id !== oldTierId) {
-      const bonusPoints = 100 // 升級獎勵：100 積分
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          membershipPoints: {
-            increment: bonusPoints,
-          },
-        },
-      })
-
-      await prisma.pointTransaction.create({
+      await prisma.userCredit.create({
         data: {
           userId,
-          type: 'CAMPAIGN_REWARD',
-          amount: bonusPoints,
-          description: `恭喜升級至 ${newTier} 會員！獲得升級獎勵`,
+          amount: creditReward,
+          balance: creditReward,
+          source: 'CAMPAIGN', // 使用 CAMPAIGN 作為訂單回饋來源
+          sourceId: orderId,
+          validFrom: new Date(),
+          validUntil,
+          isActive: true,
+          isUsed: false,
         },
       })
 
       console.log(
-        `✨ 用戶 ${userId} 從 ${oldTier} 升級至 ${newTier}，獲得 ${bonusPoints} 升級獎勵積分`
+        `💰 用戶 ${userId} 訂單完成，獲得 $${creditReward} 購物金回饋（訂單金額：$${total}）`
+      )
+    }
+
+    // 7. 如果會員等級提升，發放升級獎勵購物金
+    if (newTier.id !== oldTierId) {
+      const bonusCredit = newTier.birthdayGift?.toNumber() || 50 // 使用等級設定的獎勵，或預設 50 元
+
+      const validUntil = new Date()
+      validUntil.setFullYear(validUntil.getFullYear() + 1)
+
+      await prisma.userCredit.create({
+        data: {
+          userId,
+          amount: bonusCredit,
+          balance: bonusCredit,
+          source: 'CAMPAIGN',
+          sourceId: `upgrade-${newTier.id}`,
+          validFrom: new Date(),
+          validUntil,
+          isActive: true,
+          isUsed: false,
+        },
+      })
+
+      console.log(
+        `✨ 用戶 ${userId} 升級至 ${newTier.name}，獲得 $${bonusCredit} 升級獎勵購物金`
       )
     }
 
     console.log(
-      `✅ 訂單完成處理成功：用戶 ${userId} 獲得 ${pointsEarned} 積分，當前會員等級：${newTier}`
+      `✅ 訂單完成處理成功：用戶 ${userId}，購物金回饋 $${creditReward}，當前會員等級：${newTier.name}`
     )
   } catch (error) {
     console.error('處理訂單完成邏輯時發生錯誤:', error)

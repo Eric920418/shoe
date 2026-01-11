@@ -198,8 +198,8 @@ const SuperDeals = () => {
           <div className="flex items-start sm:items-center gap-2 sm:gap-3">
             <Award className="text-white flex-shrink-0" size={24} />
             <div className="min-w-0">
-              <h3 className="font-bold text-sm sm:text-lg mb-0.5 sm:mb-1">購物送積分，積分當現金</h3>
-              <p className="text-xs sm:text-sm opacity-90">每消費$100即可獲得10積分</p>
+              <h3 className="font-bold text-sm sm:text-lg mb-0.5 sm:mb-1">消費自動回饋購物金</h3>
+              <p className="text-xs sm:text-sm opacity-90">每消費 $100 自動獲得 $1 購物金</p>
             </div>
           </div>
           <Link

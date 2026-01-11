@@ -876,11 +876,11 @@ function CheckoutContent() {
                     </div>
                   </div>
 
-                  {/* 積分提示（僅會員顯示） */}
+                  {/* 購物金回饋提示（僅會員顯示） */}
                   {!isGuest && (
-                    <div className="mb-6 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-700">
-                        此訂單將獲得 <span className="font-bold">{Math.floor(finalTotal * 0.01)}</span> 點會員積分
+                    <div className="mb-6 p-3 bg-emerald-50 rounded-lg">
+                      <p className="text-xs text-emerald-700">
+                        💰 訂單完成後將獲得約 <span className="font-bold">${Math.floor(finalTotal / 100)}</span> 購物金回饋
                       </p>
                     </div>
                   )}

@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.5.0 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-09
+**版本**: 2.6.1 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-11
 
 ---
 
@@ -951,6 +951,24 @@ pnpm prisma migrate reset
 ---
 
 ## 📝 最新更新摘要
+
+### 🔥 近期重點更新（2026-01-11）
+
+#### ✅ 修復手機版首頁元件大小不一致問題
+- **問題描述**：登入後與未登入時，手機版首頁元件大小不一致，未登入時元件顯得過大過擠
+- **根本原因**：
+  - `MarketplaceHeader` 頂部工具欄在手機版使用過大的 padding（`py-4`）和圖標（`size={24}`）
+  - 登入/未登入時的內容結構不一致導致視覺高度差異
+  - `MobileProductFeed` 固定搜尋欄佔位邏輯不正確
+- **修復內容**：
+  - 頂部工具欄改為響應式設計：`py-1.5 sm:py-3`（手機版減少 padding）
+  - 圖標改為響應式大小：`size={14} className="sm:w-5 sm:h-5"`
+  - 文字改為響應式大小：`text-[10px] sm:text-xs`
+  - 用戶名稱加入截斷限制：`max-w-[80px] sm:max-w-none truncate`
+  - 固定搜尋欄佔位改用 `invisible` 並增加額外佔位空間避免跳動
+- **影響檔案**：
+  - `components/navigation/MarketplaceHeader.tsx`
+  - `components/home/MobileProductFeed.tsx`
 
 ### 🔥 近期重點更新（2026-01-10）
 

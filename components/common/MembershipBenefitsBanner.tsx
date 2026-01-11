@@ -52,7 +52,7 @@ export default function MembershipBenefitsBanner({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-gray-700">積分累積回饋</span>
+                <span className="text-sm text-gray-700">消費自動回饋</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600 font-bold">✓</span>
@@ -109,7 +109,7 @@ export default function MembershipBenefitsBanner({
               />
             </svg>
             <p className="text-sm text-gray-700">
-              <span className="font-semibold">登入會員</span>享購物金折抵、積分回饋、生日禮金等多重優惠
+              <span className="font-semibold">登入會員</span>享購物金折抵、消費回饋、生日禮金等多重優惠
             </p>
           </div>
           {showCTA && (
@@ -153,7 +153,7 @@ export default function MembershipBenefitsBanner({
               <span className="text-green-600">✓</span> 購物金折抵現金使用
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-green-600">✓</span> 每筆訂單累積會員積分
+              <span className="text-green-600">✓</span> 每筆訂單自動回饋購物金
             </li>
             <li className="flex items-center gap-2">
               <span className="text-green-600">✓</span> 邀請好友賺購物金

@@ -314,11 +314,11 @@ export default function ProfilePage() {
                     <p className="text-gray-900 font-medium">{user.email}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">會員積分</label>
+                    <label className="text-sm text-gray-600">購物金回饋</label>
                     <p className="text-gray-900 font-medium text-lg">
-                      ✨ {user.membershipPoints?.toLocaleString() || 0} 點
+                      💰 每消費 $100 回饋 $1
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">積分僅供記錄展示</p>
+                    <p className="text-xs text-gray-500 mt-1">訂單完成自動發放</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-600">訂單總數</label>
@@ -333,38 +333,38 @@ export default function ProfilePage() {
                     {user.membershipTier === 'DIAMOND' && (
                       <>
                         <p>✓ 購物享 15% 折扣</p>
-                        <p>✓ 購物積分 3 倍加成</p>
+                        <p>✓ 購物金回饋 3 倍</p>
                         <p>✓ 全館免運費</p>
-                        <p>✓ 生日禮：$500 折價券</p>
+                        <p>✓ 生日禮：$500 購物金</p>
                       </>
                     )}
                     {user.membershipTier === 'PLATINUM' && (
                       <>
                         <p>✓ 購物享 10% 折扣</p>
-                        <p>✓ 購物積分 2 倍加成</p>
+                        <p>✓ 購物金回饋 2.5 倍</p>
                         <p>✓ 全館免運費</p>
-                        <p>✓ 生日禮：$200 折價券</p>
+                        <p>✓ 生日禮：$200 購物金</p>
                       </>
                     )}
                     {user.membershipTier === 'GOLD' && (
                       <>
                         <p>✓ 購物享 8% 折扣</p>
-                        <p>✓ 購物積分 1.5 倍加成</p>
+                        <p>✓ 購物金回饋 2 倍</p>
                         <p>✓ 滿 $500 免運費</p>
-                        <p>✓ 生日禮：$100 折價券</p>
+                        <p>✓ 生日禮：$100 購物金</p>
                       </>
                     )}
                     {user.membershipTier === 'SILVER' && (
                       <>
                         <p>✓ 購物享 5% 折扣</p>
-                        <p>✓ 購物積分 1.2 倍加成</p>
+                        <p>✓ 購物金回饋 1.5 倍</p>
                         <p>✓ 滿 $800 免運費</p>
-                        <p>✓ 生日禮：$50 折價券</p>
+                        <p>✓ 生日禮：$50 購物金</p>
                       </>
                     )}
                     {user.membershipTier === 'BRONZE' && (
                       <>
-                        <p>✓ 標準購物積分</p>
+                        <p>✓ 購物金回饋 1 倍</p>
                         <p>✓ 滿 $1000 免運費</p>
                       </>
                     )}

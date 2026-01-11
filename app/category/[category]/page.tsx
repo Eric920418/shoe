@@ -53,21 +53,6 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
       soldCount
       isNewArrival
       isFeatured
-      brand {
-        id
-        name
-      }
-    }
-  }
-`
-
-// GraphQL 查詢：取得品牌列表
-const GET_BRANDS = gql`
-  query GetBrands {
-    brands {
-      id
-      name
-      slug
     }
   }
 `
@@ -78,7 +63,6 @@ export default function CategoryPage() {
 
   const [sortBy, setSortBy] = useState('popular')
   const [priceRange, setPriceRange] = useState('all')
-  const [selectedBrand, setSelectedBrand] = useState('all')
   const [selectedGender, setSelectedGender] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
@@ -87,9 +71,6 @@ export default function CategoryPage() {
   const { data: categoryData, loading: categoryLoading, error: categoryError } = useQuery(GET_CATEGORY_BY_SLUG, {
     variables: { slug: categorySlug },
   })
-
-  // 查詢品牌列表
-  const { data: brandsData } = useQuery(GET_BRANDS)
 
   // 解析價格範圍
   const getPriceFilter = () => {
@@ -123,18 +104,9 @@ export default function CategoryPage() {
 
   const category = categoryData?.category
   const products = productsData?.products || []
-  const brands = brandsData?.brands || []
-
-  // 前端篩選：品牌
-  const filteredProducts = products.filter((product: any) => {
-    if (selectedBrand !== 'all' && product.brand?.id !== selectedBrand) {
-      return false
-    }
-    return true
-  })
 
   // 前端排序
-  const sortedProducts = [...filteredProducts].sort((a: any, b: any) => {
+  const sortedProducts = [...products].sort((a: any, b: any) => {
     switch (sortBy) {
       case 'newest':
         return -1 // 假設 ID 越大越新
@@ -241,37 +213,6 @@ export default function CategoryPage() {
               </div>
             </div>
 
-            {/* 品牌篩選 */}
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-700 mb-3">品牌</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="brand"
-                    value="all"
-                    checked={selectedBrand === 'all'}
-                    onChange={(e) => setSelectedBrand(e.target.value)}
-                    className="text-orange-500"
-                  />
-                  <span className="text-sm text-gray-600">全部品牌</span>
-                </label>
-                {brands.map((brand: any) => (
-                  <label key={brand.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="brand"
-                      value={brand.id}
-                      checked={selectedBrand === brand.id}
-                      onChange={(e) => setSelectedBrand(e.target.value)}
-                      className="text-orange-500"
-                    />
-                    <span className="text-sm text-gray-600">{brand.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             {/* 價格範圍 */}
             <div className="mb-6">
               <h4 className="font-medium text-gray-700 mb-3">價格範圍</h4>
@@ -361,22 +302,8 @@ export default function CategoryPage() {
                         ))}
                       </select>
                     </div>
-                    {/* 品牌 */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2 text-sm">品牌</h4>
-                      <select
-                        value={selectedBrand}
-                        onChange={(e) => setSelectedBrand(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded text-sm"
-                      >
-                        <option value="all">全部品牌</option>
-                        {brands.map((brand: any) => (
-                          <option key={brand.id} value={brand.id}>{brand.name}</option>
-                        ))}
-                      </select>
-                    </div>
                     {/* 價格 */}
-                    <div className="col-span-2">
+                    <div>
                       <h4 className="font-medium text-gray-700 mb-2 text-sm">價格範圍</h4>
                       <select
                         value={priceRange}
@@ -471,7 +398,6 @@ export default function CategoryPage() {
                         </div>
 
                         <div className="p-3">
-                          <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
                           <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
                             {product.name}
                           </h3>
@@ -515,7 +441,6 @@ export default function CategoryPage() {
                           <div className="flex-1">
                             <div className="flex items-start justify-between">
                               <div>
-                                <p className="text-xs text-gray-500 mb-1">{product.brand?.name || '無品牌'}</p>
                                 <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
                                 {product.averageRating > 0 && (
                                   <div className="flex items-center gap-2 mb-2">

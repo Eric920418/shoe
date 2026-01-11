@@ -185,13 +185,13 @@ function OrderSuccessContent() {
         {isAuthenticated && (
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
             <div className="flex items-center gap-4">
-              <span className="text-4xl">🙏</span>
+              <span className="text-4xl">💰</span>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">
                   感謝您的支持！
                 </h3>
                 <p className="text-gray-700">
-                  您已獲得本次訂單的會員積分，可至「我的帳戶」查看。
+                  訂單完成後將自動發放購物金回饋，可至「我的帳戶」查看。
                 </p>
               </div>
             </div>
