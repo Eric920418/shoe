@@ -96,7 +96,6 @@ export default function NewProductPage() {
   const [createProduct] = useMutation(CREATE_PRODUCT, {
     refetchQueries: [
       { query: GET_PRODUCTS },
-      { query: GET_BRANDS },
       { query: GET_CATEGORIES },
     ],
     awaitRefetchQueries: true,
