@@ -253,7 +253,8 @@ export default function OrdersPage() {
                       {order.status !== 'CANCELLED' &&
                         order.status !== 'COMPLETED' &&
                         order.status !== 'SHIPPED' &&
-                        order.paymentStatus !== 'PAID' && (
+                        order.paymentStatus !== 'PAID' &&
+                        !order.shippingLabelPrintedAt && (
                           <button
                             onClick={() => handleDeleteOrder(order.id, order.orderNumber)}
                             disabled={deleting}
@@ -262,6 +263,11 @@ export default function OrdersPage() {
                             刪除訂單
                           </button>
                         )}
+                      {order.shippingLabelPrintedAt && order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && order.status !== 'SHIPPED' && (
+                        <span className="px-4 py-2 text-gray-500 text-sm">
+                          寄件單已列印
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -186,13 +186,14 @@ export async function POST(request: NextRequest) {
 
     console.log('提取到的列印網址:', printUrl)
 
-    // 更新訂單物流狀態
+    // 更新訂單物流狀態和列印時間
     await prisma.order.updateMany({
       where: {
         id: { in: orderIds },
       },
       data: {
         shippingStatus: 'PROCESSING',
+        shippingLabelPrintedAt: new Date(), // 記錄列印時間，用戶將無法刪除此訂單
       },
     })
 

@@ -364,3 +364,96 @@ export async function queryShipment(merchantOrderNo: string): Promise<any> {
 
   return result
 }
+
+/**
+ * 取得寄件代碼（讓管理員到超商機台輸入印出標籤）
+ * 參考：物流服務技術串接手冊 - getShipmentNo (NPA-B53)
+ * @param merchantOrderNos 商店訂單編號陣列（最多 10 筆）
+ */
+export async function getShipmentNo(merchantOrderNos: string[]): Promise<{
+  Status: string
+  Message: string
+  Results?: Array<{
+    MerchantOrderNo: string
+    ShipmentNo: string  // 寄件代碼
+    ShipType: string
+    Status: string
+  }>
+}> {
+  const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
+
+  // 檢查必要參數
+  if (!merchantId || !hashKey || !hashIV) {
+    throw new Error('物流 API 配置不完整，請檢查環境變數')
+  }
+
+  if (!merchantOrderNos.length) {
+    throw new Error('merchantOrderNos 不可為空')
+  }
+
+  if (merchantOrderNos.length > 10) {
+    throw new Error('一次最多只能查詢 10 筆訂單的寄件代碼')
+  }
+
+  // 準備內層加密參數
+  const encryptParams = {
+    MerchantOrderNo: merchantOrderNos,  // 陣列格式
+    Version: '1.0',
+    TimeStamp: Math.floor(Date.now() / 1000).toString(),
+    RespondType: 'JSON',
+  }
+
+  console.log('=== getShipmentNo 加密前參數 ===')
+  console.log(JSON.stringify(encryptParams, null, 2))
+
+  // 加密資料
+  const encryptedData = encryptLogisticsData(encryptParams)
+
+  // 產生雜湊值
+  const hashData = generateLogisticsHash(encryptedData)
+
+  // 組裝外層表單參數
+  const formData = new URLSearchParams({
+    UID_: merchantId,
+    Version_: '1.0',
+    RespondType_: 'JSON',
+    EncryptData_: encryptedData,
+    HashData_: hashData,
+  })
+
+  // 發送 API 請求
+  const response = await fetch(`${apiUrl}/getShipmentNo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formData.toString(),
+  })
+
+  const responseText = await response.text()
+  console.log('getShipmentNo API 回應:', responseText)
+
+  let result: any
+  try {
+    result = JSON.parse(responseText)
+  } catch (e) {
+    throw new Error(`物流 API 回應格式錯誤: ${responseText}`)
+  }
+
+  if (result.Status !== 'SUCCESS') {
+    throw new Error(`取得寄件代碼失敗: ${result.Message || '未知錯誤'}`)
+  }
+
+  // 解密回傳資料
+  if (result.EncryptData) {
+    const decryptedData = decryptLogisticsData(result.EncryptData)
+    console.log('解密後的資料:', JSON.stringify(decryptedData, null, 2))
+    return {
+      Status: result.Status,
+      Message: result.Message,
+      Results: Array.isArray(decryptedData) ? decryptedData : [decryptedData],
+    }
+  }
+
+  return result
+}

@@ -860,6 +860,13 @@ export const orderResolvers = {
         })
       }
 
+      // 檢查是否已列印寄件單
+      if (order.shippingLabelPrintedAt) {
+        throw new GraphQLError('此訂單已列印寄件單，無法刪除。如需取消請聯繫客服', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        })
+      }
+
       // 刪除訂單項目
       await prisma.orderItem.deleteMany({
         where: { orderId: id },

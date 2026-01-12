@@ -527,6 +527,7 @@ export const typeDefs = gql`
     packagingNote: String # 包裝備註
     batchGroupId: String # 分批訂單群組ID（當需要分批時）
     batchSequence: Int # 批次序號（第幾批）
+    shippingLabelPrintedAt: DateTime # 寄件單列印時間（已列印則用戶無法刪除訂單）
     createdAt: DateTime!
     updatedAt: DateTime!
   }

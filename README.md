@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.6.1 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-11
+**版本**: 2.6.2 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-12
 
 ---
 
@@ -951,6 +951,27 @@ pnpm prisma migrate reset
 ---
 
 ## 📝 最新更新摘要
+
+### 🔥 近期重點更新（2026-01-12）
+
+#### ✅ 物流 API 修正與寄件代碼功能（v2.6.2）
+- **修正 createShipment 欄位名稱**：根據藍新技術手冊修正欄位名稱
+  - `ReceiverName` → `UserName`（取件人姓名）
+  - `ReceiverCellPhone` → `UserTel`（取件人手機）
+  - 新增必填欄位 `UserEmail`（取件人電子信箱）
+  - `ReceiverStoreID` → `StoreID`（超商門市代碼）
+  - `GoodsAmount` → `Amt`（訂單金額）
+  - 新增 `TradeType` 欄位（1=取貨付款，3=取貨不付款）
+- **新增物流廠商自動判斷**：`getShipTypeByStoreName()` 根據門市名稱自動判斷
+  - 全家 → ShipType 2
+  - 萊爾富 → ShipType 3
+  - OK → ShipType 4
+  - 其他 → ShipType 1 (7-ELEVEN)
+- **新增寄件代碼功能**：讓管理員可以到超商機台輸入代碼印出標籤（無需標籤機）
+  - 新增 API：`/api/admin/logistics/get-shipment-no`
+  - 新增函數：`getShipmentNo()` in `src/lib/logistics.ts`
+  - 後台訂單詳情頁新增「取得寄件代碼（超商機台用）」按鈕
+  - 使用流程：取得代碼 → 到超商機台輸入 → 機台印出小白單 → 櫃台貼標籤
 
 ### 🔥 近期重點更新（2026-01-11）
 

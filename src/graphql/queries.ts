@@ -357,6 +357,7 @@ export const GET_MY_ORDERS = gql`
       shippingPhone
       shippingCity
       shippingDistrict
+      shippingLabelPrintedAt
       items {
         id
         quantity

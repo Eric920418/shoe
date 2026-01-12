@@ -50,6 +50,12 @@ export default function AdminOrderDetailPage() {
   const [isPrinting, setIsPrinting] = useState(false)
   const [logisticsInfo, setLogisticsInfo] = useState<any>(null)
   const [isQueryingLogistics, setIsQueryingLogistics] = useState(false)
+  const [isGettingShipmentNo, setIsGettingShipmentNo] = useState(false)
+  const [shipmentNoResult, setShipmentNoResult] = useState<{
+    shipmentNo: string
+    shipTypeName: string
+    instructions: string[]
+  } | null>(null)
 
   const { data, loading, error, refetch } = useQuery(GET_ORDER, {
     variables: { id: orderId },
@@ -168,6 +174,49 @@ export default function AdminOrderDetailPage() {
       toast.error(error.message || '列印寄貨單失敗，請稍後再試')
     } finally {
       setIsPrinting(false)
+    }
+  }
+
+  // 取得寄件代碼（到超商機台輸入）
+  const handleGetShipmentNo = async () => {
+    if (!order) return
+
+    setIsGettingShipmentNo(true)
+    setShipmentNoResult(null)
+
+    try {
+      const response = await fetch('/api/admin/logistics/get-shipment-no', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderIds: [order.id],
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '取得寄件代碼失敗')
+      }
+
+      if (result.data && result.data.length > 0) {
+        const shipmentData = result.data[0]
+        setShipmentNoResult({
+          shipmentNo: shipmentData.shipmentNo,
+          shipTypeName: shipmentData.shipTypeName,
+          instructions: result.instructions || [],
+        })
+        toast.success('成功取得寄件代碼')
+      } else {
+        throw new Error('無法取得寄件代碼')
+      }
+    } catch (error: any) {
+      console.error('取得寄件代碼失敗:', error)
+      toast.error(error.message || '取得寄件代碼失敗，請稍後再試')
+    } finally {
+      setIsGettingShipmentNo(false)
     }
   }
 
@@ -651,27 +700,74 @@ export default function AdminOrderDetailPage() {
 
             {/* 操作按鈕 */}
             <div className="pt-6 border-t border-gray-200 space-y-3">
-              {/* 列印寄貨單按鈕 - 超商取貨訂單且已選擇門市 */}
+              {/* 超商取貨訂單操作按鈕 */}
               {order.shippingMethod === 'CVS_PICKUP' && logisticsInfo?.ReceiverStoreID && (
-                <button
-                  onClick={handlePrintLabel}
-                  disabled={isPrinting}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isPrinting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>列印中...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                      <span>列印寄貨單</span>
-                    </>
+                <>
+                  {/* 寄件代碼結果顯示 */}
+                  {shipmentNoResult && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="text-center mb-3">
+                        <p className="text-sm text-green-700 mb-1">寄件代碼</p>
+                        <p className="text-3xl font-bold text-green-800 font-mono tracking-wider">
+                          {shipmentNoResult.shipmentNo}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          {shipmentNoResult.shipTypeName}
+                        </p>
+                      </div>
+                      <div className="border-t border-green-200 pt-3 mt-3">
+                        <p className="text-xs font-medium text-green-800 mb-2">使用說明：</p>
+                        <ol className="text-xs text-green-700 space-y-1">
+                          {shipmentNoResult.instructions.map((instruction, index) => (
+                            <li key={index}>{instruction}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
                   )}
-                </button>
+
+                  {/* 取得寄件代碼按鈕 */}
+                  <button
+                    onClick={handleGetShipmentNo}
+                    disabled={isGettingShipmentNo}
+                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isGettingShipmentNo ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>取得中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+                        <span>取得寄件代碼（超商機台用）</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* 列印寄貨單按鈕 */}
+                  <button
+                    onClick={handlePrintLabel}
+                    disabled={isPrinting}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isPrinting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>列印中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span>列印寄貨單（需要標籤機）</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
 
               {/* 超商取貨但尚未選擇門市 */}
