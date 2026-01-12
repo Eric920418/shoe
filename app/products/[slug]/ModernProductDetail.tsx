@@ -48,12 +48,13 @@ export default function ModernProductDetail({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState<any>(null)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
+  const [isBuyingNow, setIsBuyingNow] = useState(false)
   // 尺碼系統已簡化，不再需要切換
 
   const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART)
 
   // 統一的 loading 狀態
-  const isLoading = isAdding || addingToCart
+  const isLoading = isAdding || addingToCart || isBuyingNow
 
   // ✅ 使用 useMemo 避免重複解析
   const displayImages = useMemo(() => parseImages(product.images), [product.images])
@@ -159,6 +160,68 @@ export default function ModernProductDetail({ product }: { product: any }) {
       console.error('加入購物車失敗:', error)
       toast.error(error.message || '加入購物車失敗')
       setIsAdding(false)
+    }
+  }
+
+  // ✅ 直接購買功能
+  const handleBuyNow = async () => {
+    if (!selectedSize) {
+      toast.error('請選擇尺碼')
+      return
+    }
+
+    setIsBuyingNow(true)
+    try {
+      // 會員模式：使用 GraphQL mutation
+      if (isAuthenticated) {
+        await addToCart({
+          variables: {
+            productId: product.id,
+            variantId: selectedVariant?.id,
+            sizeChartId: selectedSize.id,
+            quantity,
+          },
+        })
+        toast.success('正在前往結帳...')
+        // 直接跳轉到結帳頁面
+        router.push('/checkout')
+      }
+      // 訪客模式：使用 localStorage
+      else {
+        // ✅ 優先使用變體圖片，沒有才使用產品主圖
+        const getVariantImage = () => {
+          if (selectedVariant?.colorImage) return selectedVariant.colorImage
+          if (selectedVariant?.images) {
+            const variantImages = typeof selectedVariant.images === 'string'
+              ? JSON.parse(selectedVariant.images)
+              : selectedVariant.images
+            if (Array.isArray(variantImages) && variantImages.length > 0) {
+              return variantImages[0]
+            }
+          }
+          return displayImages[0] || null
+        }
+        guestCart.addItem({
+          productId: product.id,
+          productName: product.name,
+          productImage: getVariantImage(),
+          variantId: selectedVariant?.id || null,
+          variantName: selectedVariant?.color || null,
+          sizeEu: selectedSize.size,
+          sizeChartId: selectedSize.id,
+          color: selectedVariant?.color || null,
+          quantity,
+          price: finalPrice,
+          stock: 999999, // 無限庫存模式
+        })
+        toast.success('正在前往結帳...')
+        // 直接跳轉到結帳頁面
+        router.push('/checkout')
+      }
+    } catch (error: any) {
+      console.error('購買失敗:', error)
+      toast.error(error.message || '購買失敗')
+      setIsBuyingNow(false)
     }
   }
 
@@ -428,20 +491,37 @@ export default function ModernProductDetail({ product }: { product: any }) {
               </div>
             </div>
 
-            {/* 加入購物車按鈕 */}
-            <button
-              onClick={handleAddToCart}
-              disabled={!hasAvailableStock || !selectedSize || isLoading}
-              className="w-full py-4 bg-black text-white font-bold rounded-full hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading
-                ? '加入中...'
-                : !hasAvailableStock
-                ? '請先設定尺寸'
-                : !selectedSize
-                ? '請選擇尺碼'
-                : '加入購物車'}
-            </button>
+            {/* 購買按鈕區 */}
+            <div className="flex gap-3">
+              {/* 加入購物車按鈕 */}
+              <button
+                onClick={handleAddToCart}
+                disabled={!hasAvailableStock || !selectedSize || isLoading}
+                className="flex-1 py-4 bg-white text-black font-bold rounded-full border-2 border-black hover:bg-gray-100 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {isAdding
+                  ? '加入中...'
+                  : !hasAvailableStock
+                  ? '請先設定尺寸'
+                  : !selectedSize
+                  ? '請選擇尺碼'
+                  : '加入購物車'}
+              </button>
+              {/* 直接購買按鈕 */}
+              <button
+                onClick={handleBuyNow}
+                disabled={!hasAvailableStock || !selectedSize || isLoading}
+                className="flex-1 py-4 bg-black text-white font-bold rounded-full hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isBuyingNow
+                  ? '處理中...'
+                  : !hasAvailableStock
+                  ? '請先設定尺寸'
+                  : !selectedSize
+                  ? '請選擇尺碼'
+                  : '直接購買'}
+              </button>
+            </div>
 
             {/* 商品資訊 */}
             {displayFeatures.length > 0 && (

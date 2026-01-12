@@ -570,7 +570,14 @@ function CheckoutContent() {
                           <div className="text-sm text-gray-600">7-11、全家、萊爾富，付款時選擇門市</div>
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-black">運費 $49</div>
+                      {qualifiesForFreeShipping ? (
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-600">免運費</div>
+                          <div className="text-xs text-gray-400 line-through">原價 $49</div>
+                        </div>
+                      ) : (
+                        <div className="text-lg font-bold text-black">運費 $49</div>
+                      )}
                     </div>
                   </label>
 
@@ -595,7 +602,14 @@ function CheckoutContent() {
                           <div className="text-sm text-gray-600">送貨到府</div>
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-black">運費 $120</div>
+                      {qualifiesForFreeShipping ? (
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-600">免運費</div>
+                          <div className="text-xs text-gray-400 line-through">原價 $120</div>
+                        </div>
+                      ) : (
+                        <div className="text-lg font-bold text-black">運費 $120</div>
+                      )}
                     </div>
                   </label>
 
