@@ -542,14 +542,14 @@ export const orderResolvers = {
           // 獲取用戶的會員等級配置
           const userWithTier = await prisma.user.findUnique({
             where: { id: user.userId },
-            include: { membershipTier: true },
+            include: { membershipTierConfig: true },
           })
 
-          if (userWithTier?.membershipTier) {
+          if (userWithTier?.membershipTierConfig) {
             // 使用會員等級的免運門檻判斷是否免運
-            const qualifiesForFreeShipping = isFreeShipping(subtotal, userWithTier.membershipTier)
+            const qualifiesForFreeShipping = isFreeShipping(subtotal, userWithTier.membershipTierConfig)
             if (qualifiesForFreeShipping) {
-              console.log(`🚚 會員 ${user.userId} 達到免運門檻 $${userWithTier.membershipTier.freeShippingThreshold}，訂單小計 $${subtotal}，免除運費 $${shippingFee}`)
+              console.log(`🚚 會員 ${user.userId} 達到免運門檻 $${userWithTier.membershipTierConfig.freeShippingThreshold}，訂單小計 $${subtotal}，免除運費 $${shippingFee}`)
               shippingFee = 0
             }
           }
