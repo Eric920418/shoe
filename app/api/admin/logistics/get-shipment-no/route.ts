@@ -113,6 +113,16 @@ export async function POST(request: NextRequest) {
       }
     }) || []
 
+    // 更新訂單的寄件單列印時間（用戶將無法刪除此訂單）
+    await prisma.order.updateMany({
+      where: {
+        id: { in: orderIds },
+      },
+      data: {
+        shippingLabelPrintedAt: new Date(),
+      },
+    })
+
     return NextResponse.json({
       success: true,
       message: '成功取得寄件代碼',

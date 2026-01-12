@@ -293,6 +293,21 @@ pnpm prisma migrate reset   # 重置資料庫（危險！會清空資料）
 - **訂單追蹤頁面** (`/orders/track`) - 訂單編號 + 手機號碼查詢
 - **功能限制** - 訪客無法使用購物金、優惠券、邀請碼獎勵
 
+### 📦 訂單物流保護機制
+
+當管理員在後台執行以下任一操作後，用戶將**無法刪除該訂單**：
+
+1. **列印寄件單** - 後台訂單詳情頁點擊「列印寄貨單」按鈕
+2. **取得寄件代碼** - 後台訂單列表/詳情頁點擊「取得寄件代碼」按鈕
+
+**技術實作**：
+- 新增 `shippingLabelPrintedAt` 欄位記錄列印時間
+- `deleteOrder` mutation 會檢查此欄位，已列印則拒絕刪除
+- 前端訂單頁面會隱藏刪除按鈕並顯示「寄件單已列印」提示
+- 相關 API：
+  - `/api/admin/logistics/print-label` - 列印寄件單
+  - `/api/admin/logistics/get-shipment-no` - 取得寄件代碼
+
 ### 🚀 快速加入購物車 Modal
 
 - **新增組件**: `components/product/QuickAddToCartModal.tsx`
