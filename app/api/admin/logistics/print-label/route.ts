@@ -45,13 +45,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 查詢訂單資料
+    // 查詢訂單資料（包含用戶 email）
     const orders = await prisma.order.findMany({
       where: {
         id: { in: orderIds },
       },
       include: {
         payment: true,
+        user: {
+          select: {
+            email: true,
+          },
+        },
       },
     })
 
@@ -112,16 +117,19 @@ export async function POST(request: NextRequest) {
         console.log('嘗試建立物流單...')
         console.log('使用的 merchantOrderNo:', merchantOrderNo)
 
+        // 取得用戶 email（必填欄位）
+        const userEmail = order.user?.email || 'noreply@example.com'
+        console.log('取件人 email:', userEmail)
+
         await createShipment({
           merchantOrderNo: merchantOrderNo,
-          receiverName: order.shippingName,
-          receiverPhone: order.shippingPhone,
-          receiverStoreId: order.shippingZipCode!, // 門市代號
-          receiverStoreName: order.shippingCity!,  // 門市名稱
-          goodsName: `訂單 ${order.orderNumber}`,
-          goodsAmount: Number(order.total),
-          senderName: '鞋特賣',
-          senderPhone: '0912345678', // TODO: 從環境變數讀取
+          userName: order.shippingName,              // 取件人姓名
+          userTel: order.shippingPhone,              // 取件人手機號碼
+          userEmail: userEmail,                      // 取件人電子信箱
+          storeId: order.shippingZipCode!,           // 超商門市代碼
+          amt: Number(order.total),                  // 訂單金額
+          itemDesc: `訂單 ${order.orderNumber}`,     // 產品名稱說明（選填）
+          storeName: order.shippingCity!,            // 門市名稱（用於判斷物流廠商）
         })
         console.log('✅ 物流單建立成功')
       } catch (createError: any) {

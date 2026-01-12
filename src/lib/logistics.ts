@@ -229,19 +229,19 @@ export function getShipTypeByStoreName(storeName: string): '1' | '2' | '3' | '4'
 
 /**
  * 建立物流配送單
+ * 參考：物流服務技術串接手冊 - createShipment (NPA-B52)
  * @param orderData 訂單資料
  */
 export async function createShipment(orderData: {
-  merchantOrderNo: string
-  receiverName: string
-  receiverPhone: string
-  receiverStoreId: string // 超商店號
-  receiverStoreName: string // 超商店名
-  goodsName: string
-  goodsAmount: number
-  senderName?: string
-  senderPhone?: string
+  merchantOrderNo: string   // 商店訂單編號（必填，最長30字）
+  userName: string          // 取件人姓名（必填，最長20字）
+  userTel: string           // 取件人手機號碼（必填，最長10字）
+  userEmail: string         // 取件人電子信箱（必填，最長50字）
+  storeId: string           // 超商門市代碼（必填，最長10字）
+  amt: number               // 訂單金額（必填）
+  itemDesc?: string         // 產品名稱說明（選填，最長100字）
   shipType?: '1' | '2' | '3' | '4' // 物流廠商：1=統一, 2=全家, 3=萊爾富, 4=OK
+  storeName?: string        // 門市名稱（僅用於判斷 shipType）
 }): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
 
@@ -251,26 +251,30 @@ export async function createShipment(orderData: {
   }
 
   // 自動根據門市名稱判斷物流廠商（如果沒有傳入 shipType）
-  const shipType = orderData.shipType || getShipTypeByStoreName(orderData.receiverStoreName)
-  console.log(`物流廠商判斷：門市名稱="${orderData.receiverStoreName}" → ShipType=${shipType}`)
+  const shipType = orderData.shipType || getShipTypeByStoreName(orderData.storeName || '')
+  console.log(`物流廠商判斷：門市名稱="${orderData.storeName}" → ShipType=${shipType}`)
 
-  // 準備內層參數（只包含業務欄位）
-  // 注意：C2C（店到店）支援 7-ELEVEN、全家、萊爾富、OK
+  // 準備內層加密參數（參考技術手冊 NPA-B52）
   const encryptParams = {
-    LgsType: 'C2C', // ✅ C2C 店到店
-    ShipType: shipType, // ✅ 動態判斷物流廠商
-    TradeType: '3', // ✅ 必填！1=取貨付款，3=取貨不付款（已線上付款）
-    MerchantOrderNo: orderData.merchantOrderNo,
-    ReceiverName: orderData.receiverName,
-    ReceiverCellPhone: orderData.receiverPhone,
-    ReceiverStoreID: orderData.receiverStoreId,
-    ReceiverStoreName: orderData.receiverStoreName,
-    GoodsName: orderData.goodsName,
-    GoodsAmount: orderData.goodsAmount.toString(),
-    SenderName: orderData.senderName || '鞋店',
-    SenderCellPhone: orderData.senderPhone || '',
-    TimeStamp: Math.floor(Date.now() / 1000).toString(),
+    // === 必填欄位 ===
+    LgsType: 'C2C',                           // 物流類別：C2C 店到店
+    TradeType: '3',                           // 取貨類別：1=取貨付款，3=取貨不付款
+    ShipType: shipType,                       // 物流廠商：1=統一，2=全家，3=萊爾富，4=OK
+    MerchantOrderNo: orderData.merchantOrderNo, // 商店訂單編號
+    Amt: orderData.amt.toString(),            // 訂單金額
+    Version: '1.0',                           // 串接程式版本（固定 1.0）
+    TimeStamp: Math.floor(Date.now() / 1000).toString(), // 時間戳記
+    RespondType: 'JSON',                      // 回傳格式
+    UserName: orderData.userName,             // 取件人姓名
+    UserTel: orderData.userTel,               // 取件人手機號碼
+    UserEmail: orderData.userEmail,           // 取件人電子信箱
+    StoreID: orderData.storeId,               // 超商門市代碼
+    // === 選填欄位 ===
+    ...(orderData.itemDesc && { ItemDesc: orderData.itemDesc }), // 產品名稱說明
   }
+
+  console.log('=== createShipment 加密前參數 ===')
+  console.log(JSON.stringify(encryptParams, null, 2))
 
   // 加密資料
   const encryptedData = encryptLogisticsData(encryptParams)
