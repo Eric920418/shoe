@@ -112,12 +112,13 @@ const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
 /**
  * 列印物流標籤（取得列印網址）
  * @param orderNumbers 商店訂單編號陣列
+ * @param shipType 物流廠商類型：1=統一, 2=全家, 3=萊爾富, 4=OK
  *
- * ⚠️ 目前硬指定為：B2C（大宗寄倉）+ 7-ELEVEN
- * 待驗證成功後，再改成從訂單讀取物流類型
+ * ⚠️ 注意：同一批列印的訂單必須是同一個物流廠商
  */
 export async function printLogisticsLabel(
-  orderNumbers: string[]
+  orderNumbers: string[],
+  shipType: '1' | '2' | '3' | '4' = '1'
 ): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
 
@@ -130,16 +131,17 @@ export async function printLogisticsLabel(
     throw new Error('orderNumbers 不可為空')
   }
 
-  // ✅ 硬指定成目前後台的型態：C2C（店到店）+ 7-ELEVEN
+  // C2C（店到店）模式
   const lgsType: 'C2C' = 'C2C'
-  const shipType: '1' = '1'
 
   // ✅ MerchantOrderNo 必須是陣列格式（即使只有一筆）
   const merchantOrderNo = orderNumbers
 
+  console.log(`列印物流標籤：ShipType=${shipType} (1=統一, 2=全家, 3=萊爾富, 4=OK)`)
+
   const encryptParams: Record<string, any> = {
     LgsType: lgsType,
-    ShipType: shipType,
+    ShipType: shipType, // ✅ 動態指定物流廠商
     MerchantOrderNo: merchantOrderNo, // ✅ 陣列格式（藍新 API 要求）
     TimeStamp: Math.floor(Date.now() / 1000).toString(),
   }
@@ -206,6 +208,26 @@ export async function printLogisticsLabel(
 }
 
 /**
+ * 根據門市名稱判斷物流廠商類型
+ * @param storeName 門市名稱
+ * @returns ShipType: 1=統一(7-ELEVEN), 2=全家, 3=萊爾富, 4=OK
+ */
+export function getShipTypeByStoreName(storeName: string): '1' | '2' | '3' | '4' {
+  const name = storeName.toLowerCase()
+  if (name.includes('全家') || name.includes('familymart')) {
+    return '2' // 全家
+  }
+  if (name.includes('萊爾富') || name.includes('hilife')) {
+    return '3' // 萊爾富
+  }
+  if (name.includes('ok') || name.includes('okmart')) {
+    return '4' // OK
+  }
+  // 預設為 7-ELEVEN
+  return '1'
+}
+
+/**
  * 建立物流配送單
  * @param orderData 訂單資料
  */
@@ -219,6 +241,7 @@ export async function createShipment(orderData: {
   goodsAmount: number
   senderName?: string
   senderPhone?: string
+  shipType?: '1' | '2' | '3' | '4' // 物流廠商：1=統一, 2=全家, 3=萊爾富, 4=OK
 }): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
 
@@ -227,11 +250,16 @@ export async function createShipment(orderData: {
     throw new Error('物流 API 配置不完整，請檢查環境變數')
   }
 
+  // 自動根據門市名稱判斷物流廠商（如果沒有傳入 shipType）
+  const shipType = orderData.shipType || getShipTypeByStoreName(orderData.receiverStoreName)
+  console.log(`物流廠商判斷：門市名稱="${orderData.receiverStoreName}" → ShipType=${shipType}`)
+
   // 準備內層參數（只包含業務欄位）
   // 注意：C2C（店到店）支援 7-ELEVEN、全家、萊爾富、OK
   const encryptParams = {
     LgsType: 'C2C', // ✅ C2C 店到店
-    ShipType: '1',  // 7-ELEVEN
+    ShipType: shipType, // ✅ 動態判斷物流廠商
+    TradeType: '3', // ✅ 必填！1=取貨付款，3=取貨不付款（已線上付款）
     MerchantOrderNo: orderData.merchantOrderNo,
     ReceiverName: orderData.receiverName,
     ReceiverCellPhone: orderData.receiverPhone,

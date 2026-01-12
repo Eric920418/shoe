@@ -13,7 +13,7 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { printLogisticsLabel, createShipment } from '@/lib/logistics'
+import { printLogisticsLabel, createShipment, getShipTypeByStoreName } from '@/lib/logistics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -129,21 +129,46 @@ export async function POST(request: NextRequest) {
         console.log('建立物流單失敗（可能已存在）:', createError.message)
       }
 
+      // 根據門市名稱判斷物流廠商
+      const shipType = getShipTypeByStoreName(order.shippingCity || '')
+      console.log(`訂單 ${order.orderNumber} 物流廠商判斷：${order.shippingCity} → ShipType=${shipType}`)
+
       results.push({
         orderId: order.id,
         orderNumber: order.orderNumber,
         merchantOrderNo: merchantOrderNo,
         storeName: order.shippingCity,
         storeId: order.shippingZipCode,
+        shipType: shipType,
       })
     }
 
-    // 呼叫物流 API 列印標籤
-    // 使用 payment 的 merchantOrderNo（因為藍新金流是用這個編號）
-    const merchantOrderNos = results.map((r) => r.merchantOrderNo)
-    console.log('\n呼叫 printLogisticsLabel，訂單編號:', merchantOrderNos)
+    // 按物流廠商分組（藍新要求同一批列印必須是同一個物流商）
+    const ordersByShipType: Record<string, typeof results> = {}
+    for (const r of results) {
+      const shipType = r.shipType
+      if (!ordersByShipType[shipType]) {
+        ordersByShipType[shipType] = []
+      }
+      ordersByShipType[shipType].push(r)
+    }
 
-    const result = await printLogisticsLabel(merchantOrderNos)
+    console.log('\n按物流廠商分組:', Object.keys(ordersByShipType).map(k => `${k}=${ordersByShipType[k].length}筆`).join(', '))
+
+    // 如果有多個物流廠商，目前只能一次列印一種
+    const shipTypes = Object.keys(ordersByShipType) as ('1' | '2' | '3' | '4')[]
+    if (shipTypes.length > 1) {
+      return NextResponse.json(
+        { error: `選取的訂單包含多個物流廠商，請分開列印。目前選取：${shipTypes.map(t => ({ '1': '7-ELEVEN', '2': '全家', '3': '萊爾富', '4': 'OK' }[t])).join('、')}` },
+        { status: 400 }
+      )
+    }
+
+    const shipType = shipTypes[0]
+    const merchantOrderNos = results.map((r) => r.merchantOrderNo)
+    console.log('\n呼叫 printLogisticsLabel，訂單編號:', merchantOrderNos, 'ShipType:', shipType)
+
+    const result = await printLogisticsLabel(merchantOrderNos, shipType)
 
     // 提取列印網址（藍新會回傳 PrintUrl）
     const printUrl =
