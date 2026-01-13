@@ -448,10 +448,22 @@ export async function getShipmentNo(merchantOrderNos: string[]): Promise<{
   if (result.EncryptData) {
     const decryptedData = decryptLogisticsData(result.EncryptData)
     console.log('解密後的資料:', JSON.stringify(decryptedData, null, 2))
+
+    // 藍新回傳格式：{ SUCCESS: [...], ERROR: [...] }
+    // StorePrintNo 是寄件代碼（到超商機台輸入的）
+    const successItems = decryptedData.SUCCESS || []
+    const results = successItems.map((item: any) => ({
+      MerchantOrderNo: item.MerchantOrderNo,
+      ShipmentNo: item.StorePrintNo || item.LgsNo,  // 寄件代碼
+      ShipType: item.ShipType,
+      LgsType: item.LgsType,
+      Status: item.ErrorCode,
+    }))
+
     return {
       Status: result.Status,
       Message: result.Message,
-      Results: Array.isArray(decryptedData) ? decryptedData : [decryptedData],
+      Results: results,
     }
   }
 

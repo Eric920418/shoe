@@ -786,6 +786,7 @@ function CheckoutContent() {
                         <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">🏪 超商代碼</span>
                         <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">📊 超商條碼</span>
                         <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">💻 網路 ATM</span>
+                        <span className="px-3 py-1.5 bg-white text-gray-700 text-sm rounded-lg border border-gray-300 font-medium">💳 貨到付款</span>
                       </div>
                       <div className="mt-4 flex items-center text-xs text-gray-600">
                         <svg className="w-4 h-4 mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
