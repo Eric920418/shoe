@@ -70,11 +70,13 @@ function tryPhpStyleDecrypt(encryptedData: string): string {
   let decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
   // 手動移除 PKCS7 padding（和 PHP 的 strippadding 函數一樣）
+  // 注意：藍新金流可能使用的 padding 值會超過 16（例如 31）
   const padLen = decrypted[decrypted.length - 1];
-  if (padLen > 0 && padLen <= 16) {
-    // 驗證 padding 是否正確
+  if (padLen > 0 && padLen <= 32) {
+    // 驗證 padding 是否正確（所有 padding bytes 應該相同）
     let validPadding = true;
-    for (let i = decrypted.length - padLen; i < decrypted.length; i++) {
+    const startIdx = Math.max(0, decrypted.length - padLen);
+    for (let i = startIdx; i < decrypted.length; i++) {
       if (decrypted[i] !== padLen) {
         validPadding = false;
         break;
@@ -85,7 +87,12 @@ function tryPhpStyleDecrypt(encryptedData: string): string {
     }
   }
 
-  return decrypted.toString('utf8');
+  // 額外清理：移除末尾的所有控制字符 (0x00-0x1F)
+  // 這是為了處理一些非標準的 padding 情況
+  let str = decrypted.toString('utf8');
+  str = str.replace(/[\x00-\x1F]+$/, '');
+
+  return str;
 }
 
 function verifyTradeSha(tradeInfo: string, tradeSha: string): boolean {

@@ -1067,6 +1067,22 @@ pnpm prisma migrate reset
   - `components/sections/CategoryGrid.tsx` - 改為三大主分類按鈕
   - `components/home/MobileProductFeed.tsx` - 移除篩選面板
 
+#### ✅ CVSCOM CustomerURL PKCS7 Padding 修正（v2.4.10）
+- **問題描述**：超商取貨選擇門市後返回「無法取得訂單編號」錯誤
+- **根本原因**：藍新金流 CVSCOM 回調的 AES 加密使用了非標準 padding（padding 值 = 31，超過標準 PKCS7 的 16 上限）
+- **錯誤流程**：
+  1. PHP 風格解密成功，得到有效 JSON：`{"Status":"SUCCESS","Result":{...}}`
+  2. 但末尾有 31 個 `\u001f` padding 字符未被移除（因為 `padLen > 16` 條件不成立）
+  3. `JSON.parse()` 因末尾的控制字符而失敗
+  4. 程式碼錯誤地 fallback 到 Query String 解析，導致整個 JSON 變成一個 key
+  5. 無法正確讀取 `MerchantOrderNo` 等欄位
+- **解決方案**：
+  - 修改 `tryPhpStyleDecrypt` 函數的 padding 移除邏輯
+  - 將 padding 值上限從 16 改為 32
+  - 添加正則表達式清理：移除末尾所有控制字符 `[\x00-\x1F]`
+- **影響範圍**：
+  - `app/api/newebpay/customer/route.ts` - 修正 PKCS7 padding 處理邏輯
+
 #### ✅ CVSCOM CustomerURL 端點修正（v2.4.9）
 - **問題描述**：超商取貨付款選擇門市後，門市資訊未儲存到訂單
 - **根本原因**：CVSCOM 門市選擇的回調是發送到 `CustomerURL`，不是 `ReturnURL` 或 `NotifyURL`
