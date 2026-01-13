@@ -9,7 +9,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { GET_CART, UPDATE_CART_ITEM, REMOVE_FROM_CART, CLEAR_CART } from '@/graphql/queries'
+import { GET_CART, UPDATE_CART_ITEM, REMOVE_FROM_CART, CLEAR_CART, GET_ME } from '@/graphql/queries'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestCart } from '@/contexts/GuestCartContext'
 import MembershipBenefitsBanner from '@/components/common/MembershipBenefitsBanner'
@@ -60,6 +60,12 @@ export default function CartPage() {
         logout()
       }
     },
+  })
+
+  // 獲取會員資訊（包含免運門檻）
+  const { data: meData } = useQuery(GET_ME, {
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-first',
   })
 
   // 判斷是否為訪客模式
@@ -186,6 +192,14 @@ export default function CartPage() {
 
   // 選中商品數量
   const selectedCount = selectedItems.size
+
+  // 檢查會員免運門檻
+  const BASE_SHIPPING_FEE = 49
+  const freeShippingThreshold = meData?.me?.membershipTierConfig?.freeShippingThreshold
+  const qualifiesForFreeShipping = !isGuest && freeShippingThreshold !== undefined && selectedTotal >= Number(freeShippingThreshold)
+  const shippingFee = qualifiesForFreeShipping ? 0 : BASE_SHIPPING_FEE
+  // 距離免運還差多少
+  const amountToFreeShipping = freeShippingThreshold !== undefined ? Math.max(0, Number(freeShippingThreshold) - selectedTotal) : null
 
   // 是否全選
   const isAllSelected = cartItems.length > 0 && selectedItems.size === cartItems.length
@@ -588,15 +602,30 @@ export default function CartPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">運費</span>
-                    <span className="text-black font-medium">NT$ 49</span>
+                    {qualifiesForFreeShipping ? (
+                      <span className="text-green-600 font-medium">免運費</span>
+                    ) : (
+                      <span className="text-black font-medium">NT$ {BASE_SHIPPING_FEE}</span>
+                    )}
                   </div>
+                  {/* 免運提示 */}
+                  {!isGuest && amountToFreeShipping !== null && amountToFreeShipping > 0 && (
+                    <div className="text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded-lg">
+                      再買 NT$ {amountToFreeShipping.toLocaleString()} 即可享免運費
+                    </div>
+                  )}
+                  {qualifiesForFreeShipping && (
+                    <div className="text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                      已達免運門檻，享免運費優惠
+                    </div>
+                  )}
                   <div className="border-t border-gray-300 pt-4">
                     <div className="flex justify-between items-baseline">
                       <span className="text-base font-bold text-black uppercase">
                         總計
                       </span>
                       <span className="text-2xl font-black text-black">
-                        NT$ {(selectedTotal + 49).toLocaleString()}
+                        NT$ {(selectedTotal + shippingFee).toLocaleString()}
                       </span>
                     </div>
                   </div>

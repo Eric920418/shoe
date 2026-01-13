@@ -622,7 +622,7 @@ function CheckoutContent() {
                         />
                         <div>
                           <div className="font-semibold text-black">郵局等其他物流</div>
-                          <div className="text-sm text-gray-600">結帳後請私訊確認寄送方式</div>
+                          <div className="text-sm text-gray-600">Line: 308@mstvl</div>
                         </div>
                       </div>
                       <div className="text-lg font-bold text-green-600">免運費</div>
