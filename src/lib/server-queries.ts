@@ -442,24 +442,33 @@ export const getHomepageProducts = cache(async (limit: number = 30) => {
 })
 
 /**
- * 獲取活動中的限時搶購
+ * 獲取活動中的限時搶購（優先返回設為首頁顯示的活動）
  */
 export const getActiveFlashSale = cache(async () => {
   try {
     const now = new Date()
+
+    // 優先返回 showOnHomepage=true 的活動
+    const homepageFlashSale = await prisma.flashSaleConfig.findFirst({
+      where: {
+        isActive: true,
+        showOnHomepage: true,
+        startTime: { lte: now },
+        endTime: { gte: now },
+      },
+      orderBy: { sortOrder: 'asc' },
+    })
+
+    if (homepageFlashSale) return homepageFlashSale
+
+    // 向後兼容：如果沒有設定首頁顯示，返回任何進行中的活動
     const flashSale = await prisma.flashSaleConfig.findFirst({
       where: {
         isActive: true,
-        startTime: {
-          lte: now,
-        },
-        endTime: {
-          gte: now,
-        },
+        startTime: { lte: now },
+        endTime: { gte: now },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     })
 
     return flashSale

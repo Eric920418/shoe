@@ -120,12 +120,11 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
     const globalDiscount = productsConfig?.discountPercentage
 
     if (productIds && productIds.length > 0) {
-      // 如果後台指定了產品ID，只顯示這些產品
+      // 只顯示後台指定的產品
       productsToShow = allProducts.filter((p: any) => productIds.includes(p.id))
     } else {
-      // 如果沒有指定產品，顯示所有有折扣的產品
-      productsToShow = allProducts
-        .filter((p: any) => p.originalPrice && parseFloat(p.originalPrice) > parseFloat(p.price))
+      // 如果後台沒有選擇任何產品，不顯示任何產品
+      return []
     }
 
     return productsToShow

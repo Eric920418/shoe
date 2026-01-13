@@ -3,11 +3,11 @@
 /**
  * 完整結帳頁面 - 整合多種付款方式
  * 支援功能：
- * - 多種付款方式選擇（線上支付、銀行轉帳、貨到付款）
- * - 完整收件地址填寫
+ * - 多種付款方式選擇（藍新金流：信用卡、ATM、超商代碼等）
+ * - 配送方式：超商取貨（7-11/全家/萊爾富）、郵局等其他物流（私訊確認）
  * - 優惠券使用
  * - 購物金使用（會員）
- * - 藍新金流整合（僅線上支付）
+ * - 藍新金流整合
  * - ✅ 選擇性結帳（只結帳購物車中選中的商品）
  */
 
@@ -46,13 +46,8 @@ interface CheckoutFormData {
   // ⚠️ 地址資訊已移除，客戶將在藍新物流頁面填寫超商地址
   shippingName: string
   shippingPhone: string
-  // 配送方式
-  shippingMethod: 'CVS_PICKUP' | 'HOME_DELIVERY' | 'SELF_PICKUP'
-  // 宅配地址（只有選擇宅配時需要）
-  homeDeliveryAddress?: string
-  homeDeliveryCity?: string
-  homeDeliveryDistrict?: string
-  homeDeliveryZipCode?: string
+  // 配送方式：超商取貨 或 郵局等其他物流（私訊確認）
+  shippingMethod: 'CVS_PICKUP' | 'SELF_PICKUP'
   // 付款方式
   paymentMethod: string
   // 訂單備註
@@ -99,10 +94,6 @@ function CheckoutContent() {
     shippingName: '',
     shippingPhone: '',
     shippingMethod: 'CVS_PICKUP', // 預設超商取貨
-    homeDeliveryAddress: '',
-    homeDeliveryCity: '',
-    homeDeliveryDistrict: '',
-    homeDeliveryZipCode: '',
     paymentMethod: 'NEWEBPAY', // 所有訂單都使用藍新金流
     notes: '',
     packagingOption: 'STANDARD',
@@ -250,9 +241,7 @@ function CheckoutContent() {
 
   // 計算總金額（扣除優惠券和購物金）
   // 根據配送方式計算基礎運費
-  const baseShippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 49
-    : formData.shippingMethod === 'HOME_DELIVERY' ? 120
-    : 0 // SELF_PICKUP 免運費
+  const baseShippingFee = formData.shippingMethod === 'CVS_PICKUP' ? 49 : 0 // SELF_PICKUP（郵局等其他物流）免運費
 
   // 檢查會員免運門檻
   const freeShippingThreshold = meData?.me?.membershipTierConfig?.freeShippingThreshold
@@ -308,19 +297,6 @@ function CheckoutContent() {
       newErrors.shippingPhone = '請輸入收件人手機'
     } else if (!/^09\d{8}$/.test(formData.shippingPhone.trim())) {
       newErrors.shippingPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
-    }
-
-    // 宅配地址驗證（只在選擇宅配時驗證）
-    if (formData.shippingMethod === 'HOME_DELIVERY') {
-      if (!formData.homeDeliveryCity?.trim()) {
-        newErrors.homeDeliveryCity = '請輸入城市'
-      }
-      if (!formData.homeDeliveryDistrict?.trim()) {
-        newErrors.homeDeliveryDistrict = '請輸入區域'
-      }
-      if (!formData.homeDeliveryAddress?.trim()) {
-        newErrors.homeDeliveryAddress = '請輸入詳細地址'
-      }
     }
 
     setErrors(newErrors)
@@ -385,12 +361,12 @@ function CheckoutContent() {
             shippingPhone: formData.shippingPhone.trim(),
             // 配送方式
             shippingMethod: formData.shippingMethod,
-            // 地址資訊（宅配需要地址，7-11和自取不需要）
-            shippingCountry: formData.shippingMethod === 'HOME_DELIVERY' ? '台灣' : null,
-            shippingCity: formData.shippingMethod === 'HOME_DELIVERY' ? formData.homeDeliveryCity?.trim() : null,
-            shippingDistrict: formData.shippingMethod === 'HOME_DELIVERY' ? formData.homeDeliveryDistrict?.trim() : null,
-            shippingStreet: formData.shippingMethod === 'HOME_DELIVERY' ? formData.homeDeliveryAddress?.trim() : null,
-            shippingZipCode: formData.shippingMethod === 'HOME_DELIVERY' ? formData.homeDeliveryZipCode?.trim() : null,
+            // 地址資訊（超商取貨在物流頁面選擇，其他物流私訊確認）
+            shippingCountry: null,
+            shippingCity: null,
+            shippingDistrict: null,
+            shippingStreet: null,
+            shippingZipCode: null,
             // 付款方式
             paymentMethod: formData.paymentMethod,
             notes: formData.notes.trim() || null,
@@ -547,9 +523,7 @@ function CheckoutContent() {
                 <p className="text-sm text-gray-600 mb-6">
                   {formData.shippingMethod === 'CVS_PICKUP'
                     ? 'ℹ️ 收件地址將在付款後的物流頁面選擇超商門市'
-                    : formData.shippingMethod === 'HOME_DELIVERY'
-                    ? 'ℹ️ 請在下方配送方式區塊填寫宅配地址'
-                    : 'ℹ️ 請攜帶訂單編號至店面取貨'
+                    : 'ℹ️ 結帳後請私訊確認寄送方式與地址'
                   }
                 </p>
 
@@ -629,39 +603,7 @@ function CheckoutContent() {
                     </div>
                   </label>
 
-                  {/* 宅配 */}
-                  <label className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    formData.shippingMethod === 'HOME_DELIVERY'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="shippingMethod"
-                          value="HOME_DELIVERY"
-                          checked={formData.shippingMethod === 'HOME_DELIVERY'}
-                          onChange={handleChange}
-                          className="mr-3"
-                        />
-                        <div>
-                          <div className="font-semibold text-black">宅配</div>
-                          <div className="text-sm text-gray-600">送貨到府</div>
-                        </div>
-                      </div>
-                      {qualifiesForFreeShipping ? (
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">免運費</div>
-                          <div className="text-xs text-gray-400 line-through">原價 $120</div>
-                        </div>
-                      ) : (
-                        <div className="text-lg font-bold text-black">運費 $120</div>
-                      )}
-                    </div>
-                  </label>
-
-                  {/* 自取 */}
+                  {/* 郵局等其他物流 */}
                   <label className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     formData.shippingMethod === 'SELF_PICKUP'
                       ? 'border-blue-500 bg-blue-50'
@@ -678,8 +620,8 @@ function CheckoutContent() {
                           className="mr-3"
                         />
                         <div>
-                          <div className="font-semibold text-black">自取</div>
-                          <div className="text-sm text-gray-600">至店面自行取貨</div>
+                          <div className="font-semibold text-black">郵局等其他物流</div>
+                          <div className="text-sm text-gray-600">結帳後請私訊確認寄送方式</div>
                         </div>
                       </div>
                       <div className="text-lg font-bold text-green-600">免運費</div>
@@ -687,81 +629,6 @@ function CheckoutContent() {
                   </label>
                 </div>
 
-                {/* 宅配地址表單（只在選擇宅配時顯示） */}
-                {formData.shippingMethod === 'HOME_DELIVERY' && (
-                  <div className="mt-6 p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                    <h3 className="font-semibold text-black mb-4">宅配地址</h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="homeDeliveryCity" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                            城市 <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            id="homeDeliveryCity"
-                            name="homeDeliveryCity"
-                            value={formData.homeDeliveryCity}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-3 border-2 ${errors.homeDeliveryCity ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                            placeholder="例：台北市"
-                          />
-                          {errors.homeDeliveryCity && (
-                            <p className="mt-2 text-sm text-red-600">{errors.homeDeliveryCity}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label htmlFor="homeDeliveryDistrict" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                            區域 <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            id="homeDeliveryDistrict"
-                            name="homeDeliveryDistrict"
-                            value={formData.homeDeliveryDistrict}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-3 border-2 ${errors.homeDeliveryDistrict ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                            placeholder="例：信義區"
-                          />
-                          {errors.homeDeliveryDistrict && (
-                            <p className="mt-2 text-sm text-red-600">{errors.homeDeliveryDistrict}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="homeDeliveryAddress" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                          詳細地址 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          id="homeDeliveryAddress"
-                          name="homeDeliveryAddress"
-                          value={formData.homeDeliveryAddress}
-                          onChange={handleChange}
-                          className={`w-full px-4 py-3 border-2 ${errors.homeDeliveryAddress ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                          placeholder="請輸入街道地址"
-                        />
-                        {errors.homeDeliveryAddress && (
-                          <p className="mt-2 text-sm text-red-600">{errors.homeDeliveryAddress}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label htmlFor="homeDeliveryZipCode" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                          郵遞區號
-                        </label>
-                        <input
-                          type="text"
-                          id="homeDeliveryZipCode"
-                          name="homeDeliveryZipCode"
-                          value={formData.homeDeliveryZipCode}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors bg-white"
-                          placeholder="例：110"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* 付款方式說明 - 所有訂單都通過藍新金流 */}
