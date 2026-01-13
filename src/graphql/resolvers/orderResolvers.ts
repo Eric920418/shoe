@@ -411,8 +411,11 @@ export const orderResolvers = {
       try {
         let cartItems: any[] = []
 
-        // 會員模式：從購物車獲取商品
-        if (!isGuest && user) {
+        // ✅ 判斷是否使用 input.items（直接購買模式、訪客模式、或明確傳入 items）
+        const useInputItems = isGuest || (input.items && input.items.length > 0 && !input.selectedCartItemIds)
+
+        // 會員模式且不是直接購買：從購物車獲取商品
+        if (!isGuest && user && !useInputItems) {
           // ✅ 支持選擇性結帳：如果提供了 selectedCartItemIds，只獲取指定的購物車項目
           const whereCondition: any = { userId: user.userId }
           if (input.selectedCartItemIds && input.selectedCartItemIds.length > 0) {
@@ -449,7 +452,7 @@ export const orderResolvers = {
               : item.product.price.toNumber(),
           }))
         }
-        // 訪客模式：從 input.items 獲取商品
+        // 訪客模式或直接購買模式：從 input.items 獲取商品
         else {
           if (!input.items || input.items.length === 0) {
             throw new GraphQLError('訂單商品不能為空', {
