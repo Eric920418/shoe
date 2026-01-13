@@ -1507,6 +1507,34 @@ pnpm prisma migrate reset
 <details>
 <summary><strong>點擊展開完整更新日誌</strong></summary>
 
+### 2026-01-13 ⚡ 限時搶購首頁設定功能
+
+**更新時間**: 2026-01-13 | **優先級**: 🟢 功能增強
+
+#### 功能說明
+
+**限時搶購活動管理**（`/admin/homepage` 限時搶購 Tab）
+- ✅ 支援創建**多個**限時搶購活動
+- ✅ 可設定每個活動是否**顯示在首頁**（`showOnHomepage` 開關）
+- ✅ 可設定首頁顯示**排序順序**（`sortOrder`，數字越小越前面）
+- ✅ 活動列表顯示狀態標籤：進行中/即將開始/已結束/已停用/首頁顯示
+- ✅ 快速切換首頁顯示狀態（一鍵開關）
+- ✅ 完整的 CRUD 操作：創建/編輯/刪除活動
+
+**技術更新**：
+- 資料庫：`flash_sale_configs` 新增 `showOnHomepage` 和 `sortOrder` 欄位
+- GraphQL Queries：新增 `allFlashSales`（後台管理）和 `homepageFlashSales`（首頁顯示）
+- GraphQL Mutations：新增 `createFlashSale`、`updateFlashSale`、`deleteFlashSale`
+- `activeFlashSale` 查詢邏輯更新：優先返回 `showOnHomepage=true` 的活動
+
+**使用方式**：
+1. 進入 `/admin/homepage` → 限時搶購 Tab
+2. 創建或編輯限時搶購活動
+3. 勾選「顯示在首頁」讓該活動出現在前台首頁
+4. 設定排序順序控制多個活動的顯示優先級
+
+---
+
 ### 2025-11-17 🛒 產品詳情頁與購物車體驗優化
 
 **更新時間**: 2025-11-17 | **優先級**: 🟢 用戶體驗改進

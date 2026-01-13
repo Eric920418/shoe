@@ -81,9 +81,22 @@ export const homepageResolvers = {
       })
     },
 
-    // 獲取限時搶購設定（僅返回進行中的活動）
+    // 獲取限時搶購設定（僅返回進行中且設為首頁顯示的活動）
     activeFlashSale: async () => {
       const now = new Date()
+      // 優先返回 showOnHomepage=true 的活動
+      const homepageFlashSale = await prisma.flashSaleConfig.findFirst({
+        where: {
+          isActive: true,
+          showOnHomepage: true,
+          startTime: { lte: now },
+          endTime: { gt: now },
+        },
+        orderBy: { sortOrder: 'asc' },
+      })
+      if (homepageFlashSale) return homepageFlashSale
+
+      // 向後兼容：如果沒有設定首頁顯示，返回任何進行中的活動
       return prisma.flashSaleConfig.findFirst({
         where: {
           isActive: true,
@@ -102,6 +115,30 @@ export const homepageResolvers = {
         orderBy: {
           createdAt: 'desc',
         },
+      })
+    },
+
+    // 獲取所有限時搶購活動（後台管理用）
+    allFlashSales: async () => {
+      return prisma.flashSaleConfig.findMany({
+        orderBy: [
+          { sortOrder: 'asc' },
+          { createdAt: 'desc' },
+        ],
+      })
+    },
+
+    // 獲取首頁顯示的限時搶購活動
+    homepageFlashSales: async () => {
+      const now = new Date()
+      return prisma.flashSaleConfig.findMany({
+        where: {
+          isActive: true,
+          showOnHomepage: true,
+          startTime: { lte: now },
+          endTime: { gt: now },
+        },
+        orderBy: { sortOrder: 'asc' },
       })
     },
 
@@ -425,7 +462,7 @@ export const homepageResolvers = {
       })
     },
 
-    // 創建或更新限時搶購
+    // 創建或更新限時搶購（舊版，向後兼容）
     upsertFlashSale: async (_: any, { input }: { input: any }, context: Context) => {
       await requireAdmin(context)
 
@@ -438,6 +475,41 @@ export const homepageResolvers = {
       return prisma.flashSaleConfig.create({
         data: { ...input, isActive: true },
       })
+    },
+
+    // 創建限時搶購活動
+    createFlashSale: async (_: any, { input }: { input: any }, context: Context) => {
+      await requireAdmin(context)
+
+      return prisma.flashSaleConfig.create({
+        data: {
+          ...input,
+          isActive: input.isActive ?? true,
+          showOnHomepage: input.showOnHomepage ?? false,
+          sortOrder: input.sortOrder ?? 0,
+        },
+      })
+    },
+
+    // 更新限時搶購活動
+    updateFlashSale: async (
+      _: any,
+      { id, input }: { id: string; input: any },
+      context: Context
+    ) => {
+      await requireAdmin(context)
+
+      return prisma.flashSaleConfig.update({
+        where: { id },
+        data: input,
+      })
+    },
+
+    // 刪除限時搶購活動
+    deleteFlashSale: async (_: any, { id }: { id: string }, context: Context) => {
+      await requireAdmin(context)
+      await prisma.flashSaleConfig.delete({ where: { id } })
+      return true
     },
 
     // 創建或更新每日特價

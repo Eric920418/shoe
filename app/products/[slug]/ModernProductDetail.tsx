@@ -163,7 +163,7 @@ export default function ModernProductDetail({ product }: { product: any }) {
     }
   }
 
-  // ✅ 直接購買功能
+  // ✅ 直接購買功能（不經過購物車，直接結帳此商品）
   const handleBuyNow = async () => {
     if (!selectedSize) {
       toast.error('請選擇尺碼')
@@ -172,52 +172,38 @@ export default function ModernProductDetail({ product }: { product: any }) {
 
     setIsBuyingNow(true)
     try {
-      // 會員模式：使用 GraphQL mutation
-      if (isAuthenticated) {
-        await addToCart({
-          variables: {
-            productId: product.id,
-            variantId: selectedVariant?.id,
-            sizeChartId: selectedSize.id,
-            quantity,
-          },
-        })
-        toast.success('正在前往結帳...')
-        // 直接跳轉到結帳頁面
-        router.push('/checkout')
-      }
-      // 訪客模式：使用 localStorage
-      else {
-        // ✅ 優先使用變體圖片，沒有才使用產品主圖
-        const getVariantImage = () => {
-          if (selectedVariant?.colorImage) return selectedVariant.colorImage
-          if (selectedVariant?.images) {
-            const variantImages = typeof selectedVariant.images === 'string'
-              ? JSON.parse(selectedVariant.images)
-              : selectedVariant.images
-            if (Array.isArray(variantImages) && variantImages.length > 0) {
-              return variantImages[0]
-            }
+      // ✅ 優先使用變體圖片，沒有才使用產品主圖
+      const getVariantImage = () => {
+        if (selectedVariant?.colorImage) return selectedVariant.colorImage
+        if (selectedVariant?.images) {
+          const variantImages = typeof selectedVariant.images === 'string'
+            ? JSON.parse(selectedVariant.images)
+            : selectedVariant.images
+          if (Array.isArray(variantImages) && variantImages.length > 0) {
+            return variantImages[0]
           }
-          return displayImages[0] || null
         }
-        guestCart.addItem({
-          productId: product.id,
-          productName: product.name,
-          productImage: getVariantImage(),
-          variantId: selectedVariant?.id || null,
-          variantName: selectedVariant?.color || null,
-          sizeEu: selectedSize.size,
-          sizeChartId: selectedSize.id,
-          color: selectedVariant?.color || null,
-          quantity,
-          price: finalPrice,
-          stock: 999999, // 無限庫存模式
-        })
-        toast.success('正在前往結帳...')
-        // 直接跳轉到結帳頁面
-        router.push('/checkout')
+        return displayImages[0] || null
       }
+
+      // ✅ 將商品資訊存入 sessionStorage（不加入購物車）
+      const buyNowItem = {
+        productId: product.id,
+        productName: product.name,
+        productImage: getVariantImage(),
+        variantId: selectedVariant?.id || null,
+        variantName: selectedVariant?.color || null,
+        sizeEu: selectedSize.size,
+        sizeChartId: selectedSize.id,
+        color: selectedVariant?.color || null,
+        quantity,
+        price: finalPrice,
+      }
+      sessionStorage.setItem('buyNowItem', JSON.stringify(buyNowItem))
+
+      toast.success('正在前往結帳...')
+      // 跳轉到結帳頁面，帶上 buyNow 參數
+      router.push('/checkout?buyNow=true')
     } catch (error: any) {
       console.error('購買失敗:', error)
       toast.error(error.message || '購買失敗')

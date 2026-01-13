@@ -1072,19 +1072,22 @@ model CategoryDisplay {
 }
 
 model FlashSaleConfig {
-  id          String   @id @default(cuid())
-  name        String
-  startTime   DateTime
-  endTime     DateTime
-  bgImage     String?
-  bgColor     String   @default("#FF6B6B")
-  products    Json
-  maxProducts Int      @default(6)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  startTime      DateTime
+  endTime        DateTime
+  bgImage        String?
+  bgColor        String   @default("#FF6B6B")
+  products       Json
+  maxProducts    Int      @default(6)
+  isActive       Boolean  @default(true)
+  showOnHomepage Boolean  @default(false) // 是否顯示在首頁
+  sortOrder      Int      @default(0)      // 首頁顯示排序
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([isActive, startTime, endTime])
+  @@index([showOnHomepage, sortOrder])
   @@map("flash_sale_configs")
 }
 

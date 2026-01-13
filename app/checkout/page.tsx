@@ -74,6 +74,23 @@ function CheckoutContent() {
     return new Set(itemsParam.split(',').filter(Boolean))
   }, [searchParams])
 
+  // ✅ 直接購買模式：從 sessionStorage 讀取商品
+  const isBuyNowMode = searchParams.get('buyNow') === 'true'
+  const [buyNowItem, setBuyNowItem] = useState<any>(null)
+
+  useEffect(() => {
+    if (isBuyNowMode) {
+      const storedItem = sessionStorage.getItem('buyNowItem')
+      if (storedItem) {
+        try {
+          setBuyNowItem(JSON.parse(storedItem))
+        } catch (e) {
+          console.error('解析直接購買商品失敗:', e)
+        }
+      }
+    }
+  }, [isBuyNowMode])
+
   // 表單狀態
   const [formData, setFormData] = useState<CheckoutFormData>({
     guestName: '',
@@ -170,9 +187,13 @@ function CheckoutContent() {
 
           document.body.appendChild(form)
 
-          // 清空購物車（訪客模式）
+          // 清空購物車（訪客模式）或清除直接購買商品
           if (!isAuthenticated) {
             guestCart.clearCart()
+          }
+          // 清除直接購買的 sessionStorage
+          if (isBuyNowMode) {
+            sessionStorage.removeItem('buyNowItem')
           }
 
           // 提交表單到藍新金流
@@ -202,21 +223,28 @@ function CheckoutContent() {
   const allCartItems = isGuest ? guestCart.items : (cartData?.cart?.items || [])
 
   // ✅ 根據選中的商品 ID 過濾購物車項目（選擇性結帳）
+  // ✅ 直接購買模式時，只使用 buyNowItem
   const cartItems = useMemo(() => {
+    // 直接購買模式：只結帳 sessionStorage 中的商品
+    if (isBuyNowMode && buyNowItem) {
+      return [buyNowItem]
+    }
     if (!selectedItemIds) return allCartItems // 如果沒有指定，結帳全部商品
     return allCartItems.filter((item: any, index: number) => {
       const itemId = isGuest ? `guest-${index}` : item.id
       return selectedItemIds.has(itemId)
     })
-  }, [allCartItems, selectedItemIds, isGuest])
+  }, [allCartItems, selectedItemIds, isGuest, isBuyNowMode, buyNowItem])
 
   // ✅ 計算選中商品的小計
   const cartSubtotal = useMemo(() => {
     return cartItems.reduce((sum: number, item: any) => {
-      const price = isGuest ? item.price : (item.addedPrice || item.price)
+      // 直接購買模式或訪客模式：價格直接在 item.price
+      // 會員模式：價格在 item.addedPrice 或 item.price
+      const price = (isBuyNowMode || isGuest) ? item.price : (item.addedPrice || item.price)
       return sum + (Number(price) * item.quantity)
     }, 0)
-  }, [cartItems, isGuest])
+  }, [cartItems, isGuest, isBuyNowMode])
 
   const cartIsEmpty = cartItems.length === 0
 
@@ -318,17 +346,17 @@ function CheckoutContent() {
 
     try {
       // ✅ 使用已篩選的 cartItems（選擇性結帳）
-      // 訪客模式和選擇性結帳都需要傳遞 items
+      // 訪客模式、直接購買模式、選擇性結帳都需要傳遞 items
       const orderItems = cartItems.map((item: any) => ({
-        productId: isGuest ? item.productId : item.product?.id || item.productId,
-        variantId: isGuest ? (item.variantId || null) : (item.variant?.id || item.variantId || null),
-        sizeEu: isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu),
-        sizeChartId: isGuest ? (item.sizeChartId || null) : (item.sizeChart?.id || item.sizeChartId || null),
+        productId: (isBuyNowMode || isGuest) ? item.productId : item.product?.id || item.productId,
+        variantId: (isBuyNowMode || isGuest) ? (item.variantId || null) : (item.variant?.id || item.variantId || null),
+        sizeEu: (isBuyNowMode || isGuest) ? item.sizeEu : (item.sizeChart?.size || item.sizeEu),
+        sizeChartId: (isBuyNowMode || isGuest) ? (item.sizeChartId || null) : (item.sizeChart?.id || item.sizeChartId || null),
         quantity: item.quantity,
       }))
 
-      // ✅ 選中的購物車項目 ID（會員模式用於選擇性結帳）
-      const selectedCartItemIds = !isGuest && selectedItemIds
+      // ✅ 選中的購物車項目 ID（會員模式用於選擇性結帳，直接購買模式不使用）
+      const selectedCartItemIds = !isGuest && !isBuyNowMode && selectedItemIds
         ? Array.from(selectedItemIds)
         : null
 
@@ -336,6 +364,7 @@ function CheckoutContent() {
       console.log('formData.shippingMethod:', formData.shippingMethod, '(type:', typeof formData.shippingMethod, ')');
       console.log('運費:', shippingFee);
       console.log('選中商品數量:', cartItems.length);
+      console.log('直接購買模式:', isBuyNowMode ? '是' : '否');
       console.log('選擇性結帳:', selectedItemIds ? '是' : '否（全部商品）');
       console.log('===============================');
 
@@ -385,6 +414,25 @@ function CheckoutContent() {
         <div className="text-center">
           <div className="text-2xl font-semibold text-gray-900 mb-2">載入中...</div>
           <p className="text-gray-600">正在獲取購物車資訊</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 直接購買模式但沒有商品資訊（可能是頁面刷新或直接訪問）
+  if (isBuyNowMode && !buyNowItem) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🛒</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">商品資訊已失效</h1>
+          <p className="text-gray-600 mb-8">請返回商品頁面重新選擇</p>
+          <Link
+            href="/"
+            className="inline-block px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            繼續購物
+          </Link>
         </div>
       </div>
     )
@@ -777,16 +825,17 @@ function CheckoutContent() {
                   {/* 商品列表 */}
                   <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
                     {cartItems.map((item: any, index: number) => {
-                      // 訪客購物車與會員購物車數據結構不同
-                      const productName = isGuest ? item.productName : item.product.name
-                      const productImage = isGuest ? item.productImage : parseImages(item.product.images)[0]
-                      const variantColor = isGuest ? item.variantName : item.variant?.color
-                      const sizeValue = isGuest ? item.sizeEu : (item.sizeChart?.size || item.sizeEu)
+                      // 訪客購物車、直接購買模式與會員購物車數據結構不同
+                      const isGuestFormat = isBuyNowMode || isGuest
+                      const productName = isGuestFormat ? item.productName : item.product.name
+                      const productImage = isGuestFormat ? item.productImage : parseImages(item.product.images)[0]
+                      const variantColor = isGuestFormat ? item.variantName : item.variant?.color
+                      const sizeValue = isGuestFormat ? item.sizeEu : (item.sizeChart?.size || item.sizeEu)
                       const quantity = item.quantity
-                      const subtotal = isGuest ? (item.price * item.quantity) : item.subtotal
+                      const subtotal = isGuestFormat ? (item.price * item.quantity) : item.subtotal
 
                       return (
-                        <div key={isGuest ? `guest-${index}` : item.id} className="flex gap-4">
+                        <div key={isGuestFormat ? `item-${index}` : item.id} className="flex gap-4">
                           <div className="w-20 h-20 bg-gray-100 flex-shrink-0 overflow-hidden">
                             {productImage ? (
                               /* eslint-disable-next-line @next/next/no-img-element */

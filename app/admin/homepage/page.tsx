@@ -35,7 +35,7 @@ const GET_HOMEPAGE_DATA = gql`
       link
       isActive
     }
-    latestFlashSale {
+    allFlashSales {
       id
       name
       startTime
@@ -44,6 +44,8 @@ const GET_HOMEPAGE_DATA = gql`
       products
       maxProducts
       isActive
+      showOnHomepage
+      sortOrder
     }
     todaysDeal {
       id
@@ -185,6 +187,30 @@ const UPSERT_FLASH_SALE = gql`
   }
 `
 
+const CREATE_FLASH_SALE = gql`
+  mutation CreateFlashSale($input: FlashSaleConfigInput!) {
+    createFlashSale(input: $input) {
+      id
+      name
+    }
+  }
+`
+
+const UPDATE_FLASH_SALE = gql`
+  mutation UpdateFlashSale($id: ID!, $input: UpdateFlashSaleInput!) {
+    updateFlashSale(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`
+
+const DELETE_FLASH_SALE = gql`
+  mutation DeleteFlashSale($id: ID!) {
+    deleteFlashSale(id: $id)
+  }
+`
+
 const UPSERT_POPULAR_PRODUCTS = gql`
   mutation UpsertPopularProductsConfig($input: PopularProductsConfigInput!) {
     upsertPopularProductsConfig(input: $input) {
@@ -215,6 +241,9 @@ export default function HomepageManagement() {
   const [deleteHeroSlide] = useMutation(DELETE_HERO_SLIDE)
   const [upsertSaleCountdown] = useMutation(UPSERT_SALE_COUNTDOWN)
   const [upsertFlashSale] = useMutation(UPSERT_FLASH_SALE)
+  const [createFlashSaleMutation] = useMutation(CREATE_FLASH_SALE)
+  const [updateFlashSaleMutation] = useMutation(UPDATE_FLASH_SALE)
+  const [deleteFlashSaleMutation] = useMutation(DELETE_FLASH_SALE)
   const [upsertPopularProducts] = useMutation(UPSERT_POPULAR_PRODUCTS)
   const [upsertDailyDeal] = useMutation(UPSERT_DAILY_DEAL)
   const [createBundle] = useMutation(CREATE_BUNDLE)
@@ -245,6 +274,7 @@ export default function HomepageManagement() {
   })
 
   // 限時搶購
+  const [editingFlashSale, setEditingFlashSale] = useState<string | null>(null)
   const [flashSaleForm, setFlashSaleForm] = useState({
     title: '限時搶購',
     description: '每2小時更新一次商品',
@@ -252,7 +282,10 @@ export default function HomepageManagement() {
     endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
     discountPercentage: 50,
     maxProducts: 6,
-    selectedProducts: []
+    selectedProducts: [] as string[],
+    isActive: true,
+    showOnHomepage: false,
+    sortOrder: 0
   })
 
   // 熱門產品
@@ -355,7 +388,7 @@ export default function HomepageManagement() {
     }
   }
 
-  // 處理限時搶購保存
+  // 處理限時搶購保存（創建或更新）
   const handleSaveFlashSale = async () => {
     try {
       // 轉換 datetime-local 格式為 ISO-8601
@@ -374,24 +407,124 @@ export default function HomepageManagement() {
         description: flashSaleForm.description
       }
 
-      await upsertFlashSale({
-        variables: {
-          input: {
-            name: flashSaleForm.title,  // title → name
-            startTime,
-            endTime,
-            bgColor: '#FF6B6B',  // 預設顏色
-            products,  // JSON 格式
-            maxProducts: flashSaleForm.maxProducts,
-            isActive: true
+      if (editingFlashSale) {
+        // 更新現有活動
+        await updateFlashSaleMutation({
+          variables: {
+            id: editingFlashSale,
+            input: {
+              name: flashSaleForm.title,
+              startTime,
+              endTime,
+              bgColor: '#FF6B6B',
+              products,
+              maxProducts: flashSaleForm.maxProducts,
+              isActive: flashSaleForm.isActive,
+              showOnHomepage: flashSaleForm.showOnHomepage,
+              sortOrder: flashSaleForm.sortOrder
+            }
           }
-        }
-      })
-      toast.success('限時搶購已更新')
+        })
+        toast.success('限時搶購已更新')
+      } else {
+        // 創建新活動
+        await createFlashSaleMutation({
+          variables: {
+            input: {
+              name: flashSaleForm.title,
+              startTime,
+              endTime,
+              bgColor: '#FF6B6B',
+              products,
+              maxProducts: flashSaleForm.maxProducts,
+              isActive: flashSaleForm.isActive,
+              showOnHomepage: flashSaleForm.showOnHomepage,
+              sortOrder: flashSaleForm.sortOrder
+            }
+          }
+        })
+        toast.success('限時搶購活動已創建')
+      }
+
+      // 重置表單
+      resetFlashSaleForm()
       refetch()
     } catch (error) {
       console.error('限時搶購保存錯誤:', error)
       toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  // 重置限時搶購表單
+  const resetFlashSaleForm = () => {
+    setEditingFlashSale(null)
+    setFlashSaleForm({
+      title: '限時搶購',
+      description: '每2小時更新一次商品',
+      startTime: new Date().toISOString().slice(0, 16),
+      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      discountPercentage: 50,
+      maxProducts: 6,
+      selectedProducts: [],
+      isActive: true,
+      showOnHomepage: false,
+      sortOrder: 0
+    })
+  }
+
+  // 編輯限時搶購
+  const handleEditFlashSale = (flashSale: any) => {
+    let productsData: any = {}
+    try {
+      productsData = typeof flashSale.products === 'string'
+        ? JSON.parse(flashSale.products)
+        : (flashSale.products || {})
+    } catch (e) {
+      console.error('解析 products JSON 失敗:', e)
+    }
+
+    setEditingFlashSale(flashSale.id)
+    setFlashSaleForm({
+      title: flashSale.name,
+      description: productsData.description || '每2小時更新一次商品',
+      startTime: new Date(flashSale.startTime).toISOString().slice(0, 16),
+      endTime: new Date(flashSale.endTime).toISOString().slice(0, 16),
+      discountPercentage: productsData.discountPercentage || 50,
+      maxProducts: flashSale.maxProducts,
+      selectedProducts: productsData.productIds || [],
+      isActive: flashSale.isActive,
+      showOnHomepage: flashSale.showOnHomepage,
+      sortOrder: flashSale.sortOrder
+    })
+  }
+
+  // 刪除限時搶購
+  const handleDeleteFlashSale = async (id: string) => {
+    if (!confirm('確定要刪除這個限時搶購活動嗎？')) return
+
+    try {
+      await deleteFlashSaleMutation({ variables: { id } })
+      toast.success('限時搶購活動已刪除')
+      refetch()
+    } catch (error) {
+      console.error('刪除限時搶購錯誤:', error)
+      toast.error(`刪除失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  // 快速切換首頁顯示
+  const handleToggleHomepageDisplay = async (id: string, currentValue: boolean) => {
+    try {
+      await updateFlashSaleMutation({
+        variables: {
+          id,
+          input: { showOnHomepage: !currentValue }
+        }
+      })
+      toast.success(!currentValue ? '已設為首頁顯示' : '已取消首頁顯示')
+      refetch()
+    } catch (error) {
+      toast.error('更新失敗')
     }
   }
 
@@ -587,28 +720,7 @@ export default function HomepageManagement() {
         })
       }
 
-      if (data.latestFlashSale) {
-        // 解析 products JSON（可能是字符串或對象）
-        let productsData = {}
-        try {
-          productsData = typeof data.latestFlashSale.products === 'string'
-            ? JSON.parse(data.latestFlashSale.products)
-            : (data.latestFlashSale.products || {})
-        } catch (e) {
-          console.error('解析 products JSON 失敗:', e)
-          productsData = {}
-        }
-
-        setFlashSaleForm({
-          title: data.latestFlashSale.name,  // name → title (前端顯示用)
-          description: productsData.description || '每2小時更新一次商品',
-          startTime: new Date(data.latestFlashSale.startTime).toISOString().slice(0, 16),
-          endTime: new Date(data.latestFlashSale.endTime).toISOString().slice(0, 16),
-          discountPercentage: productsData.discountPercentage || 50,
-          maxProducts: data.latestFlashSale.maxProducts,
-          selectedProducts: productsData.productIds || []
-        })
-      }
+      // 限時搶購現在使用列表管理，不需要在此初始化單個活動
 
       if (data.popularProductsConfig) {
         setPopularForm({
@@ -949,131 +1061,280 @@ export default function HomepageManagement() {
       {/* 限時搶購 */}
       {activeTab === 'flash' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Tag className="text-indigo-600" />
-            限時搶購設定
-          </h2>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  活動標題
-                </label>
-                <input
-                  type="text"
-                  value={flashSaleForm.title}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  placeholder="例：限時搶購"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  活動描述
-                </label>
-                <input
-                  type="text"
-                  value={flashSaleForm.description}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  placeholder="例：每2小時更新一次商品"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  開始時間
-                </label>
-                <input
-                  type="datetime-local"
-                  value={flashSaleForm.startTime}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, startTime: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  結束時間
-                </label>
-                <input
-                  type="datetime-local"
-                  value={flashSaleForm.endTime}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, endTime: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  折扣百分比
-                </label>
-                <input
-                  type="number"
-                  value={flashSaleForm.discountPercentage}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, discountPercentage: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  min="0"
-                  max="100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  顯示產品數量
-                </label>
-                <input
-                  type="number"
-                  value={flashSaleForm.maxProducts}
-                  onChange={(e) => setFlashSaleForm({ ...flashSaleForm, maxProducts: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  min="1"
-                  max="12"
-                />
-              </div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Tag className="text-indigo-600" />
+              限時搶購活動管理
+            </h2>
+            <div className="text-sm text-gray-500">
+              首頁顯示的活動將按照排序順序展示
             </div>
+          </div>
 
-            {/* 商品選擇器 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                選擇商品
-              </label>
-              <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
-                {productsData?.products?.map((product) => (
-                  <label key={product.id} className="flex items-center space-x-3 py-2 hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      checked={flashSaleForm.selectedProducts.includes(product.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFlashSaleForm({
-                            ...flashSaleForm,
-                            selectedProducts: [...flashSaleForm.selectedProducts, product.id]
-                          })
-                        } else {
-                          setFlashSaleForm({
-                            ...flashSaleForm,
-                            selectedProducts: flashSaleForm.selectedProducts.filter(id => id !== product.id)
-                          })
-                        }
-                      }}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                      <p className="text-sm text-gray-500">
-                        ${product.price} {product.originalPrice && <span className="line-through">${product.originalPrice}</span>}
-                      </p>
+          {/* 現有活動列表 */}
+          <div className="mb-8">
+            <h3 className="font-semibold text-gray-700 mb-3">所有限時搶購活動</h3>
+            {data?.allFlashSales?.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">尚未創建任何限時搶購活動</p>
+            ) : (
+              <div className="space-y-3">
+                {data?.allFlashSales?.map((flashSale: any) => {
+                  const now = new Date()
+                  const startTime = new Date(flashSale.startTime)
+                  const endTime = new Date(flashSale.endTime)
+                  const isOngoing = startTime <= now && endTime > now
+                  const isExpired = endTime <= now
+                  const isUpcoming = startTime > now
+
+                  return (
+                    <div
+                      key={flashSale.id}
+                      className={`border rounded-lg p-4 ${
+                        flashSale.showOnHomepage ? 'border-green-300 bg-green-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold">{flashSale.name}</h4>
+                            {flashSale.showOnHomepage && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">
+                                首頁顯示
+                              </span>
+                            )}
+                            {!flashSale.isActive && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                已停用
+                              </span>
+                            )}
+                            {isOngoing && flashSale.isActive && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full animate-pulse">
+                                進行中
+                              </span>
+                            )}
+                            {isExpired && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                已結束
+                              </span>
+                            )}
+                            {isUpcoming && flashSale.isActive && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                即將開始
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p>
+                              時間：{new Date(flashSale.startTime).toLocaleString('zh-TW')} ~{' '}
+                              {new Date(flashSale.endTime).toLocaleString('zh-TW')}
+                            </p>
+                            <p>排序：{flashSale.sortOrder} | 最多顯示 {flashSale.maxProducts} 個商品</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* 首頁顯示開關 */}
+                          <button
+                            onClick={() => handleToggleHomepageDisplay(flashSale.id, flashSale.showOnHomepage)}
+                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                              flashSale.showOnHomepage
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {flashSale.showOnHomepage ? '首頁顯示中' : '設為首頁顯示'}
+                          </button>
+                          <button
+                            onClick={() => handleEditFlashSale(flashSale)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFlashSale(flashSale.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </label>
-                ))}
+                  )
+                })}
               </div>
-              <p className="mt-2 text-sm text-gray-500">已選擇 {flashSaleForm.selectedProducts.length} 個商品</p>
-            </div>
+            )}
+          </div>
 
-            <button
-              onClick={handleSaveFlashSale}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-            >
-              <Save size={18} />
-              保存設定
-            </button>
+          {/* 新增/編輯表單 */}
+          <div className="border-t pt-6">
+            <h3 className="font-semibold text-gray-700 mb-4">
+              {editingFlashSale ? '編輯限時搶購活動' : '新增限時搶購活動'}
+            </h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    活動標題 *
+                  </label>
+                  <input
+                    type="text"
+                    value={flashSaleForm.title}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="例：限時搶購"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    活動描述
+                  </label>
+                  <input
+                    type="text"
+                    value={flashSaleForm.description}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="例：每2小時更新一次商品"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    開始時間 *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={flashSaleForm.startTime}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, startTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    結束時間 *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={flashSaleForm.endTime}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, endTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    折扣百分比
+                  </label>
+                  <input
+                    type="number"
+                    value={flashSaleForm.discountPercentage}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, discountPercentage: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    顯示產品數量
+                  </label>
+                  <input
+                    type="number"
+                    value={flashSaleForm.maxProducts}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, maxProducts: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    min="1"
+                    max="12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    首頁排序（數字越小越前面）
+                  </label>
+                  <input
+                    type="number"
+                    value={flashSaleForm.sortOrder}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, sortOrder: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* 狀態選項 */}
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={flashSaleForm.isActive}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, isActive: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">啟用活動</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={flashSaleForm.showOnHomepage}
+                    onChange={(e) => setFlashSaleForm({ ...flashSaleForm, showOnHomepage: e.target.checked })}
+                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">顯示在首頁</span>
+                </label>
+              </div>
+
+              {/* 商品選擇器 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  選擇商品
+                </label>
+                <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
+                  {productsData?.products?.map((product: any) => (
+                    <label key={product.id} className="flex items-center space-x-3 py-2 hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={flashSaleForm.selectedProducts.includes(product.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFlashSaleForm({
+                              ...flashSaleForm,
+                              selectedProducts: [...flashSaleForm.selectedProducts, product.id]
+                            })
+                          } else {
+                            setFlashSaleForm({
+                              ...flashSaleForm,
+                              selectedProducts: flashSaleForm.selectedProducts.filter((id: string) => id !== product.id)
+                            })
+                          }
+                        }}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                        <p className="text-sm text-gray-500">
+                          ${product.price} {product.originalPrice && <span className="line-through">${product.originalPrice}</span>}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-sm text-gray-500">已選擇 {flashSaleForm.selectedProducts.length} 個商品</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveFlashSale}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  {editingFlashSale ? '更新活動' : '創建活動'}
+                </button>
+                {editingFlashSale && (
+                  <button
+                    onClick={resetFlashSaleForm}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  >
+                    取消編輯
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

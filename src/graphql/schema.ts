@@ -1068,6 +1068,8 @@ export const typeDefs = gql`
     products: JSON!
     maxProducts: Int!
     isActive: Boolean!
+    showOnHomepage: Boolean!
+    sortOrder: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -1281,6 +1283,21 @@ export const typeDefs = gql`
     products: JSON!
     maxProducts: Int
     isActive: Boolean
+    showOnHomepage: Boolean
+    sortOrder: Int
+  }
+
+  input UpdateFlashSaleInput {
+    name: String
+    startTime: DateTime
+    endTime: DateTime
+    bgImage: String
+    bgColor: String
+    products: JSON
+    maxProducts: Int
+    isActive: Boolean
+    showOnHomepage: Boolean
+    sortOrder: Int
   }
 
   input DailyDealConfigInput {
@@ -1741,6 +1758,10 @@ export const typeDefs = gql`
     categoryDisplays: [CategoryDisplay!]!
     activeFlashSale: FlashSaleConfig
     latestFlashSale: FlashSaleConfig
+    # 獲取所有限時搶購活動（後台管理用）
+    allFlashSales: [FlashSaleConfig!]!
+    # 獲取首頁顯示的限時搶購活動
+    homepageFlashSales: [FlashSaleConfig!]!
     todaysDeal: DailyDealConfig
     activeFloatingPromos: [FloatingPromo!]!
     activeSuperDealSection: SuperDealSection
@@ -2026,6 +2047,10 @@ export const typeDefs = gql`
     upsertGuaranteeItems(items: [GuaranteeItemInput!]!): [GuaranteeItem!]!
     updateCategoryDisplay(categoryId: String!, input: CategoryDisplayInput!): CategoryDisplay!
     upsertFlashSale(input: FlashSaleConfigInput!): FlashSaleConfig!
+    # 限時搶購 CRUD
+    createFlashSale(input: FlashSaleConfigInput!): FlashSaleConfig!
+    updateFlashSale(id: ID!, input: UpdateFlashSaleInput!): FlashSaleConfig!
+    deleteFlashSale(id: ID!): Boolean!
     upsertDailyDeal(date: DateTime!, input: DailyDealConfigInput!): DailyDealConfig!
     createFloatingPromo(input: FloatingPromoInput!): FloatingPromo!
     updateFloatingPromo(id: ID!, input: FloatingPromoInput!): FloatingPromo!
