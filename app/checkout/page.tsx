@@ -617,6 +617,7 @@ function CheckoutContent() {
                           value="SELF_PICKUP"
                           checked={formData.shippingMethod === 'SELF_PICKUP'}
                           onChange={handleChange}
+                          disabled
                           className="mr-3"
                         />
                         <div>
