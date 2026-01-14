@@ -42,10 +42,7 @@ interface CheckoutFormData {
   guestName: string
   guestPhone: string
   guestEmail: string
-  // 收件資訊（所有用戶必填）
-  // ⚠️ 地址資訊已移除，客戶將在藍新物流頁面填寫超商地址
-  shippingName: string
-  shippingPhone: string
+  // ⚠️ 收件人姓名/電話已移除，用戶將在藍新物流頁面填寫（小白單會顯示藍新那邊填的資料）
   // 配送方式：超商取貨 或 郵局等其他物流（私訊確認）
   shippingMethod: 'CVS_PICKUP' | 'SELF_PICKUP'
   // 付款方式
@@ -91,8 +88,6 @@ function CheckoutContent() {
     guestName: '',
     guestPhone: '',
     guestEmail: '',
-    shippingName: '',
-    shippingPhone: '',
     shippingMethod: 'CVS_PICKUP', // 預設超商取貨
     paymentMethod: 'NEWEBPAY', // 所有訂單都使用藍新金流
     notes: '',
@@ -104,16 +99,7 @@ function CheckoutContent() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
   const [processingPayment, setProcessingPayment] = useState(false)
 
-  // 預填用戶資訊（會員登入時）
-  useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        shippingName: user.name || '',
-        shippingPhone: user.phone || '',
-      }))
-    }
-  }, [user])
+  // 注意：收件人姓名/電話已移除，用戶將在藍新物流頁面填寫
 
   // 會員模式：從 GraphQL 獲取購物車
   const { data: cartData, loading: cartLoading } = useQuery(GET_CART, {
@@ -289,15 +275,7 @@ function CheckoutContent() {
       }
     }
 
-    // 收件資訊驗證（所有用戶必填）
-    if (!formData.shippingName.trim()) {
-      newErrors.shippingName = '請輸入收件人姓名'
-    }
-    if (!formData.shippingPhone.trim()) {
-      newErrors.shippingPhone = '請輸入收件人手機'
-    } else if (!/^09\d{8}$/.test(formData.shippingPhone.trim())) {
-      newErrors.shippingPhone = '請輸入有效的台灣手機號碼（例：0912345678）'
-    }
+    // 注意：收件人姓名/電話已移除，用戶將在藍新物流頁面填寫
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -344,6 +322,10 @@ function CheckoutContent() {
       console.log('選擇性結帳:', selectedItemIds ? '是' : '否（全部商品）');
       console.log('===============================');
 
+      // 收件人姓名/電話：用會員資料或訪客資料（實際取貨人會在藍新物流頁面填寫）
+      const contactName = isGuest ? formData.guestName.trim() : (user?.name || '')
+      const contactPhone = isGuest ? formData.guestPhone.trim() : (user?.phone || '')
+
       await createOrder({
         variables: {
           input: {
@@ -356,9 +338,9 @@ function CheckoutContent() {
             items: orderItems,
             // ✅ 選中的購物車項目 ID（會員選擇性結帳時傳遞）
             selectedCartItemIds,
-            // 收件資訊
-            shippingName: formData.shippingName.trim(),
-            shippingPhone: formData.shippingPhone.trim(),
+            // 收件資訊（使用聯絡人資料，實際取貨人在藍新物流頁面填寫）
+            shippingName: contactName,
+            shippingPhone: contactPhone,
             // 配送方式
             shippingMethod: formData.shippingMethod,
             // 地址資訊（超商取貨在物流頁面選擇，其他物流私訊確認）
@@ -515,60 +497,12 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* 收件人資訊 */}
-              <div>
-                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-2">
-                  收件人資訊
-                </h2>
-                <p className="text-sm text-gray-600 mb-6">
-                  {formData.shippingMethod === 'CVS_PICKUP'
-                    ? 'ℹ️ 收件地址將在付款後的物流頁面選擇超商門市'
-                    : 'ℹ️ 結帳後請私訊確認寄送方式與地址'
-                  }
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="shippingName" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                      收件人姓名 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="shippingName"
-                      name="shippingName"
-                      value={formData.shippingName}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 border-2 ${errors.shippingName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                      placeholder="請輸入姓名"
-                    />
-                    {errors.shippingName && (
-                      <p className="mt-2 text-sm text-red-600">{errors.shippingName}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="shippingPhone" className="block text-xs uppercase tracking-wide text-gray-500 mb-2">
-                      收件人手機 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      id="shippingPhone"
-                      name="shippingPhone"
-                      value={formData.shippingPhone}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 border-2 ${errors.shippingPhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:border-black transition-colors bg-white`}
-                      placeholder="0912345678"
-                    />
-                    {errors.shippingPhone && (
-                      <p className="mt-2 text-sm text-red-600">{errors.shippingPhone}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* 配送方式選擇 */}
               <div>
-                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-6">配送方式</h2>
+                <h2 className="text-lg font-bold text-black uppercase tracking-tight mb-2">配送方式</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  ℹ️ 取貨人姓名、電話將在付款頁面填寫（小白單會顯示該資料）
+                </p>
 
                 <div className="space-y-3">
                   {/* 超商取貨 */}
@@ -621,7 +555,7 @@ function CheckoutContent() {
                           className="mr-3"
                         />
                         <div>
-                          <div className="font-semibold text-black">郵局等其他物流</div>
+                          <div className="font-semibold text-black">郵局等其他物私聊</div>
                           <div className="text-sm text-gray-600">Line: 308@mstvl</div>
                         </div>
                       </div>
@@ -824,7 +758,7 @@ function CheckoutContent() {
                       disabled={creating || processingPayment}
                       className="w-full py-4 bg-black text-white rounded-full hover:bg-gray-800 transition-colors font-medium text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {processingPayment ? '正在跳轉藍新金流...' : creating ? '處理中...' : '前往付款'}
+                      {processingPayment ? '正在跳轉藍新金流...' : creating ? '處理中...' : '下一步'}
                     </button>
 
                     <Link

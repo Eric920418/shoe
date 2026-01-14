@@ -967,6 +967,19 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
+### 🔥 近期重點更新（2026-01-14）
+
+#### ✅ 簡化結帳流程 - 移除收件人資訊欄位
+- **問題**：用戶在網站填的收件人姓名/電話與藍新金流頁面填的不同，小白單顯示藍新那邊的資料
+- **原因**：藍新金流不會回傳用戶在物流頁面填寫的取貨人資訊，那是藍新物流系統直接處理的
+- **解決方案**：移除結帳頁面的「收件人資訊」區塊，讓用戶只在藍新物流頁面填寫取貨人資訊
+- **變更內容**：
+  - 移除 `shippingName`、`shippingPhone` 表單欄位
+  - 訂單資料改用會員資料（會員）或訪客聯絡資料（訪客）作為聯絡人
+  - 新增說明：「取貨人姓名、電話將在付款頁面填寫（小白單會顯示該資料）」
+- **影響檔案**：
+  - `app/checkout/page.tsx` - 移除收件人欄位、更新提交邏輯
+
 ### 🔥 近期重點更新（2026-01-13）
 
 #### ✅ 簡化配送方式選項
@@ -1066,6 +1079,25 @@ pnpm prisma migrate reset
   - `app/products/page.tsx` - 支持 mainCategory URL 參數
   - `components/sections/CategoryGrid.tsx` - 改為三大主分類按鈕
   - `components/home/MobileProductFeed.tsx` - 移除篩選面板
+
+#### ✅ 超商取貨付款訂單頁面優化（v2.4.12）
+- **問題描述**：超商取貨付款（貨到付款）的訂單詳情頁不應該顯示「前往付款」按鈕
+- **修正內容**：
+  - 排除 `shippingMethod === 'CVS_PICKUP'` 的訂單顯示付款按鈕
+  - 支付方式顯示從「藍新金流」改為「超商取貨付款」
+- **影響範圍**：
+  - `app/orders/[id]/page.tsx` - 訂單詳情頁
+
+#### ✅ 藍新金流物流 API 解密修正（v2.4.11）
+- **問題描述**：取得寄件代碼（getShipmentNo）API 返回 `bad decrypt` 錯誤
+- **根本原因**：藍新金流物流 API 使用 `OPENSSL_ZERO_PADDING`（PHP），但 Node.js 預設使用自動 PKCS7 padding
+- **解決方案**：
+  - 修改 `decryptLogisticsData` 函數使用 `setAutoPadding(false)`
+  - 手動移除 PKCS7 padding（和 PHP 的 strippadding 函數一樣）
+  - 添加正則表達式清理末尾控制字符
+- **技術參考**：物流服務技術串接手冊 PHP 範例 `create_aes_decrypt` + `strippadding` 函數
+- **影響範圍**：
+  - `src/lib/logistics.ts` - 修正 `decryptLogisticsData` 函數
 
 #### ✅ CVSCOM CustomerURL PKCS7 Padding 修正（v2.4.10）
 - **問題描述**：超商取貨選擇門市後返回「無法取得訂單編號」錯誤

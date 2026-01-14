@@ -190,14 +190,23 @@ export default function OrderDetailPage() {
 
   const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING
   const paymentConfig = PAYMENT_STATUS_CONFIG[order.paymentStatus] || PAYMENT_STATUS_CONFIG.PENDING
-  const paymentMethodLabel = PAYMENT_METHOD_CONFIG[order.paymentMethod] || order.paymentMethod
+
+  // 判斷是否為超商取貨付款（貨到付款）
+  const isCashOnDelivery = order.shippingMethod === 'CVS_PICKUP'
+
+  // 支付方式顯示：超商取貨付款特別標註
+  const paymentMethodLabel = isCashOnDelivery
+    ? '超商取貨付款'
+    : (PAYMENT_METHOD_CONFIG[order.paymentMethod] || order.paymentMethod)
 
   // 判斷是否可以重新付款
+  // 注意：超商取貨付款（CVS_PICKUP）是貨到付款，不需要「前往付款」按鈕
   const canRetryPayment =
     order.paymentMethod === 'NEWEBPAY' &&
     order.paymentStatus === 'PENDING' &&
     order.status !== 'CANCELLED' &&
-    order.status !== 'COMPLETED'
+    order.status !== 'COMPLETED' &&
+    !isCashOnDelivery
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

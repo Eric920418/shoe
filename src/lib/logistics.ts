@@ -63,16 +63,42 @@ export function encryptLogisticsData(data: Record<string, any>): string {
 
 /**
  * AES-256-CBC 解密
+ * 重要：藍新金流物流 API 使用 OPENSSL_ZERO_PADDING，需要手動移除 PKCS7 padding
+ * 參考：物流服務技術串接手冊 PHP 範例的 create_aes_decrypt + strippadding 函數
  */
 export function decryptLogisticsData(encryptedData: string): Record<string, any> {
   const { key, iv } = getLogisticsKeyIv()
 
-  // 使用 AES-256-CBC 解密
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
+  // 將 hex 字串轉為 Buffer
+  const encrypted = Buffer.from(encryptedData, 'hex')
 
-  return JSON.parse(decrypted)
+  // 使用 AES-256-CBC 解密，關閉自動 padding（相當於 PHP 的 OPENSSL_ZERO_PADDING）
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+  decipher.setAutoPadding(false)
+  let decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()])
+
+  // 手動移除 PKCS7 padding（和 PHP 的 strippadding 函數一樣）
+  const padLen = decrypted[decrypted.length - 1]
+  if (padLen > 0 && padLen <= 32) {
+    // 驗證 padding 是否正確（所有 padding bytes 應該相同）
+    let validPadding = true
+    const startIdx = Math.max(0, decrypted.length - padLen)
+    for (let i = startIdx; i < decrypted.length; i++) {
+      if (decrypted[i] !== padLen) {
+        validPadding = false
+        break
+      }
+    }
+    if (validPadding) {
+      decrypted = decrypted.slice(0, -padLen)
+    }
+  }
+
+  // 轉為字串並移除可能殘留的控制字符
+  let str = decrypted.toString('utf8')
+  str = str.replace(/[\x00-\x1F]+$/, '')
+
+  return JSON.parse(str)
 }
 
 /**
