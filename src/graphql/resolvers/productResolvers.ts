@@ -99,8 +99,15 @@ export const productResolvers = {
       // 如果是後台管理查詢（noCache=true），不過濾 isActive
       const filters: any = noCache ? { ...where } : { isActive: true, ...where }
 
-      // 主分類篩選 - 先查找該主分類下的所有分類 IDs
-      if (mainCategory) {
+      // 分類篩選邏輯：
+      // 1. 如果有 categoryIds（用戶選擇了具體子分類），優先使用
+      // 2. 如果只有 mainCategory（用戶在主分類頁但沒選子分類），顯示該主分類下所有產品
+      // 3. 如果只有 categoryId（舊版 API 相容），使用單一分類
+      if (categoryIds && categoryIds.length > 0) {
+        // 用戶選擇了具體的子分類，直接使用（最高優先級）
+        filters.categoryId = { in: categoryIds }
+      } else if (mainCategory) {
+        // 用戶在主分類頁但沒選具體子分類，顯示該主分類下所有產品
         const categoriesInMain = await prisma.category.findMany({
           where: { mainCategory: mainCategory as any, isActive: true },
           select: { id: true },
@@ -112,10 +119,6 @@ export const productResolvers = {
           // 如果該主分類下沒有分類，返回空結果
           filters.id = { equals: 'no-match' }
         }
-      }
-      // 分類篩選 - 支援多分類（categoryIds 優先於 categoryId，但主分類優先級最高）
-      else if (categoryIds && categoryIds.length > 0) {
-        filters.categoryId = { in: categoryIds }
       } else if (categoryId) {
         filters.categoryId = categoryId
       }
@@ -190,7 +193,7 @@ export const productResolvers = {
 
       // 正常情況使用快取
       const categoryKey = categoryIds?.length ? categoryIds.sort().join(',') : (categoryId || 'all')
-      const cacheParams = `${skip}:${take}:${categoryKey}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+      const cacheParams = `${skip}:${take}:${categoryKey}:${mainCategory || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
       return await ProductCache.getList(cacheParams, fetchProducts)
     },
 
