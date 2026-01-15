@@ -402,11 +402,19 @@ export default function UsersManagementPage() {
           users.map((user: any) => (
             <div
               key={user.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+              className={`bg-white rounded-lg shadow-sm border overflow-hidden ${
+                selectedUsers.has(user.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+              }`}
             >
               <div className="p-4">
-                {/* 用戶資訊 */}
-                <div className="flex items-start justify-between mb-3">
+                {/* 用戶資訊 + 選擇框 */}
+                <div className="flex items-start gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.has(user.id)}
+                    onChange={() => toggleUserSelection(user.id)}
+                    className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900 truncate">{user.name}</p>
@@ -438,7 +446,7 @@ export default function UsersManagementPage() {
                 </div>
 
                 {/* 用戶數據 */}
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-4 text-sm ml-7">
                   {user.membershipTierConfig && (
                     <span
                       className="px-2 py-0.5 rounded-full text-xs font-medium"
@@ -460,6 +468,15 @@ export default function UsersManagementPage() {
 
                 {/* 操作按鈕 */}
                 <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      setCouponTargetUser(user)
+                      setShowCouponModal(true)
+                    }}
+                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium text-center"
+                  >
+                    發券
+                  </button>
                   <button
                     onClick={() => {
                       setEditingUser(user)
