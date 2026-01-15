@@ -392,7 +392,7 @@ export const couponResolvers = {
       }
     },
 
-    // Admin: 刪除優惠券（軟刪除，只停用）
+    // Admin: 刪除優惠券（真正刪除）
     deleteCoupon: async (
       _: any,
       { id }: { id: string },
@@ -405,7 +405,7 @@ export const couponResolvers = {
       }
 
       try {
-        // 檢查優惠券是否存在且是否被鎖定
+        // 檢查優惠券是否存在
         const coupon = await prisma.coupon.findUnique({
           where: { id },
         })
@@ -423,9 +423,25 @@ export const couponResolvers = {
           })
         }
 
-        await prisma.coupon.update({
+        // 檢查是否有訂單使用過此優惠券
+        const ordersWithCoupon = await prisma.order.count({
+          where: { couponId: id },
+        })
+
+        if (ordersWithCoupon > 0) {
+          throw new GraphQLError(`此優惠券已被 ${ordersWithCoupon} 筆訂單使用，無法刪除。建議改用停用功能。`, {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
+        // 先刪除關聯的 userCoupons
+        await prisma.userCoupon.deleteMany({
+          where: { couponId: id },
+        })
+
+        // 刪除優惠券
+        await prisma.coupon.delete({
           where: { id },
-          data: { isActive: false },
         })
 
         return true
