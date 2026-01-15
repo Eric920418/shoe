@@ -5,6 +5,49 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
+const GET_COUPONS_FOR_GRANT = gql`
+  query GetCouponsForGrant {
+    coupons(isActive: true, limit: 100) {
+      coupons {
+        id
+        code
+        name
+        type
+        value
+        maxDiscount
+        usageLimit
+        usedCount
+      }
+    }
+  }
+`
+
+const GRANT_COUPON_TO_USER = gql`
+  mutation GrantCouponToUser($userId: ID!, $couponId: ID!) {
+    grantCouponToUser(userId: $userId, couponId: $couponId) {
+      id
+      coupon {
+        code
+        name
+      }
+      user {
+        name
+      }
+    }
+  }
+`
+
+const BATCH_GRANT_COUPON = gql`
+  mutation BatchGrantCoupon($userIds: [ID!]!, $couponId: ID!) {
+    batchGrantCoupon(userIds: $userIds, couponId: $couponId) {
+      success
+      successCount
+      skipCount
+      message
+    }
+  }
+`
+
 const GET_USERS = gql`
   query GetUsers(
     $search: String
@@ -94,9 +137,18 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<any>(null)
   const [formData, setFormData] = useState<any>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showCouponModal, setShowCouponModal] = useState(false)
+  const [couponTargetUser, setCouponTargetUser] = useState<any>(null)
+  const [selectedCouponId, setSelectedCouponId] = useState<string>('')
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+  const [showBatchModal, setShowBatchModal] = useState(false)
   const limit = 20
 
   const { data: tiersData } = useQuery(GET_MEMBERSHIP_TIERS, {
+    fetchPolicy: 'cache-first',
+  })
+
+  const { data: couponsData } = useQuery(GET_COUPONS_FOR_GRANT, {
     fetchPolicy: 'cache-first',
   })
 
@@ -124,6 +176,30 @@ export default function UsersManagementPage() {
     },
   })
 
+  const [grantCoupon, { loading: granting }] = useMutation(GRANT_COUPON_TO_USER, {
+    onCompleted: (data) => {
+      toast.success(`已發放優惠券 ${data.grantCouponToUser.coupon.code} 給 ${data.grantCouponToUser.user.name}`)
+      setShowCouponModal(false)
+      setCouponTargetUser(null)
+      setSelectedCouponId('')
+    },
+    onError: (error) => {
+      toast.error(`發放失敗：${error.message}`)
+    },
+  })
+
+  const [batchGrantCoupon, { loading: batchGranting }] = useMutation(BATCH_GRANT_COUPON, {
+    onCompleted: (data) => {
+      toast.success(data.batchGrantCoupon.message)
+      setShowBatchModal(false)
+      setSelectedUsers(new Set())
+      setSelectedCouponId('')
+    },
+    onError: (error) => {
+      toast.error(`批量發放失敗：${error.message}`)
+    },
+  })
+
   const handleUpdateUser = async (userId: string, updates: any) => {
     try {
       await updateUser({
@@ -141,15 +217,68 @@ export default function UsersManagementPage() {
   const total = data?.users?.total || 0
   const totalPages = data?.users?.totalPages || 1
   const availableTiers = tiersData?.membershipTiers || []
+  const availableCoupons = couponsData?.coupons?.coupons || []
+
+  // 切換用戶選擇
+  const toggleUserSelection = (userId: string) => {
+    const newSelected = new Set(selectedUsers)
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId)
+    } else {
+      newSelected.add(userId)
+    }
+    setSelectedUsers(newSelected)
+  }
+
+  // 全選/取消全選
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === users.length) {
+      setSelectedUsers(new Set())
+    } else {
+      setSelectedUsers(new Set(users.map((u: any) => u.id)))
+    }
+  }
+
+  // 發放優惠券給單個用戶
+  const handleGrantCoupon = async () => {
+    if (!couponTargetUser || !selectedCouponId) return
+    await grantCoupon({
+      variables: {
+        userId: couponTargetUser.id,
+        couponId: selectedCouponId,
+      },
+    })
+  }
+
+  // 批量發放優惠券
+  const handleBatchGrantCoupon = async () => {
+    if (selectedUsers.size === 0 || !selectedCouponId) return
+    await batchGrantCoupon({
+      variables: {
+        userIds: Array.from(selectedUsers),
+        couponId: selectedCouponId,
+      },
+    })
+  }
 
   return (
     <div className="space-y-4 lg:space-y-6 -mx-4 px-4 lg:mx-0 lg:px-0">
       {/* 頁面標題 */}
-      <div>
-        <h1 className="text-xl lg:text-3xl font-bold text-gray-900">用戶管理</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          共 <span className="font-semibold">{total}</span> 位用戶
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">用戶管理</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            共 <span className="font-semibold">{total}</span> 位用戶
+          </p>
+        </div>
+        {selectedUsers.size > 0 && (
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+          >
+            發放優惠券給 {selectedUsers.size} 人
+          </button>
+        )}
       </div>
 
       {/* 手機版統計摘要 */}
@@ -390,6 +519,14 @@ export default function UsersManagementPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={users.length > 0 && selectedUsers.size === users.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     用戶資訊
                   </th>
@@ -415,7 +552,15 @@ export default function UsersManagementPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user: any) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className={`hover:bg-gray-50 ${selectedUsers.has(user.id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(user.id)}
+                        onChange={() => toggleUserSelection(user.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-gray-900">{user.name}</span>
@@ -478,19 +623,30 @@ export default function UsersManagementPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setEditingUser(user)
-                          setFormData({
-                            membershipTierId: user.membershipTierConfig?.id,
-                            membershipPoints: user.membershipPoints,
-                            role: user.role,
-                          })
-                        }}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        編輯
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setCouponTargetUser(user)
+                            setShowCouponModal(true)
+                          }}
+                          className="text-green-600 hover:text-green-800 text-sm font-medium"
+                        >
+                          發券
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingUser(user)
+                            setFormData({
+                              membershipTierId: user.membershipTierConfig?.id,
+                              membershipPoints: user.membershipPoints,
+                              role: user.role,
+                            })
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          編輯
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -588,6 +744,154 @@ export default function UsersManagementPage() {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {updating ? '儲存中...' : '儲存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 發放優惠券給單個用戶彈窗 */}
+      {showCouponModal && couponTargetUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              發放優惠券給 {couponTargetUser.name}
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">選擇優惠券</label>
+                <select
+                  value={selectedCouponId}
+                  onChange={(e) => setSelectedCouponId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">請選擇優惠券</option>
+                  {availableCoupons.map((coupon: any) => (
+                    <option key={coupon.id} value={coupon.id}>
+                      {coupon.code} - {coupon.name} ({coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : coupon.type === 'FIXED' ? `$${coupon.value}` : '免運費'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCouponId && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  {(() => {
+                    const coupon = availableCoupons.find((c: any) => c.id === selectedCouponId)
+                    if (!coupon) return null
+                    return (
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900">{coupon.name}</p>
+                        <p className="text-gray-600 mt-1">
+                          代碼：<span className="font-mono">{coupon.code}</span>
+                        </p>
+                        <p className="text-gray-600">
+                          折扣：{coupon.type === 'PERCENTAGE' ? `${coupon.value}%${coupon.maxDiscount ? `（上限 $${coupon.maxDiscount}）` : ''}` : coupon.type === 'FIXED' ? `$${coupon.value}` : '免運費'}
+                        </p>
+                        {coupon.usageLimit && (
+                          <p className="text-gray-500 text-xs mt-1">
+                            使用次數：{coupon.usedCount} / {coupon.usageLimit}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCouponModal(false)
+                  setCouponTargetUser(null)
+                  setSelectedCouponId('')
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleGrantCoupon}
+                disabled={granting || !selectedCouponId}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {granting ? '發放中...' : '發放'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 批量發放優惠券彈窗 */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              批量發放優惠券
+            </h2>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  已選擇 <span className="font-bold">{selectedUsers.size}</span> 位用戶
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">選擇優惠券</label>
+                <select
+                  value={selectedCouponId}
+                  onChange={(e) => setSelectedCouponId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">請選擇優惠券</option>
+                  {availableCoupons.map((coupon: any) => (
+                    <option key={coupon.id} value={coupon.id}>
+                      {coupon.code} - {coupon.name} ({coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : coupon.type === 'FIXED' ? `$${coupon.value}` : '免運費'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCouponId && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  {(() => {
+                    const coupon = availableCoupons.find((c: any) => c.id === selectedCouponId)
+                    if (!coupon) return null
+                    return (
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900">{coupon.name}</p>
+                        <p className="text-gray-600 mt-1">
+                          代碼：<span className="font-mono">{coupon.code}</span>
+                        </p>
+                        <p className="text-gray-600">
+                          折扣：{coupon.type === 'PERCENTAGE' ? `${coupon.value}%${coupon.maxDiscount ? `（上限 $${coupon.maxDiscount}）` : ''}` : coupon.type === 'FIXED' ? `$${coupon.value}` : '免運費'}
+                        </p>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBatchModal(false)
+                  setSelectedCouponId('')
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleBatchGrantCoupon}
+                disabled={batchGranting || !selectedCouponId}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {batchGranting ? '發放中...' : `發放給 ${selectedUsers.size} 人`}
               </button>
             </div>
           </div>

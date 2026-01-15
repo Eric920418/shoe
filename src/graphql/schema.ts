@@ -1407,6 +1407,13 @@ export const typeDefs = gql`
     credits: [UserCredit!]!
   }
 
+  type BatchGrantCouponResponse {
+    success: Boolean!
+    successCount: Int!
+    skipCount: Int!
+    message: String!
+  }
+
   # 行銷活動
   type Campaign {
     id: ID!
@@ -1991,6 +1998,9 @@ export const typeDefs = gql`
 
     # 優惠券
     claimCoupon(code: String!): UserCoupon!
+    # Admin: 發放優惠券給用戶
+    grantCouponToUser(userId: ID!, couponId: ID!): UserCoupon!
+    batchGrantCoupon(userIds: [ID!]!, couponId: ID!): BatchGrantCouponResponse!
     # Admin: 優惠券管理
     createCoupon(input: CreateCouponInput!): Coupon!
     updateCoupon(id: ID!, input: UpdateCouponInput!): Coupon!

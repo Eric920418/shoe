@@ -558,6 +558,160 @@ export const couponResolvers = {
         })
       }
     },
+
+    // Admin: 發放優惠券給指定用戶
+    grantCouponToUser: async (
+      _: any,
+      { userId, couponId }: { userId: string; couponId: string },
+      { user }: GraphQLContext
+    ) => {
+      if (!user || user.role !== 'ADMIN') {
+        throw new GraphQLError('權限不足', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      try {
+        // 檢查用戶是否存在
+        const targetUser = await prisma.user.findUnique({
+          where: { id: userId },
+        })
+
+        if (!targetUser) {
+          throw new GraphQLError('用戶不存在', {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        // 檢查優惠券是否存在
+        const coupon = await prisma.coupon.findUnique({
+          where: { id: couponId },
+        })
+
+        if (!coupon) {
+          throw new GraphQLError('優惠券不存在', {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        // 檢查用戶是否已有此優惠券
+        const existingUserCoupon = await prisma.userCoupon.findFirst({
+          where: {
+            userId,
+            couponId,
+            isUsed: false,
+          },
+        })
+
+        if (existingUserCoupon) {
+          throw new GraphQLError('該用戶已擁有此優惠券', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
+        // 發放優惠券
+        const userCoupon = await prisma.userCoupon.create({
+          data: {
+            userId,
+            couponId,
+            obtainedFrom: 'ADMIN_GRANT',
+          },
+          include: {
+            coupon: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        })
+
+        return userCoupon
+      } catch (error) {
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+        console.error('發放優惠券失敗:', error)
+        throw new GraphQLError('發放優惠券失敗', {
+          extensions: { code: 'INTERNAL_ERROR' },
+        })
+      }
+    },
+
+    // Admin: 批量發放優惠券給多個用戶
+    batchGrantCoupon: async (
+      _: any,
+      { userIds, couponId }: { userIds: string[]; couponId: string },
+      { user }: GraphQLContext
+    ) => {
+      if (!user || user.role !== 'ADMIN') {
+        throw new GraphQLError('權限不足', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      try {
+        // 檢查優惠券是否存在
+        const coupon = await prisma.coupon.findUnique({
+          where: { id: couponId },
+        })
+
+        if (!coupon) {
+          throw new GraphQLError('優惠券不存在', {
+            extensions: { code: 'NOT_FOUND' },
+          })
+        }
+
+        let successCount = 0
+        let skipCount = 0
+        const results: any[] = []
+
+        for (const userId of userIds) {
+          // 檢查用戶是否已有此優惠券
+          const existing = await prisma.userCoupon.findFirst({
+            where: {
+              userId,
+              couponId,
+              isUsed: false,
+            },
+          })
+
+          if (existing) {
+            skipCount++
+            continue
+          }
+
+          // 發放優惠券
+          const userCoupon = await prisma.userCoupon.create({
+            data: {
+              userId,
+              couponId,
+              obtainedFrom: 'ADMIN_GRANT',
+            },
+          })
+
+          results.push(userCoupon)
+          successCount++
+        }
+
+        return {
+          success: true,
+          successCount,
+          skipCount,
+          message: `成功發放 ${successCount} 張優惠券，跳過 ${skipCount} 位已擁有的用戶`,
+        }
+      } catch (error) {
+        if (error instanceof GraphQLError) {
+          throw error
+        }
+        console.error('批量發放優惠券失敗:', error)
+        throw new GraphQLError('批量發放優惠券失敗', {
+          extensions: { code: 'INTERNAL_ERROR' },
+        })
+      }
+    },
   },
 
   UserCoupon: {
