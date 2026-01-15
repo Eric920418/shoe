@@ -195,18 +195,13 @@ export const couponResolvers = {
       )
     },
 
-    // 驗證優惠券碼
+    // 驗證優惠券碼（直接輸入代碼即可使用，不需要先領取）
     validateCoupon: async (
       _: any,
       { code, orderAmount }: { code: string; orderAmount: number },
       { user }: GraphQLContext
     ) => {
-      if (!user) {
-        throw new GraphQLError('請先登入', {
-          extensions: { code: 'UNAUTHENTICATED' },
-        })
-      }
-
+      // 允許訪客和會員都可以使用優惠券
       const now = new Date()
       const coupon = await prisma.coupon.findUnique({
         where: { code },
@@ -251,27 +246,20 @@ export const couponResolvers = {
         }
       }
 
-      // 檢查用戶是否有此優惠券
-      const userCoupon = await prisma.userCoupon.findFirst({
-        where: {
-          userId: user.userId,
-          couponId: coupon.id,
-          isUsed: false,
-        },
-      })
-
-      if (!userCoupon) {
-        return {
-          valid: false,
-          message: '您尚未領取此優惠券',
-        }
-      }
-
-      // 檢查用戶優惠券是否過期
-      if (userCoupon.expiresAt && userCoupon.expiresAt < now) {
-        return {
-          valid: false,
-          message: '優惠券已過期',
+      // 檢查用戶使用次數限制（僅限會員）
+      if (user && coupon.userLimit) {
+        const userUsageCount = await prisma.order.count({
+          where: {
+            userId: user.userId,
+            couponId: coupon.id,
+            status: { notIn: ['CANCELLED'] },
+          },
+        })
+        if (userUsageCount >= coupon.userLimit) {
+          return {
+            valid: false,
+            message: `每人限用 ${coupon.userLimit} 次，您已達上限`,
+          }
         }
       }
 

@@ -9,8 +9,7 @@ const VALIDATE_COUPON = gql`
     validateCoupon(code: $code, orderAmount: $orderAmount) {
       valid
       message
-      discount
-      finalAmount
+      discountAmount
     }
   }
 `;
@@ -35,7 +34,7 @@ export default function CouponInput({
 
   // Use external state if provided, otherwise use internal state
   const appliedCoupon = externalAppliedCoupon ? externalAppliedCoupon.code : internalAppliedCoupon;
-  const appliedDiscount = externalAppliedCoupon ? externalAppliedCoupon.discount : validationResult?.discount;
+  const appliedDiscount = externalAppliedCoupon ? externalAppliedCoupon.discount : validationResult?.discountAmount;
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
@@ -55,8 +54,7 @@ export default function CouponInput({
               validateCoupon(code: $code, orderAmount: $orderAmount) {
                 valid
                 message
-                discount
-                finalAmount
+                discountAmount
               }
             }
           `,
@@ -76,7 +74,7 @@ export default function CouponInput({
           if (!externalAppliedCoupon) {
             setInternalAppliedCoupon(couponCode.toUpperCase());
           }
-          onApplyCoupon(couponCode.toUpperCase(), result.discount);
+          onApplyCoupon(couponCode.toUpperCase(), result.discountAmount || 0);
         }
       }
     } catch (error) {
