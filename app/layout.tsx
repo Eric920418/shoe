@@ -9,7 +9,7 @@ import { Suspense } from 'react'
 import ReferralTracker from '@/components/common/ReferralTracker'
 
 export const metadata: Metadata = {
-  title: '財神賣鞋 - 現代化鞋履電商',
+  title: '財神賣鞋 - 官方AI網站',
   description: '打造你的完美風格 - 提供最新潮流鞋款、專業尺碼建議與頂級購物體驗',
   icons: {
     icon: '/favicon.png',
