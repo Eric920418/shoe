@@ -485,12 +485,7 @@ export default function OrdersPage() {
         </button>
       </div>
 
-      {/* 手機版浮動操作按鈕 */}
-      <div className="lg:hidden fixed bottom-20 right-4 z-30">
-        <button className="w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center">
-          <span className="text-2xl">➕</span>
-        </button>
-      </div>
+   
     </div>
   )
 }

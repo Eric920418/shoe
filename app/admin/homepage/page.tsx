@@ -762,18 +762,18 @@ export default function HomepageManagement() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">首頁內容管理</h1>
-        <p className="text-gray-600 mt-2">管理首頁的促銷活動內容和產品推薦</p>
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">首頁內容管理</h1>
+        <p className="text-gray-600 mt-1 text-sm lg:text-base">管理首頁的促銷活動內容和產品推薦</p>
       </div>
 
-      {/* Tab 切換 */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+      {/* Tab 切換 - 響應式設計 */}
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide">
+        <nav className="-mb-px flex space-x-1 lg:space-x-4 min-w-max">
           {[
             { id: 'hero', label: '輪播圖', icon: ImageIcon },
-            { id: 'countdown', label: '促銷倒計時', icon: Clock },
+            { id: 'countdown', label: '倒計時', icon: Clock },
             { id: 'flash', label: '限時搶購', icon: Tag },
             { id: 'daily', label: '今日特價', icon: Package },
             { id: 'popular', label: '熱門產品', icon: Star },
@@ -784,13 +784,13 @@ export default function HomepageManagement() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`group inline-flex items-center py-3 px-2 lg:px-3 border-b-2 font-medium text-xs lg:text-sm whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Icon size={20} className="mr-2" />
+                <Icon size={16} className="mr-1 lg:mr-2 flex-shrink-0" />
                 {tab.label}
               </button>
             )
@@ -800,7 +800,7 @@ export default function HomepageManagement() {
 
       {/* 輪播圖管理 */}
       {activeTab === 'hero' && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <ImageIcon className="text-indigo-600" />
@@ -810,10 +810,10 @@ export default function HomepageManagement() {
             {/* 現有輪播圖列表 */}
             <div className="space-y-3 mb-6">
               {data?.heroSlides?.map((slide) => (
-                <div key={slide.id} className="border rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div key={slide.id} className="border rounded-lg p-3 lg:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     {/* 縮圖預覽 */}
-                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="w-full sm:w-24 h-24 sm:h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       {slide.image ? (
                         <img
                           src={slide.image}
@@ -826,13 +826,12 @@ export default function HomepageManagement() {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{slide.title}</h3>
-                      <p className="text-sm text-gray-600">{slide.subtitle}</p>
-                      <p className="text-xs text-gray-500 mt-1">{slide.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm lg:text-base truncate">{slide.title}</h3>
+                      <p className="text-xs lg:text-sm text-gray-600 truncate">{slide.subtitle}</p>
+                      <p className="text-xs text-gray-500 mt-1 truncate">{slide.description}</p>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
                         setEditingSlide(slide.id)
@@ -855,8 +854,9 @@ export default function HomepageManagement() {
                       onClick={() => handleDeleteSlide(slide.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -881,7 +881,7 @@ export default function HomepageManagement() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     標題
@@ -994,9 +994,9 @@ export default function HomepageManagement() {
 
       {/* 促銷倒計時 */}
       {activeTab === 'countdown' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Clock className="text-indigo-600" />
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+          <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+            <Clock className="text-indigo-600" size={20} />
             促銷倒計時設定
           </h2>
           <div className="space-y-4">
@@ -1060,13 +1060,13 @@ export default function HomepageManagement() {
 
       {/* 限時搶購 */}
       {activeTab === 'flash' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Tag className="text-indigo-600" />
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+            <h2 className="text-lg lg:text-xl font-semibold flex items-center gap-2">
+              <Tag className="text-indigo-600" size={20} />
               限時搶購活動管理
             </h2>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs lg:text-sm text-gray-500">
               首頁顯示的活動將按照排序順序展示
             </div>
           </div>
@@ -1089,14 +1089,14 @@ export default function HomepageManagement() {
                   return (
                     <div
                       key={flashSale.id}
-                      className={`border rounded-lg p-4 ${
+                      className={`border rounded-lg p-3 lg:p-4 ${
                         flashSale.showOnHomepage ? 'border-green-300 bg-green-50' : 'border-gray-200'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold">{flashSale.name}</h4>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-sm lg:text-base">{flashSale.name}</h4>
                             {flashSale.showOnHomepage && (
                               <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">
                                 首頁顯示
@@ -1123,37 +1123,37 @@ export default function HomepageManagement() {
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-600 space-y-1">
-                            <p>
+                          <div className="text-xs lg:text-sm text-gray-600 space-y-1">
+                            <p className="break-all">
                               時間：{new Date(flashSale.startTime).toLocaleString('zh-TW')} ~{' '}
                               {new Date(flashSale.endTime).toLocaleString('zh-TW')}
                             </p>
                             <p>排序：{flashSale.sortOrder} | 最多顯示 {flashSale.maxProducts} 個商品</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {/* 首頁顯示開關 */}
                           <button
                             onClick={() => handleToggleHomepageDisplay(flashSale.id, flashSale.showOnHomepage)}
-                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                            className={`px-2 lg:px-3 py-1.5 text-xs lg:text-sm rounded-lg transition-colors whitespace-nowrap ${
                               flashSale.showOnHomepage
                                 ? 'bg-green-600 text-white hover:bg-green-700'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
-                            {flashSale.showOnHomepage ? '首頁顯示中' : '設為首頁顯示'}
+                            {flashSale.showOnHomepage ? '首頁中' : '設首頁'}
                           </button>
                           <button
                             onClick={() => handleEditFlashSale(flashSale)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                           >
-                            <Edit size={18} />
+                            <Edit size={16} />
                           </button>
                           <button
                             onClick={() => handleDeleteFlashSale(flashSale.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
@@ -1170,7 +1170,7 @@ export default function HomepageManagement() {
               {editingFlashSale ? '編輯限時搶購活動' : '新增限時搶購活動'}
             </h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     活動標題 *
@@ -1258,7 +1258,7 @@ export default function HomepageManagement() {
               </div>
 
               {/* 狀態選項 */}
-              <div className="flex gap-6">
+              <div className="flex flex-wrap gap-4 lg:gap-6">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -1341,13 +1341,13 @@ export default function HomepageManagement() {
 
       {/* 今日特價 */}
       {activeTab === 'daily' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Package className="text-indigo-600" />
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+          <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+            <Package className="text-indigo-600" size={20} />
             今日特價設定
           </h2>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   區塊標題
@@ -1438,13 +1438,13 @@ export default function HomepageManagement() {
 
       {/* 熱門產品 */}
       {activeTab === 'popular' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Star className="text-indigo-600" />
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+          <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+            <Star className="text-indigo-600" size={20} />
             熱門產品設定
           </h2>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   區塊標題
@@ -1553,33 +1553,33 @@ export default function HomepageManagement() {
 
       {/* 組合套裝 */}
       {activeTab === 'bundles' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <ShoppingBag className="text-indigo-600" />
+        <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+          <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+            <ShoppingBag className="text-indigo-600" size={20} />
             組合套裝管理
           </h2>
 
           {/* 現有組合列表 */}
           <div className="space-y-3 mb-6">
             {bundlesData?.productBundles?.map((bundle) => (
-              <div key={bundle.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-lg">{bundle.name}</h3>
+              <div key={bundle.id} className="border rounded-lg p-3 lg:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-base lg:text-lg">{bundle.name}</h3>
                       {bundle.isFeatured && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
+                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
                           精選
                         </span>
                       )}
                       {!bundle.isActive && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded">
                           已停用
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{bundle.description}</p>
-                    <div className="flex items-center gap-4 text-sm">
+                    <p className="text-xs lg:text-sm text-gray-600 mb-2 line-clamp-2">{bundle.description}</p>
+                    <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-xs lg:text-sm">
                       <div>
                         <span className="text-gray-500">原價：</span>
                         <span className="line-through">${bundle.originalPrice}</span>
@@ -1593,11 +1593,11 @@ export default function HomepageManagement() {
                         <span className="text-green-600">{bundle.discountPercent}%</span>
                       </div>
                     </div>
-                    <div className="mt-2 text-sm text-gray-500">
+                    <div className="mt-2 text-xs lg:text-sm text-gray-500">
                       包含 {bundle.items?.length || 0} 個產品
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
                         setEditingBundle(bundle.id)
@@ -1616,13 +1616,13 @@ export default function HomepageManagement() {
                       }}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                     >
-                      <Edit size={18} />
+                      <Edit size={16} />
                     </button>
                     <button
                       onClick={() => handleDeleteBundle(bundle.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -1688,7 +1688,7 @@ export default function HomepageManagement() {
                 )}
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
