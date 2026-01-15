@@ -559,6 +559,94 @@ export const orderResolvers = {
         }
         let discount = 0
         let creditsUsed = 0
+        let couponId: string | null = null
+        let couponDiscount = 0
+
+        // 處理優惠券折扣
+        if (input.couponCode) {
+          const now = new Date()
+          const coupon = await prisma.coupon.findUnique({
+            where: { code: input.couponCode },
+          })
+
+          if (!coupon) {
+            throw new GraphQLError('優惠券不存在', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          if (!coupon.isActive) {
+            throw new GraphQLError('優惠券已停用', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          if (coupon.validFrom > now || coupon.validUntil < now) {
+            throw new GraphQLError('優惠券已過期或尚未生效', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          if (coupon.minAmount && subtotal < Number(coupon.minAmount)) {
+            throw new GraphQLError(`訂單金額需滿 NT$ ${Number(coupon.minAmount).toLocaleString()} 才能使用此優惠券`, {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+            throw new GraphQLError('優惠券已被搶光', {
+              extensions: { code: 'BAD_USER_INPUT' },
+            })
+          }
+
+          // 檢查用戶使用次數限制（僅限會員）
+          if (user && coupon.userLimit) {
+            const userUsageCount = await prisma.order.count({
+              where: {
+                userId: user.userId,
+                couponId: coupon.id,
+                status: { notIn: ['CANCELLED'] },
+              },
+            })
+            if (userUsageCount >= coupon.userLimit) {
+              throw new GraphQLError(`每人限用 ${coupon.userLimit} 次，您已達上限`, {
+                extensions: { code: 'BAD_USER_INPUT' },
+              })
+            }
+          }
+
+          // 計算優惠券折扣金額
+          switch (coupon.type) {
+            case 'PERCENTAGE':
+              couponDiscount = subtotal * (Number(coupon.value) / 100)
+              if (coupon.maxDiscount) {
+                couponDiscount = Math.min(couponDiscount, Number(coupon.maxDiscount))
+              }
+              break
+            case 'FIXED':
+              couponDiscount = Number(coupon.value)
+              break
+            case 'FREE_SHIPPING':
+              // 免運費優惠券：將運費設為 0
+              shippingFee = 0
+              break
+            default:
+              break
+          }
+
+          // 確保折扣不超過小計
+          couponDiscount = Math.min(couponDiscount, subtotal)
+          discount += couponDiscount
+          couponId = coupon.id
+
+          // 更新優惠券使用次數
+          await prisma.coupon.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          })
+
+          console.log(`🎟️ 優惠券 ${coupon.code} 已套用，折扣 $${couponDiscount}`)
+        }
 
         // 處理購物金折抵
         if (input.creditsToUse && input.creditsToUse > 0) {
@@ -660,6 +748,7 @@ export const orderResolvers = {
             subtotal,
             shippingFee,
             discount,
+            couponId,
             total: finalTotal,
             shippingMethod: input.shippingMethod, // 不設預設值，必須明確傳入
             shippingName: input.shippingName,
@@ -669,7 +758,13 @@ export const orderResolvers = {
             shippingDistrict: input.shippingDistrict || null,
             shippingStreet: input.shippingStreet || null,
             shippingZipCode: input.shippingZipCode || null,
-            notes: input.notes ? `${input.notes}${creditsUsed > 0 ? `\n[使用購物金：$${creditsUsed}]` : ''}` : creditsUsed > 0 ? `[使用購物金：$${creditsUsed}]` : null,
+            notes: (() => {
+              const parts: string[] = []
+              if (input.notes) parts.push(input.notes)
+              if (couponDiscount > 0) parts.push(`[優惠券折扣：$${couponDiscount}]`)
+              if (creditsUsed > 0) parts.push(`[使用購物金：$${creditsUsed}]`)
+              return parts.length > 0 ? parts.join('\n') : null
+            })(),
             items: {
               create: cartItems.map((item) => {
                 // ✅ 優先使用變體圖片，沒有才使用產品主圖
