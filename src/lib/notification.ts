@@ -364,3 +364,168 @@ export async function notifyPaymentSuccess(order: OrderData): Promise<void> {
 
   await sendLineNotify(message)
 }
+
+// ============================================
+// 物流狀態通知
+// ============================================
+
+interface ShippingNotificationData {
+  orderNumber: string
+  shippingStatus: string
+  trackingNumber?: string
+  storeName?: string
+  storeAddr?: string
+  items: Array<{
+    productName: string
+    quantity: number
+  }>
+}
+
+/**
+ * 生成物流狀態通知郵件 HTML
+ */
+function generateShippingNotificationHtml(data: ShippingNotificationData): string {
+  const itemsList = data.items
+    .map(item => `<li style="padding: 5px 0;">${item.productName} × ${item.quantity}</li>`)
+    .join('')
+
+  // 根據狀態決定顯示內容
+  let statusMessage = ''
+  let statusColor = '#1976d2'
+
+  if (data.shippingStatus.includes('到店') || data.shippingStatus.includes('送達')) {
+    statusMessage = '您的包裹已送達指定門市，請儘快前往取貨！'
+    statusColor = '#4caf50'
+  } else if (data.shippingStatus.includes('取件') || data.shippingStatus.includes('完成')) {
+    statusMessage = '您已成功取貨，感謝您的購買！'
+    statusColor = '#4caf50'
+  } else if (data.shippingStatus.includes('配送') || data.shippingStatus.includes('寄件')) {
+    statusMessage = '您的包裹正在配送中，請耐心等候。'
+    statusColor = '#ff9800'
+  } else {
+    statusMessage = `物流狀態更新：${data.shippingStatus}`
+  }
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 30px;">
+      <div style="background-color: ${statusColor}; color: white; display: inline-block; padding: 10px 30px; border-radius: 50px; font-size: 18px; font-weight: bold;">
+        ${data.shippingStatus}
+      </div>
+    </div>
+
+    <p style="font-size: 16px;">${statusMessage}</p>
+
+    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="margin: 0 0 15px 0; color: #333;">訂單資訊</h3>
+      <table style="width: 100%;">
+        <tr>
+          <td style="padding: 5px 0; color: #666;">訂單編號：</td>
+          <td style="padding: 5px 0; font-weight: bold; font-family: monospace;">${data.orderNumber}</td>
+        </tr>
+        ${data.trackingNumber ? `
+        <tr>
+          <td style="padding: 5px 0; color: #666;">物流單號：</td>
+          <td style="padding: 5px 0; font-family: monospace;">${data.trackingNumber}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    ${data.storeName || data.storeAddr ? `
+    <div style="background-color: #e3f2fd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="margin: 0 0 15px 0; color: #1976d2;">取貨門市</h3>
+      <table style="width: 100%;">
+        ${data.storeName ? `
+        <tr>
+          <td style="padding: 5px 0; color: #666;">門市名稱：</td>
+          <td style="padding: 5px 0; font-weight: bold;">${data.storeName}</td>
+        </tr>
+        ` : ''}
+        ${data.storeAddr ? `
+        <tr>
+          <td style="padding: 5px 0; color: #666;">門市地址：</td>
+          <td style="padding: 5px 0;">${data.storeAddr}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+    ` : ''}
+
+    <div style="background-color: #fff8e1; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="margin: 0 0 15px 0; color: #f57c00;">訂購商品</h3>
+      <ul style="margin: 0; padding-left: 20px;">
+        ${itemsList}
+      </ul>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${STORE_URL}/account/orders" style="display: inline-block; background-color: #1976d2; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+        查看訂單詳情
+      </a>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 14px;">
+      <p>如有任何問題，請聯繫我們：</p>
+      <p>電話：${STORE_PHONE} | Email：${STORE_EMAIL}</p>
+    </div>
+  `
+
+  return generateEmailTemplate({
+    title: `物流狀態更新 - ${data.shippingStatus}`,
+    content,
+  })
+}
+
+/**
+ * 發送物流狀態通知郵件給客戶
+ */
+export async function sendOrderShippingNotification(
+  email: string,
+  data: ShippingNotificationData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const html = generateShippingNotificationHtml(data)
+    const subject = `[${STORE_NAME}] 物流狀態更新 - ${data.shippingStatus} (訂單 ${data.orderNumber})`
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+    })
+
+    if (result.success) {
+      console.log(`物流狀態通知郵件已發送: ${email} (訂單: ${data.orderNumber}, 狀態: ${data.shippingStatus})`)
+    } else {
+      console.error(`物流狀態通知郵件發送失敗: ${email}`, result.error)
+    }
+
+    return result
+  } catch (error: any) {
+    console.error(`發送物流狀態通知郵件時發生錯誤:`, error)
+    return {
+      success: false,
+      error: error.message || '未知錯誤',
+    }
+  }
+}
+
+/**
+ * 發送物流狀態通知給商家（LINE）
+ */
+export async function notifyShippingStatusChange(
+  orderNumber: string,
+  status: string,
+  storeName?: string
+): Promise<void> {
+  const message = `
+物流狀態更新！
+
+訂單編號: ${orderNumber}
+狀態: ${status}
+${storeName ? `門市: ${storeName}` : ''}
+
+查看詳情: ${STORE_URL}/admin/orders
+  `.trim()
+
+  await sendLineNotify(message)
+}

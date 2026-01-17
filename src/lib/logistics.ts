@@ -5,6 +5,142 @@
 
 import crypto from 'crypto'
 
+// ============================================
+// 物流狀態代碼對應表
+// ============================================
+
+/**
+ * 藍新物流狀態代碼 (LgsState) 對應說明
+ *
+ * 統一 7-ELEVEN (ShipType=1):
+ *   0: 建單成功
+ *   3: 正在配送中
+ *   4: 已送達取貨門市
+ *   5: 已取件
+ *   6: 包裹退回原寄超商
+ *   9: 包裹被退回
+ *
+ * 全家 FamilyMart (ShipType=2):
+ *   0: 建單成功
+ *   3: 已寄件
+ *   4: 到店
+ *   5: 取件完成
+ *   9: 異常
+ *
+ * OK Mart (ShipType=4):
+ *   0: 建單成功
+ *   3: 已寄件
+ *   4: 到店
+ *   5: 取件完成
+ *   9: 異常
+ */
+
+export const LOGISTICS_STATE_MESSAGES: Record<string, Record<string, string>> = {
+  // 統一 7-ELEVEN
+  '1': {
+    '0': '建單成功',
+    '3': '正在配送中',
+    '4': '已送達取貨門市',
+    '5': '已取件',
+    '6': '包裹退回原寄超商',
+    '9': '包裹被退回',
+  },
+  // 全家
+  '2': {
+    '0': '建單成功',
+    '3': '已寄件',
+    '4': '到店',
+    '5': '取件完成',
+    '9': '異常',
+  },
+  // OK
+  '4': {
+    '0': '建單成功',
+    '3': '已寄件',
+    '4': '到店',
+    '5': '取件完成',
+    '9': '異常',
+  },
+}
+
+/**
+ * 將藍新物流狀態轉換為系統 ShippingStatus
+ * @param lgsState 藍新物流狀態代碼
+ * @param shipType 物流廠商類型
+ * @returns 系統物流狀態
+ */
+export function mapLgsStateToShippingStatus(
+  lgsState: string,
+  shipType: string
+): 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' {
+  // 統一處理所有廠商的狀態對應
+  switch (lgsState) {
+    case '0': // 建單成功
+      return 'PROCESSING'
+    case '3': // 配送中/已寄件
+      return 'SHIPPED'
+    case '4': // 到店
+      return 'SHIPPED' // 到店但未取貨，仍視為已出貨狀態
+    case '5': // 已取件/取件完成
+      return 'DELIVERED'
+    case '6': // 退回原寄（7-ELEVEN 專用）
+    case '9': // 異常/被退回
+      // 異常狀態保持 SHIPPED，需要人工處理
+      return 'SHIPPED'
+    default:
+      return 'PROCESSING'
+  }
+}
+
+/**
+ * 將藍新物流狀態轉換為系統 OrderStatus
+ * @param lgsState 藍新物流狀態代碼
+ * @returns 系統訂單狀態（僅在取件完成時更新）
+ */
+export function mapLgsStateToOrderStatus(
+  lgsState: string
+): 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | null {
+  switch (lgsState) {
+    case '0': // 建單成功
+      return 'PROCESSING'
+    case '3': // 配送中/已寄件
+      return 'SHIPPED'
+    case '4': // 到店
+      return 'SHIPPED'
+    case '5': // 已取件 - 訂單完成
+      return 'COMPLETED'
+    default:
+      return null // 不更新訂單狀態
+  }
+}
+
+/**
+ * 取得物流狀態的中文說明
+ */
+export function getLgsStateMessage(lgsState: string, shipType: string): string {
+  const messages = LOGISTICS_STATE_MESSAGES[shipType]
+  if (messages && messages[lgsState]) {
+    return messages[lgsState]
+  }
+  return `未知狀態 (${lgsState})`
+}
+
+/**
+ * 驗證物流通知的 HashData
+ */
+export function verifyLogisticsHash(encryptedData: string, receivedHash: string): boolean {
+  const expectedHash = generateLogisticsHash(encryptedData)
+  const isValid = expectedHash === receivedHash.toUpperCase()
+
+  if (!isValid) {
+    console.error('物流 Hash 驗證失敗:')
+    console.error('- 計算值:', expectedHash.substring(0, 20) + '...')
+    console.error('- 接收值:', receivedHash.toUpperCase().substring(0, 20) + '...')
+  }
+
+  return isValid
+}
+
 // 物流 API 配置
 const LOGISTICS_CONFIG = {
   // 物流 API 使用 ccore 而非 core

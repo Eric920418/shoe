@@ -915,14 +915,47 @@ rclone copy public/uploads r2:your-bucket/uploads --progress
    - 確保外層參數：UID_, Version_, RespondType_, EncryptData_, HashData_
    - 確保內層只放業務欄位：LgsType, ShipType, MerchantOrderNo 等
 
+### 物流貨態即時通知設定
+
+藍新物流會在包裹狀態變化時（寄件、到店、取貨等）主動推送通知到商家設定的 URL。
+
+**API 端點**：`/api/newebpay/logistics-notify`
+
+**設定步驟**：
+1. 登入藍新金流商店後台
+2. 進入「物流服務設定」
+3. 設定「物流貨態更新即時通知URL」為：`https://你的網域/api/newebpay/logistics-notify`
+
+**物流狀態代碼對應**：
+| LgsState | 狀態說明 | 系統 ShippingStatus |
+|----------|----------|---------------------|
+| 0 | 建單成功 | PROCESSING |
+| 3 | 配送中/已寄件 | SHIPPED |
+| 4 | 到店 | SHIPPED |
+| 5 | 已取件/取件完成 | DELIVERED |
+| 6 | 退回原寄（7-ELEVEN） | SHIPPED |
+| 9 | 異常/被退回 | SHIPPED |
+
+**自動更新的訂單欄位**：
+- `shippingStatus` - 物流狀態
+- `status` - 訂單狀態（取件完成時變更為 COMPLETED）
+- `trackingNumber` - 物流單號
+- `shippedAt` - 出貨時間
+- `deliveredAt` - 送達/取件時間
+
+**自動通知功能**：
+- 當包裹「到店」或「已取件」時，自動發送 Email 通知客戶
+- 同時發送 LINE Notify 通知給商家
+
 ### 超商取貨（CVSCOM）回調問題排查
 
 **重要：CVSCOM 門市選擇使用 `CustomerURL`，不是 `ReturnURL`！**
 
-藍新金流的三種回調 URL：
+藍新金流的四種回調 URL：
 - **CustomerURL**: 用戶選擇門市後觸發（CVSCOM 專用）
 - **ReturnURL**: 一般金流付款完成後觸發
 - **NotifyURL**: 消費者實際到超商付款取貨後觸發（背景通知）
+- **物流貨態通知URL**: 物流狀態變化時觸發（需在後台設定）
 
 如果超商取貨選擇門市後，訂單沒有顯示門市資訊：
 
@@ -966,6 +999,28 @@ pnpm prisma migrate reset
 ---
 
 ## 📝 最新更新摘要
+
+### 🔥 近期重點更新（2026-01-17）
+
+#### ✅ 物流貨態即時通知功能（v2.6.3）
+- **問題**：後台列印寄貨單後，客戶端訂單始終顯示「未發貨」，即使貨物已送達
+- **原因**：缺少藍新物流貨態更新的 Webhook 接收端點
+- **解決方案**：新增 `/api/newebpay/logistics-notify` API 端點
+- **功能說明**：
+  - 接收藍新物流的貨態更新通知（寄件、到店、取貨等）
+  - 自動更新訂單的 `shippingStatus`（物流狀態）
+  - 自動更新訂單的 `status`（訂單狀態，取件完成時變更為 COMPLETED）
+  - 記錄 `trackingNumber`（物流單號）、`shippedAt`（出貨時間）、`deliveredAt`（送達時間）
+  - 當包裹「到店」或「已取件」時，自動發送 Email 通知客戶
+- **設定步驟**：
+  1. 登入藍新金流商店後台
+  2. 進入「物流服務設定」
+  3. 設定「物流貨態更新即時通知URL」為：`https://你的網域/api/newebpay/logistics-notify`
+- **新增檔案**：
+  - `app/api/newebpay/logistics-notify/route.ts` - 物流貨態通知 API 端點
+- **修改檔案**：
+  - `src/lib/logistics.ts` - 新增物流狀態對應函數
+  - `src/lib/notification.ts` - 新增物流狀態通知郵件功能
 
 ### 🔥 近期重點更新（2026-01-14）
 
