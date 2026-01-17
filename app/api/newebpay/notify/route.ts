@@ -195,9 +195,12 @@ export async function POST(request: NextRequest) {
     console.log('訂單編號:', Result.MerchantOrderNo);
     console.log('交易金額:', Result.Amt);
 
-    // 🔍 記錄完整的回傳資料（用於調試超商取貨資訊）
+    // 🔍 記錄完整的回傳資料（用於調試）
     console.log('=== 藍新金流完整回傳資料 ===');
     console.log(JSON.stringify(Result, null, 2));
+    console.log('付款人姓名 (PayerName):', Result.PayerName);
+    console.log('付款人電話 (PayerPhone):', Result.PayerPhone);
+    console.log('付款人 Email (PayerEmail):', Result.PayerEmail);
     console.log('超商門市代號 (StoreCode):', Result.StoreCode);
     console.log('超商門市名稱 (StoreName):', Result.StoreName);
     console.log('超商門市地址 (StoreAddr):', Result.StoreAddr);
@@ -335,6 +338,22 @@ async function updatePaymentRecord(
         paidAt: updateData.payTime,
         status: 'CONFIRMED', // 付款成功後自動確認訂單
       };
+
+      // 👤 用藍新金流回傳的付款人資料更新訂單收件人資訊
+      // 以藍新頁面上用戶填寫的資料為準
+      if (Result.PayerName) {
+        console.log('👤 更新收件人姓名:', Result.PayerName);
+        orderUpdateData.shippingName = Result.PayerName;
+      }
+      if (Result.PayerPhone) {
+        console.log('📞 更新收件人電話:', Result.PayerPhone);
+        orderUpdateData.shippingPhone = Result.PayerPhone;
+      }
+      // 也可以更新 guest email（如果是訪客訂單）
+      if (Result.PayerEmail && !payment.order.userId) {
+        console.log('📧 更新訪客 Email:', Result.PayerEmail);
+        orderUpdateData.guestEmail = Result.PayerEmail;
+      }
 
       // 🏪 如果是超商取貨，儲存門市資訊
       if (Result.StoreCode || Result.StoreName || Result.StoreAddr) {

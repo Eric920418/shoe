@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.6.2 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-12
+**版本**: 2.6.3 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-17
 
 ---
 
@@ -1577,6 +1577,34 @@ pnpm prisma migrate reset
 
 <details>
 <summary><strong>點擊展開完整更新日誌</strong></summary>
+
+### 2026-01-17 🐛 藍新金流付款人資料同步修復
+
+**更新時間**: 2026-01-17 | **優先級**: 🔴 Bug 修復
+
+#### 問題描述
+
+用戶在藍新金流頁面填寫的付款人資料（姓名、電話）沒有同步到訂單中，後台顯示的仍是用戶在平台上的原始資料。
+
+#### 修復內容
+
+**1. Notify Route 更新** (`app/api/newebpay/notify/route.ts`)
+- ✅ 新增藍新回傳付款人資料的日誌記錄（`PayerName`、`PayerPhone`、`PayerEmail`）
+- ✅ 支付成功時自動用藍新回傳的付款人資料更新訂單的 `shippingName` 和 `shippingPhone`
+- ✅ 訪客訂單同時更新 `guestEmail`
+
+**2. Return Route 更新** (`app/api/newebpay/return/route.ts`)
+- ✅ 同步更新付款人資料，確保即使 notify 晚於 return 到達也能正確更新
+- ✅ 優化訂單更新邏輯，合併付款人資料和超商門市資訊的更新
+
+**藍新金流回傳欄位對應**：
+| 藍新欄位 | 訂單欄位 | 說明 |
+|----------|----------|------|
+| `PayerName` | `shippingName` | 收件人姓名 |
+| `PayerPhone` | `shippingPhone` | 收件人電話 |
+| `PayerEmail` | `guestEmail` | 訪客 Email（僅訪客訂單）|
+
+---
 
 ### 2026-01-13 ⚡ 限時搶購首頁設定功能
 

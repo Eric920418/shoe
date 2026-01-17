@@ -183,6 +183,9 @@ export async function POST(request: NextRequest) {
     console.log('=== 藍新金流 Return 完整回傳資料 ===');
     console.log(JSON.stringify(Result, null, 2));
     console.log('PaymentType:', Result.PaymentType);
+    console.log('付款人姓名 (PayerName):', Result.PayerName);
+    console.log('付款人電話 (PayerPhone):', Result.PayerPhone);
+    console.log('付款人 Email (PayerEmail):', Result.PayerEmail);
     console.log('超商門市代號 (StoreCode):', Result.StoreCode);
     console.log('超商門市名稱 (StoreName):', Result.StoreName);
     console.log('超商門市地址 (StoreAddr):', Result.StoreAddr);
@@ -202,18 +205,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 👤 如果有付款人資訊，更新到訂單中（以藍新頁面填寫的資料為準）
+    const orderUpdateData: any = {};
+
+    if (Result.PayerName) {
+      console.log('👤 更新收件人姓名:', Result.PayerName);
+      orderUpdateData.shippingName = Result.PayerName;
+    }
+    if (Result.PayerPhone) {
+      console.log('📞 更新收件人電話:', Result.PayerPhone);
+      orderUpdateData.shippingPhone = Result.PayerPhone;
+    }
+    if (Result.PayerEmail && !payment.order.userId) {
+      console.log('📧 更新訪客 Email:', Result.PayerEmail);
+      orderUpdateData.guestEmail = Result.PayerEmail;
+    }
+
     // 🏪 如果有超商門市資訊，儲存到訂單中（貨到付款時會在這裡回傳）
     if (Result.StoreCode || Result.StoreName || Result.StoreAddr) {
       console.log('📍 偵測到超商門市資訊，儲存到訂單中');
+      if (Result.StoreName) orderUpdateData.shippingCity = Result.StoreName;
+      if (Result.StoreAddr) orderUpdateData.shippingStreet = Result.StoreAddr;
+      if (Result.StoreCode) orderUpdateData.shippingZipCode = Result.StoreCode;
+    }
+
+    // 如果有需要更新的資料，執行更新
+    if (Object.keys(orderUpdateData).length > 0) {
       await prisma.order.update({
         where: { id: payment.order.id },
-        data: {
-          shippingCity: Result.StoreName || payment.order.shippingCity,
-          shippingStreet: Result.StoreAddr || payment.order.shippingStreet,
-          shippingZipCode: Result.StoreCode || payment.order.shippingZipCode,
-        },
+        data: orderUpdateData,
       });
-      console.log('✅ 超商門市資訊已儲存');
+      console.log('✅ 訂單資訊已更新');
     }
 
     // 根據支付狀態重定向
