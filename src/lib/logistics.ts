@@ -123,14 +123,12 @@ const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
   'C2C': {
     '1': 10, // 統一
     '2': 8,  // 全家（官方文件指出 C2C 限制 8 筆 / A4 兩張）
-    '3': 10, // 萊爾富
     '4': 10, // OK
   },
   // B2C 模式限制（更嚴格）
   'B2C': {
     '1': 1,  // 統一
     '2': 1,  // 全家（B2C 模式只能一次列印 1 筆）
-    '3': 1,  // 萊爾富
     '4': 1,  // OK
   },
 }
@@ -138,13 +136,13 @@ const PRINT_LABEL_LIMITS: Record<string, Record<string, number>> = {
 /**
  * 列印物流標籤（取得列印網址）
  * @param orderNumbers 商店訂單編號陣列
- * @param shipType 物流廠商類型：1=統一, 2=全家, 3=萊爾富, 4=OK
+ * @param shipType 物流廠商類型：1=統一, 2=全家, 4=OK
  *
  * ⚠️ 注意：同一批列印的訂單必須是同一個物流廠商
  */
 export async function printLogisticsLabel(
   orderNumbers: string[],
-  shipType: '1' | '2' | '3' | '4' = '1'
+  shipType: '1' | '2' | '4' = '1'
 ): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
 
@@ -163,7 +161,7 @@ export async function printLogisticsLabel(
   // ✅ MerchantOrderNo 必須是陣列格式（即使只有一筆）
   const merchantOrderNo = orderNumbers
 
-  console.log(`列印物流標籤：ShipType=${shipType} (1=統一, 2=全家, 3=萊爾富, 4=OK)`)
+  console.log(`列印物流標籤：ShipType=${shipType} (1=統一, 2=全家, 4=OK)`)
 
   const encryptParams: Record<string, any> = {
     LgsType: lgsType,
@@ -236,15 +234,12 @@ export async function printLogisticsLabel(
 /**
  * 根據門市名稱判斷物流廠商類型
  * @param storeName 門市名稱
- * @returns ShipType: 1=統一(7-ELEVEN), 2=全家, 3=萊爾富, 4=OK
+ * @returns ShipType: 1=統一(7-ELEVEN), 2=全家, 4=OK
  */
-export function getShipTypeByStoreName(storeName: string): '1' | '2' | '3' | '4' {
+export function getShipTypeByStoreName(storeName: string): '1' | '2' | '4' {
   const name = storeName.toLowerCase()
   if (name.includes('全家') || name.includes('familymart')) {
     return '2' // 全家
-  }
-  if (name.includes('萊爾富') || name.includes('hilife')) {
-    return '3' // 萊爾富
   }
   if (name.includes('ok') || name.includes('okmart')) {
     return '4' // OK
@@ -266,7 +261,7 @@ export async function createShipment(orderData: {
   storeId: string           // 超商門市代碼（必填，最長10字）
   amt: number               // 訂單金額（必填）
   itemDesc?: string         // 產品名稱說明（選填，最長100字）
-  shipType?: '1' | '2' | '3' | '4' // 物流廠商：1=統一, 2=全家, 3=萊爾富, 4=OK
+  shipType?: '1' | '2' | '4' // 物流廠商：1=統一, 2=全家, 4=OK
   storeName?: string        // 門市名稱（僅用於判斷 shipType）
 }): Promise<any> {
   const { apiUrl, merchantId, hashKey, hashIV } = LOGISTICS_CONFIG
@@ -285,7 +280,7 @@ export async function createShipment(orderData: {
     // === 必填欄位 ===
     LgsType: 'C2C',                           // 物流類別：C2C 店到店
     TradeType: '3',                           // 取貨類別：1=取貨付款，3=取貨不付款
-    ShipType: shipType,                       // 物流廠商：1=統一，2=全家，3=萊爾富，4=OK
+    ShipType: shipType,                       // 物流廠商：1=統一，2=全家，4=OK
     MerchantOrderNo: orderData.merchantOrderNo, // 商店訂單編號
     Amt: orderData.amt.toString(),            // 訂單金額
     Version: '1.0',                           // 串接程式版本（固定 1.0）

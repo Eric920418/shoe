@@ -988,7 +988,7 @@ pnpm prisma migrate reset
   - 原：「自取 - 至店面自行取貨」
   - 新：「郵局等其他物流 - 結帳後請私訊確認寄送方式」
 - **配送方式現況**：
-  - `CVS_PICKUP`（超商取貨）：運費 $49，支援 7-11、全家、萊爾富
+  - `CVS_PICKUP`（超商取貨）：運費 $49，支援 7-11、全家
   - `SELF_PICKUP`（郵局等其他物流）：免運費，結帳後私訊確認寄送方式與地址
 - **影響檔案**：
   - `app/checkout/page.tsx` - 移除宅配選項、修改自取文字、清理相關邏輯
@@ -1005,7 +1005,6 @@ pnpm prisma migrate reset
   - 新增 `TradeType` 欄位（1=取貨付款，3=取貨不付款）
 - **新增物流廠商自動判斷**：`getShipTypeByStoreName()` 根據門市名稱自動判斷
   - 全家 → ShipType 2
-  - 萊爾富 → ShipType 3
   - OK → ShipType 4
   - 其他 → ShipType 1 (7-ELEVEN)
 - **新增寄件代碼功能**：讓管理員可以到超商機台輸入代碼印出標籤（無需標籤機）
@@ -1285,7 +1284,7 @@ pnpm prisma migrate reset
   2. **OrderItemInput 缺少 sizeChartId** - 導致訪客結帳 400 錯誤
   3. **超商門市資訊未儲存** - 付款成功後，從藍新回傳資料中提取並儲存超商門市資訊
 - **配送方式簡化**：
-  - 統一為 `CVS_PICKUP`（超商取貨），藍新頁面自動顯示 7-11、全家、萊爾富可選
+  - 統一為 `CVS_PICKUP`（超商取貨），藍新頁面自動顯示 7-11、全家可選
   - 運費統一 60 元
 - **超商門市資訊儲存**（付款成功後自動儲存）：
   - `shippingCity` ← 門市名稱 (StoreName)

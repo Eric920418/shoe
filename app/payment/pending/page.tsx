@@ -130,7 +130,7 @@ function PaymentPendingContent() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <h4 className="font-medium text-yellow-900 mb-2">繳費步驟</h4>
             <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
-              <li>前往 7-11、全家、萊爾富、OK 超商</li>
+              <li>前往 7-11、全家、OK 超商</li>
               <li>告知店員要使用代碼繳費</li>
               <li>提供繳費代碼給店員</li>
               <li>確認金額後繳費完成</li>

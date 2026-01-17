@@ -4,7 +4,7 @@
  * 完整結帳頁面 - 整合多種付款方式
  * 支援功能：
  * - 多種付款方式選擇（藍新金流：信用卡、ATM、超商代碼等）
- * - 配送方式：超商取貨（7-11/全家/萊爾富）、郵局等其他物流（私訊確認）
+ * - 配送方式：超商取貨（7-11/全家）、郵局等其他物流（私訊確認）
  * - 優惠券使用
  * - 購物金使用（會員）
  * - 藍新金流整合
@@ -523,7 +523,7 @@ function CheckoutContent() {
                         />
                         <div>
                           <div className="font-semibold text-black">超商取貨</div>
-                          <div className="text-sm text-gray-600">7-11、全家、萊爾富，付款時選擇門市</div>
+                          <div className="text-sm text-gray-600">7-11、全家，付款時選擇門市</div>
                         </div>
                       </div>
                       {qualifiesForFreeShipping ? (

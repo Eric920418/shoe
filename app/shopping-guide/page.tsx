@@ -211,7 +211,7 @@ export default function ShoppingGuidePage() {
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <p className="font-semibold mb-2">超商代碼繳費</p>
                     <ul className="text-sm space-y-1">
-                      <li>• 至 7-11、全家、萊爾富繳費</li>
+                      <li>• 至 7-11、全家繳費</li>
                       <li>• 系統提供繳費代碼</li>
                       <li>• 3天內完成繳費</li>
                       <li>• 單筆最高 $20,000</li>

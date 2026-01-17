@@ -164,10 +164,10 @@ export async function POST(request: NextRequest) {
     console.log('\n按物流廠商分組:', Object.keys(ordersByShipType).map(k => `${k}=${ordersByShipType[k].length}筆`).join(', '))
 
     // 如果有多個物流廠商，目前只能一次列印一種
-    const shipTypes = Object.keys(ordersByShipType) as ('1' | '2' | '3' | '4')[]
+    const shipTypes = Object.keys(ordersByShipType) as ('1' | '2' | '4')[]
     if (shipTypes.length > 1) {
       return NextResponse.json(
-        { error: `選取的訂單包含多個物流廠商，請分開列印。目前選取：${shipTypes.map(t => ({ '1': '7-ELEVEN', '2': '全家', '3': '萊爾富', '4': 'OK' }[t])).join('、')}` },
+        { error: `選取的訂單包含多個物流廠商，請分開列印。目前選取：${shipTypes.map(t => ({ '1': '7-ELEVEN', '2': '全家', '4': 'OK' }[t])).join('、')}` },
         { status: 400 }
       )
     }

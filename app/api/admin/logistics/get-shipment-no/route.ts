@@ -106,7 +106,6 @@ export async function POST(request: NextRequest) {
         shipTypeName: {
           '1': '7-ELEVEN (ibon)',
           '2': '全家 (FamiPort)',
-          '3': '萊爾富 (Life-ET)',
           '4': 'OK (OK·go)',
         }[item.ShipType] || '未知',
         storeName: order?.shippingCity,
