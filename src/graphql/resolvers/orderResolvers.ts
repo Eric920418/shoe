@@ -1010,10 +1010,38 @@ export const orderResolvers = {
           })
         }
 
+        // 根據訂單狀態同步更新物流狀態
+        const updateData: any = { status }
+
+        // 訂單狀態與物流狀態對應
+        switch (status) {
+          case 'PROCESSING':
+            updateData.shippingStatus = 'PROCESSING'
+            break
+          case 'SHIPPED':
+            updateData.shippingStatus = 'SHIPPED'
+            if (!order.shippedAt) {
+              updateData.shippedAt = new Date()
+            }
+            break
+          case 'DELIVERED':
+            updateData.shippingStatus = 'DELIVERED'
+            if (!order.deliveredAt) {
+              updateData.deliveredAt = new Date()
+            }
+            break
+          case 'COMPLETED':
+            updateData.shippingStatus = 'DELIVERED'
+            if (!order.deliveredAt) {
+              updateData.deliveredAt = new Date()
+            }
+            break
+        }
+
         // 更新訂單狀態
         const updatedOrder = await prisma.order.update({
           where: { id },
-          data: { status },
+          data: updateData,
           include: {
             items: {
               include: {
@@ -1048,6 +1076,63 @@ export const orderResolvers = {
         }
         console.error('更新訂單狀態錯誤:', error)
         throw new GraphQLError('更新訂單狀態失敗', {
+          extensions: { code: 'INTERNAL_ERROR' },
+        })
+      }
+    },
+
+    /**
+     * 批量更新訂單狀態
+     */
+    batchUpdateOrderStatus: async (
+      _: any,
+      { ids, status }: { ids: string[]; status: string },
+      { user }: GraphQLContext
+    ) => {
+      if (!user || user.role !== 'ADMIN') {
+        throw new GraphQLError('權限不足', {
+          extensions: { code: 'FORBIDDEN' },
+        })
+      }
+
+      try {
+        // 根據訂單狀態同步更新物流狀態
+        const updateData: any = { status }
+
+        switch (status) {
+          case 'PROCESSING':
+            updateData.shippingStatus = 'PROCESSING'
+            break
+          case 'SHIPPED':
+            updateData.shippingStatus = 'SHIPPED'
+            updateData.shippedAt = new Date()
+            break
+          case 'DELIVERED':
+            updateData.shippingStatus = 'DELIVERED'
+            updateData.deliveredAt = new Date()
+            break
+          case 'COMPLETED':
+            updateData.shippingStatus = 'DELIVERED'
+            updateData.deliveredAt = new Date()
+            break
+        }
+
+        // 批量更新
+        const result = await prisma.order.updateMany({
+          where: {
+            id: { in: ids },
+          },
+          data: updateData,
+        })
+
+        return {
+          success: true,
+          updatedCount: result.count,
+          message: `成功更新 ${result.count} 筆訂單狀態為 ${status}`,
+        }
+      } catch (error) {
+        console.error('批量更新訂單狀態錯誤:', error)
+        throw new GraphQLError('批量更新訂單狀態失敗', {
           extensions: { code: 'INTERNAL_ERROR' },
         })
       }

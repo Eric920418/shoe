@@ -6,9 +6,20 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation, gql } from '@apollo/client'
 import { GET_ALL_ORDERS } from '@/graphql/queries'
 import { format } from 'date-fns'
+
+// 批量更新訂單狀態 Mutation
+const BATCH_UPDATE_ORDER_STATUS = gql`
+  mutation BatchUpdateOrderStatus($ids: [ID!]!, $status: OrderStatus!) {
+    batchUpdateOrderStatus(ids: $ids, status: $status) {
+      success
+      updatedCount
+      message
+    }
+  }
+`
 
 interface Order {
   id: string
@@ -81,15 +92,19 @@ export default function OrdersPage() {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [batchUpdating, setBatchUpdating] = useState(false)
 
   // 查詢訂單數據
-  const { data, loading, error } = useQuery(GET_ALL_ORDERS, {
+  const { data, loading, error, refetch } = useQuery(GET_ALL_ORDERS, {
     variables: {
       skip: 0,
       take: 100,
     },
     fetchPolicy: 'network-only',
   })
+
+  // 批量更新 Mutation
+  const [batchUpdateOrderStatus] = useMutation(BATCH_UPDATE_ORDER_STATUS)
 
   const orders: Order[] = data?.orders || []
 
@@ -133,12 +148,40 @@ export default function OrdersPage() {
   }
 
   // 批量操作
-  const handleBatchAction = (action: string) => {
+  const handleBatchAction = async (status: string) => {
     if (selectedOrders.length === 0) {
       alert('請先選擇訂單')
       return
     }
-    alert(`對 ${selectedOrders.length} 個訂單執行: ${action}`)
+
+    const statusLabels: Record<string, string> = {
+      PROCESSING: '處理中',
+      SHIPPED: '已發貨',
+      COMPLETED: '已完成',
+    }
+
+    const confirmMsg = `確定要將 ${selectedOrders.length} 筆訂單標記為「${statusLabels[status] || status}」嗎？`
+    if (!confirm(confirmMsg)) return
+
+    setBatchUpdating(true)
+    try {
+      const result = await batchUpdateOrderStatus({
+        variables: {
+          ids: selectedOrders,
+          status,
+        },
+      })
+
+      if (result.data?.batchUpdateOrderStatus?.success) {
+        alert(result.data.batchUpdateOrderStatus.message)
+        setSelectedOrders([])
+        refetch()
+      }
+    } catch (err: any) {
+      alert(`批量更新失敗: ${err.message}`)
+    } finally {
+      setBatchUpdating(false)
+    }
   }
 
   // Loading 狀態
@@ -275,18 +318,27 @@ export default function OrdersPage() {
               </span>
             </div>
             {selectedOrders.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => handleBatchAction('export')}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                  onClick={() => handleBatchAction('PROCESSING')}
+                  disabled={batchUpdating}
+                  className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-sm hover:bg-indigo-200 disabled:opacity-50"
                 >
-                  匯出
+                  {batchUpdating ? '處理中...' : '標記處理中'}
                 </button>
                 <button
-                  onClick={() => handleBatchAction('print')}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                  onClick={() => handleBatchAction('SHIPPED')}
+                  disabled={batchUpdating}
+                  className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 disabled:opacity-50"
                 >
-                  列印
+                  {batchUpdating ? '處理中...' : '標記已發貨'}
+                </button>
+                <button
+                  onClick={() => handleBatchAction('COMPLETED')}
+                  disabled={batchUpdating}
+                  className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm hover:bg-green-200 disabled:opacity-50"
+                >
+                  {batchUpdating ? '處理中...' : '標記已完成'}
                 </button>
               </div>
             )}

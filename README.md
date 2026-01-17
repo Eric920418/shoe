@@ -1021,6 +1021,14 @@ pnpm prisma migrate reset
 - **修改檔案**：
   - `src/lib/logistics.ts` - 新增物流狀態對應函數
   - `src/lib/notification.ts` - 新增物流狀態通知郵件功能
+  - `src/graphql/resolvers/orderResolvers.ts` - 訂單狀態更新時自動同步物流狀態
+  - `src/graphql/schema.ts` - 新增 `batchUpdateOrderStatus` mutation
+  - `app/admin/orders/page.tsx` - 新增批量更新訂單狀態功能
+
+#### ✅ 後台批量更新訂單狀態功能
+- **新增功能**：後台訂單列表頁面可批量選擇訂單，一次性更新為「處理中」「已發貨」「已完成」
+- **自動同步**：更新訂單狀態時自動同步更新物流狀態（shippingStatus）
+- **時間記錄**：自動記錄 `shippedAt`（出貨時間）和 `deliveredAt`（送達時間）
 
 ### 🔥 近期重點更新（2026-01-14）
 

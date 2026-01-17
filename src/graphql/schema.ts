@@ -601,6 +601,13 @@ export const typeDefs = gql`
     message: String!
   }
 
+  # 批量更新結果
+  type BatchUpdateResult {
+    success: Boolean!
+    updatedCount: Int!
+    message: String!
+  }
+
   # 優惠券
   type Coupon {
     id: ID!
@@ -1962,6 +1969,7 @@ export const typeDefs = gql`
     # 訂單
     createOrder(input: CreateOrderInput!): Order!
     updateOrderStatus(id: ID!, status: OrderStatus!): Order!
+    batchUpdateOrderStatus(ids: [ID!]!, status: OrderStatus!): BatchUpdateResult!
     cancelOrder(id: ID!, reason: String, comment: String): Order!
     deleteOrder(id: ID!): DeleteOrderResponse!
     uploadBankTransferProof(orderId: ID!, image: String!, note: String): Order!
