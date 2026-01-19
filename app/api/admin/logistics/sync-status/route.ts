@@ -58,13 +58,11 @@ export async function POST(request: NextRequest) {
     })
 
     // 查詢所有需要同步的訂單
-    // 條件放寬：只要已付款 + 物流狀態不是 DELIVERED
+    // 條件：超商取貨 + 物流狀態不是 DELIVERED + 未取消
+    // 注意：貨到付款訂單的 paymentStatus 會是 PENDING 直到客戶取貨
     const orders = await prisma.order.findMany({
       where: {
-        OR: [
-          { paymentStatus: 'PAID' },
-          { paymentStatus: 'BANK_TRANSFER_VERIFIED' },
-        ],
+        shippingMethod: 'CVS_PICKUP', // 只查超商取貨
         shippingStatus: {
           in: ['PENDING', 'PROCESSING', 'SHIPPED'], // 排除已送達
         },

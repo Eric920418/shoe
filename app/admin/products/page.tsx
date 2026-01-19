@@ -27,11 +27,11 @@ export default function ProductsPage() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const isInitialLoad = useRef(true)
 
-  // Debounce 搜尋輸入（300ms 延遲）
+  // Debounce 搜尋輸入（500ms 延遲）
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput)
-    }, 300)
+    }, 500)
     return () => clearTimeout(timer)
   }, [searchInput])
 
@@ -51,8 +51,8 @@ export default function ProductsPage() {
       search: debouncedSearch || undefined,
       categoryIds: filterCategories.length > 0 ? filterCategories : undefined,
     },
-    fetchPolicy: 'network-only', // 總是從網路獲取最新資料
-    nextFetchPolicy: 'cache-first', // 後續查詢使用快取
+    fetchPolicy: 'cache-and-network', // 先顯示快取，同時從網路更新
+    notifyOnNetworkStatusChange: false, // 不要因為 loading 狀態變化而重新渲染
     onCompleted: () => {
       isInitialLoad.current = false
     },
