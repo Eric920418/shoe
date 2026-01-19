@@ -4,19 +4,12 @@
  * 後台產品管理頁面
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery, useMutation } from '@apollo/client'
 import { GET_PRODUCTS, GET_CATEGORIES, DELETE_PRODUCT } from '@/graphql/queries'
 import toast from 'react-hot-toast'
-
-const statusLabels = {
-  ACTIVE: { label: '在售', color: 'bg-green-100 text-green-700' },
-  DRAFT: { label: '草稿', color: 'bg-gray-100 text-gray-700' },
-  OUT_OF_STOCK: { label: '缺貨', color: 'bg-red-100 text-red-700' },
-  ARCHIVED: { label: '已下架', color: 'bg-yellow-100 text-yellow-700' },
-}
 
 const genderLabels = {
   MEN: '男款',
@@ -26,11 +19,21 @@ const genderLabels = {
 }
 
 export default function ProductsPage() {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchInput, setSearchInput] = useState('') // 輸入框的即時值
+  const [debouncedSearch, setDebouncedSearch] = useState('') // 延遲後的搜尋值
   const [filterCategories, setFilterCategories] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const isInitialLoad = useRef(true)
+
+  // Debounce 搜尋輸入（300ms 延遲）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
   // 切換分類選擇
   const toggleCategoryFilter = (categoryId: string) => {
@@ -45,11 +48,14 @@ export default function ProductsPage() {
   const { data: productsData, loading: productsLoading, error: productsError, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
       take: 10000, // 後台管理需要顯示所有產品
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
       categoryIds: filterCategories.length > 0 ? filterCategories : undefined,
     },
     fetchPolicy: 'network-only', // 總是從網路獲取最新資料
     nextFetchPolicy: 'cache-first', // 後續查詢使用快取
+    onCompleted: () => {
+      isInitialLoad.current = false
+    },
   })
 
   // 獲取分類列表（用於篩選）
@@ -70,11 +76,6 @@ export default function ProductsPage() {
   })
 
   const products = productsData?.products || []
-
-  // 計算統計數據
-  const activeProducts = products.filter((p: any) => p.totalStock > 0)
-  const outOfStockProducts = products.filter((p: any) => p.totalStock === 0)
-  const lowStockProducts = products.filter((p: any) => p.totalStock > 0 && p.totalStock <= 10)
 
   // 切換產品選擇
   const toggleProductSelection = (id: string) => {
@@ -122,8 +123,8 @@ export default function ProductsPage() {
     }
   }
 
-  // 載入中狀態
-  if (productsLoading) {
+  // 載入中狀態（只在首次載入時顯示全畫面 loading，搜尋時不顯示）
+  if (productsLoading && isInitialLoad.current) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -167,22 +168,6 @@ export default function ProductsPage() {
         </Link>
       </div>
 
-      {/* 手機版統計摘要 */}
-      <div className="lg:hidden grid grid-cols-3 gap-2">
-        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-xl font-bold text-green-600">{activeProducts.length}</p>
-          <p className="text-xs text-gray-600 mt-1">在售</p>
-        </div>
-        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-xl font-bold text-red-600">{outOfStockProducts.length}</p>
-          <p className="text-xs text-gray-600 mt-1">缺貨</p>
-        </div>
-        <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-          <p className="text-xl font-bold text-orange-600">{lowStockProducts.length}</p>
-          <p className="text-xs text-gray-600 mt-1">低庫存</p>
-        </div>
-      </div>
-
       {/* 搜尋和篩選 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 lg:p-4">
         <div className="flex gap-2 mb-3 lg:mb-0">
@@ -190,8 +175,8 @@ export default function ProductsPage() {
             <input
               type="text"
               placeholder="搜尋產品名稱..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             />
           </div>
@@ -288,7 +273,7 @@ export default function ProductsPage() {
         {products.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <p className="text-gray-500">
-              {searchQuery || filterCategories.length > 0
+              {debouncedSearch || filterCategories.length > 0
                 ? '沒有符合條件的產品'
                 : '暫無產品數據，請先新增產品'}
             </p>
@@ -308,7 +293,6 @@ export default function ProductsPage() {
               }
             }
             const firstImage = images[0] || '/images/placeholder-product.svg'
-            const status = product.totalStock === 0 ? 'OUT_OF_STOCK' : 'ACTIVE'
 
             return (
               <div
@@ -329,39 +313,13 @@ export default function ProductsPage() {
                     </div>
                     {/* 產品資訊 */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {product.category?.name || '-'}
-                          </p>
-                        </div>
-                        <span
-                          className={`ml-2 flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded ${
-                            statusLabels[status as keyof typeof statusLabels].color
-                          }`}
-                        >
-                          {statusLabels[status as keyof typeof statusLabels].label}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-gray-900">
-                            ${product.price.toLocaleString()}
-                          </span>
-                          <span
-                            className={`text-sm ${
-                              product.totalStock === 0
-                                ? 'text-red-600'
-                                : product.totalStock <= 10
-                                ? 'text-orange-600'
-                                : 'text-green-600'
-                            }`}
-                          >
-                            庫存 {product.totalStock}
-                          </span>
-                        </div>
-                      </div>
+                      <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {product.category?.name || '-'}
+                      </p>
+                      <p className="font-semibold text-gray-900 mt-2">
+                        ${product.price.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                   {/* 操作按鈕 */}
@@ -372,15 +330,13 @@ export default function ProductsPage() {
                     >
                       編輯
                     </Link>
-                    {product.totalStock > 0 && (
-                      <Link
-                        href={`/products/${encodeURIComponent(product.slug)}`}
-                        target="_blank"
-                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
-                      >
-                        查看
-                      </Link>
-                    )}
+                    <Link
+                      href={`/products/${encodeURIComponent(product.slug)}`}
+                      target="_blank"
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
+                    >
+                      查看
+                    </Link>
                     <button
                       onClick={() => handleDelete(product.id, product.name)}
                       className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium"
@@ -431,7 +387,7 @@ export default function ProductsPage() {
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                    {searchQuery || filterCategories.length > 0
+                    {debouncedSearch || filterCategories.length > 0
                       ? '沒有符合條件的產品'
                       : '暫無產品數據，請先新增產品'}
                   </td>
@@ -452,7 +408,6 @@ export default function ProductsPage() {
                     }
                   }
                   const firstImage = images[0] || '/images/placeholder-product.svg'
-                  const status = product.totalStock === 0 ? 'OUT_OF_STOCK' : 'ACTIVE'
 
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
@@ -500,28 +455,14 @@ export default function ProductsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          {product.totalStock === 0 ? (
-                            <button
-                              onClick={() => {
-                                toast.error('此產品無庫存，無法在前台展示。請先前往「編輯」→「庫存管理」設定庫存。', {
-                                  duration: 5000,
-                                })
-                              }}
-                              className="px-3 py-1 text-sm text-gray-400 cursor-not-allowed font-medium"
-                              title="產品無庫存，無法查看"
-                            >
-                              查看
-                            </button>
-                          ) : (
-                            <Link
-                              href={`/products/${encodeURIComponent(product.slug)}`}
-                              target="_blank"
-                              className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                              title="查看前台展示"
-                            >
-                              查看
-                            </Link>
-                          )}
+                          <Link
+                            href={`/products/${encodeURIComponent(product.slug)}`}
+                            target="_blank"
+                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            title="查看前台展示"
+                          >
+                            查看
+                          </Link>
                           <Link
                             href={`/admin/products/${product.id}/edit`}
                             className="px-3 py-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -552,34 +493,6 @@ export default function ProductsPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* 統計卡片 - 僅桌面版顯示 */}
-      <div className="hidden lg:grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">總產品數</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
-            {products.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">在售產品</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {activeProducts.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">缺貨產品</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">
-            {outOfStockProducts.length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">低庫存警告</p>
-          <p className="text-2xl font-bold text-orange-600 mt-1">
-            {lowStockProducts.length}
-          </p>
-        </div>
       </div>
     </div>
   )

@@ -1317,6 +1317,37 @@ pnpm prisma migrate reset
 
 ---
 
+### 🔥 近期重點更新（2026-01-19）
+
+#### ✅ 後台產品搜尋體驗優化
+- **問題描述**：後台產品管理頁面 (`/admin/products`) 搜尋框每打一個字就會觸發 API 請求，導致頁面閃爍跳動，使用者體驗極差
+- **根本原因**：
+  1. 搜尋輸入直接綁定到 `useQuery` 的 variables，每次 keydown 都立即發送 GraphQL 請求
+  2. `productsLoading` 為 true 時會顯示全畫面 loading 動畫，造成視覺「跳動」
+- **解決方案**：
+  1. 實作 debounce 機制 - 分離輸入框狀態（`searchInput`）與實際搜尋值（`debouncedSearch`），延遲 300ms 後才觸發 API 請求
+  2. 區分首次載入與搜尋載入 - 使用 `isInitialLoad` ref 追蹤，只在首次載入時顯示全畫面 loading，搜尋時保持列表可見
+- **技術變更**：`app/admin/products/page.tsx`
+  - 新增 `searchInput`、`debouncedSearch` 狀態
+  - 新增 `isInitialLoad` ref
+  - 新增 debounce effect（300ms）
+  - 修改 loading 判斷邏輯
+
+#### ✅ 後台產品管理移除庫存統計（無限庫存模式）
+- **背景**：系統已改為無限庫存模式，庫存相關統計和標記不再適用
+- **移除內容**：
+  1. 手機版統計摘要（在售/缺貨/低庫存）
+  2. 桌面版統計卡片（總產品數/在售/缺貨/低庫存）
+  3. 產品卡片的狀態標籤（在售/缺貨）
+  4. 產品卡片的庫存數字顯示
+  5. 「查看」按鈕的庫存條件判斷（現在所有產品都可直接查看）
+- **技術變更**：`app/admin/products/page.tsx`
+  - 移除 `statusLabels` 常數
+  - 移除 `activeProducts`、`outOfStockProducts`、`lowStockProducts` 計算
+  - 簡化手機版和桌面版的產品顯示邏輯
+
+---
+
 ### 🔥 近期重點更新（2025-12-31）
 
 #### ✅ 手機版篩選返回鍵體驗優化
