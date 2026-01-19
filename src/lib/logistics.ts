@@ -10,8 +10,9 @@ import crypto from 'crypto'
 // ============================================
 
 /**
- * 藍新物流狀態代碼 (LgsState) 對應說明
+ * 藍新物流狀態代碼對應說明
  *
+ * === 即時通知 (LgsState) ===
  * 統一 7-ELEVEN (ShipType=1):
  *   0: 建單成功
  *   3: 正在配送中
@@ -33,6 +34,15 @@ import crypto from 'crypto'
  *   4: 到店
  *   5: 取件完成
  *   9: 異常
+ *
+ * === queryShipment API 回傳 (RetId) ===
+ * 與即時通知的 LgsState 不同，queryShipment 使用 RetId：
+ *   0_1: 訂單未處理
+ *   1: 訂單處理中
+ *   5: 商品送達取貨門市
+ *   6: 買家取貨完成
+ *   7: 退貨
+ *   8: 轉店
  */
 
 export const LOGISTICS_STATE_MESSAGES: Record<string, Record<string, string>> = {
@@ -61,6 +71,73 @@ export const LOGISTICS_STATE_MESSAGES: Record<string, Record<string, string>> = 
     '5': '取件完成',
     '9': '異常',
   },
+}
+
+/**
+ * queryShipment API 回傳的 RetId 狀態訊息
+ * 這是查詢 API 專用的狀態格式，與即時通知的 LgsState 不同
+ */
+export const RET_ID_MESSAGES: Record<string, string> = {
+  '0_1': '訂單未處理',
+  '1': '訂單處理中',
+  '5': '商品送達取貨門市',
+  '6': '買家取貨完成',
+  '7': '退貨',
+  '8': '轉店',
+}
+
+/**
+ * 將 queryShipment API 的 RetId 轉換為系統 ShippingStatus
+ * @param retId queryShipment 回傳的 RetId
+ * @returns 系統物流狀態
+ */
+export function mapRetIdToShippingStatus(
+  retId: string
+): 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' {
+  switch (retId) {
+    case '0_1': // 訂單未處理
+      return 'PENDING'
+    case '1': // 訂單處理中
+      return 'PROCESSING'
+    case '5': // 商品送達取貨門市
+      return 'SHIPPED'
+    case '6': // 買家取貨完成
+      return 'DELIVERED'
+    case '7': // 退貨
+    case '8': // 轉店
+      return 'SHIPPED' // 異常狀態保持 SHIPPED，需要人工處理
+    default:
+      return 'PROCESSING'
+  }
+}
+
+/**
+ * 將 queryShipment API 的 RetId 轉換為系統 OrderStatus
+ * @param retId queryShipment 回傳的 RetId
+ * @returns 系統訂單狀態（僅在取件完成時更新）
+ */
+export function mapRetIdToOrderStatus(
+  retId: string
+): 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | null {
+  switch (retId) {
+    case '0_1': // 訂單未處理
+      return 'PROCESSING'
+    case '1': // 訂單處理中
+      return 'PROCESSING'
+    case '5': // 商品送達取貨門市
+      return 'SHIPPED'
+    case '6': // 買家取貨完成 - 訂單完成
+      return 'COMPLETED'
+    default:
+      return null // 不更新訂單狀態
+  }
+}
+
+/**
+ * 取得 RetId 的中文說明
+ */
+export function getRetIdMessage(retId: string): string {
+  return RET_ID_MESSAGES[retId] || `未知狀態 (${retId})`
 }
 
 /**

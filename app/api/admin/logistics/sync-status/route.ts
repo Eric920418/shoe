@@ -18,6 +18,9 @@ import {
   mapLgsStateToOrderStatus,
   getLgsStateMessage,
   decryptLogisticsData,
+  mapRetIdToShippingStatus,
+  mapRetIdToOrderStatus,
+  getRetIdMessage,
 } from '@/lib/logistics'
 
 export const runtime = 'nodejs'
@@ -180,11 +183,12 @@ export async function POST(request: NextRequest) {
           console.log(`Result 資料 (${order.orderNumber}):`, JSON.stringify(shipmentData, null, 2))
         }
 
-        const lgsState = shipmentData?.LgsState?.toString() || shipmentData?.LogisticsStatus?.toString() || ''
-        const shipType = shipmentData?.ShipType?.toString() || '1'
-        const lgsNo = shipmentData?.LgsNo || ''
+        // queryShipment API 回傳 RetId，與即時通知的 LgsState 格式不同
+        const retId = shipmentData?.RetId?.toString() || ''
+        const retString = shipmentData?.RetString || ''
+        const lgsNo = shipmentData?.LgsNo || shipmentData?.StorePrintNo || ''
 
-        if (!lgsState) {
+        if (!retId) {
           results.push({
             orderNumber: order.orderNumber,
             oldStatus: order.shippingStatus,
@@ -198,10 +202,11 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // 轉換狀態
-        const newShippingStatus = mapLgsStateToShippingStatus(lgsState, shipType)
-        const newOrderStatus = mapLgsStateToOrderStatus(lgsState)
-        const lgsStateMessage = getLgsStateMessage(lgsState, shipType)
+        // 轉換狀態（使用 RetId 映射函數）
+        const newShippingStatus = mapRetIdToShippingStatus(retId)
+        const newOrderStatus = mapRetIdToOrderStatus(retId)
+        // 優先使用藍新回傳的中文說明，否則使用我們的映射
+        const lgsStateMessage = retString || getRetIdMessage(retId)
 
         // 準備更新資料
         const updateData: any = {
@@ -216,10 +221,12 @@ export async function POST(request: NextRequest) {
           updateData.trackingNumber = lgsNo
         }
 
-        // 根據狀態更新時間
-        if (lgsState === '3' && !order.shippedAt) {
+        // 根據 RetId 狀態更新時間
+        // RetId '5' = 商品送達取貨門市（已出貨）
+        // RetId '6' = 買家取貨完成（已送達）
+        if (retId === '5' && !order.shippedAt) {
           updateData.shippedAt = new Date()
-        } else if (lgsState === '5' && !order.deliveredAt) {
+        } else if (retId === '6' && !order.deliveredAt) {
           updateData.deliveredAt = new Date()
         }
 
@@ -248,7 +255,7 @@ export async function POST(request: NextRequest) {
           orderNumber: order.orderNumber,
           oldStatus: order.shippingStatus,
           newStatus: newShippingStatus,
-          lgsState,
+          lgsState: retId,  // 使用 RetId 作為狀態碼
           lgsStateMessage,
           shippingMethod: order.shippingMethod || 'CVS_PICKUP',
           success: true,
