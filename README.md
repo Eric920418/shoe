@@ -1320,18 +1320,20 @@ pnpm prisma migrate reset
 ### 🔥 近期重點更新（2026-01-19）
 
 #### ✅ 後台產品搜尋體驗優化
-- **問題描述**：後台產品管理頁面 (`/admin/products`) 搜尋框每打一個字就會觸發 API 請求，導致頁面閃爍跳動，使用者體驗極差
+- **問題描述**：後台產品管理頁面 (`/admin/products`) 搜尋框每打一個字就會觸發 API 請求，導致頁面閃爍跳動、整個列表消失重新載入，使用者體驗極差
 - **根本原因**：
   1. 搜尋輸入直接綁定到 `useQuery` 的 variables，每次 keydown 都立即發送 GraphQL 請求
-  2. `productsLoading` 為 true 時會顯示全畫面 loading 動畫，造成視覺「跳動」
+  2. `fetchPolicy: 'network-only'` 會在每次請求時清空資料，導致畫面閃白
+  3. `productsLoading` 為 true 時會顯示全畫面 loading 動畫
 - **解決方案**：
-  1. 實作 debounce 機制 - 分離輸入框狀態（`searchInput`）與實際搜尋值（`debouncedSearch`），延遲 300ms 後才觸發 API 請求
-  2. 區分首次載入與搜尋載入 - 使用 `isInitialLoad` ref 追蹤，只在首次載入時顯示全畫面 loading，搜尋時保持列表可見
+  1. 實作 debounce 機制（500ms）- 分離輸入框狀態（`searchInput`）與實際搜尋值（`debouncedSearch`）
+  2. 改用 `fetchPolicy: 'cache-and-network'` - 搜尋時保持舊資料顯示，新資料返回後才更新
+  3. 加入 `notifyOnNetworkStatusChange: false` - 避免 loading 狀態變化導致重新渲染
 - **技術變更**：`app/admin/products/page.tsx`
   - 新增 `searchInput`、`debouncedSearch` 狀態
-  - 新增 `isInitialLoad` ref
-  - 新增 debounce effect（300ms）
-  - 修改 loading 判斷邏輯
+  - 新增 debounce effect（500ms 延遲）
+  - fetchPolicy 從 `network-only` 改為 `cache-and-network`
+  - 加入 `notifyOnNetworkStatusChange: false`
 
 #### ✅ 後台產品管理移除庫存統計（無限庫存模式）
 - **背景**：系統已改為無限庫存模式，庫存相關統計和標記不再適用
