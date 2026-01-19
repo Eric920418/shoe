@@ -38,14 +38,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '權限不足' }, { status: 403 })
     }
 
+    // 先查詢所有訂單狀態分佈（用於除錯）
+    const allOrders = await prisma.order.findMany({
+      select: {
+        id: true,
+        orderNumber: true,
+        paymentStatus: true,
+        shippingMethod: true,
+        shippingStatus: true,
+        status: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+
+    console.log('=== 最近 20 筆訂單狀態 ===')
+    allOrders.forEach(o => {
+      console.log(`${o.orderNumber}: paymentStatus=${o.paymentStatus}, shippingMethod=${o.shippingMethod}, shippingStatus=${o.shippingStatus}, status=${o.status}`)
+    })
+
     // 查詢所有需要同步的訂單
-    // 條件：已付款 + 超商取貨 + 物流狀態不是 DELIVERED
+    // 條件放寬：只要已付款 + 物流狀態不是 DELIVERED
     const orders = await prisma.order.findMany({
       where: {
-        paymentStatus: 'PAID',
-        shippingMethod: 'CVS_PICKUP',
+        OR: [
+          { paymentStatus: 'PAID' },
+          { paymentStatus: 'BANK_TRANSFER_VERIFIED' },
+        ],
         shippingStatus: {
-          not: 'DELIVERED',
+          in: ['PENDING', 'PROCESSING', 'SHIPPED'], // 排除已送達
+        },
+        status: {
+          notIn: ['CANCELLED', 'REFUNDED'], // 排除已取消和已退款
         },
       },
       include: {
@@ -60,13 +84,32 @@ export async function POST(request: NextRequest) {
     console.log(`找到 ${orders.length} 筆需要同步的訂單`)
 
     if (orders.length === 0) {
+      // 提供更多資訊幫助除錯
+      const statusCounts = {
+        total: allOrders.length,
+        paid: allOrders.filter(o => o.paymentStatus === 'PAID').length,
+        pending: allOrders.filter(o => o.paymentStatus === 'PENDING').length,
+        cvsPickup: allOrders.filter(o => o.shippingMethod === 'CVS_PICKUP').length,
+        selfPickup: allOrders.filter(o => o.shippingMethod === 'SELF_PICKUP').length,
+        homeDelivery: allOrders.filter(o => o.shippingMethod === 'HOME_DELIVERY').length,
+        delivered: allOrders.filter(o => o.shippingStatus === 'DELIVERED').length,
+        shippingPending: allOrders.filter(o => o.shippingStatus === 'PENDING').length,
+      }
+
       return NextResponse.json({
         success: true,
-        message: '沒有需要同步的訂單',
+        message: `沒有找到需要同步的訂單。最近 ${statusCounts.total} 筆訂單中：已付款 ${statusCounts.paid} 筆、待付款 ${statusCounts.pending} 筆、超商取貨 ${statusCounts.cvsPickup} 筆、郵局/其他 ${statusCounts.selfPickup} 筆、宅配 ${statusCounts.homeDelivery} 筆、物流待處理 ${statusCounts.shippingPending} 筆、已送達 ${statusCounts.delivered} 筆`,
         syncedCount: 0,
         results: [],
+        debug: statusCounts,
       })
     }
+
+    // 分類訂單：超商取貨 vs 其他配送方式
+    const cvsOrders = orders.filter(o => o.shippingMethod === 'CVS_PICKUP')
+    const otherOrders = orders.filter(o => o.shippingMethod !== 'CVS_PICKUP')
+
+    console.log(`超商取貨訂單: ${cvsOrders.length} 筆, 其他配送方式: ${otherOrders.length} 筆`)
 
     const results: Array<{
       orderNumber: string
@@ -74,12 +117,27 @@ export async function POST(request: NextRequest) {
       newStatus: string
       lgsState: string
       lgsStateMessage: string
+      shippingMethod: string
       success: boolean
       error?: string
     }> = []
 
-    // 逐筆查詢並更新
-    for (const order of orders) {
+    // 處理非超商取貨訂單（無法透過藍新 API 查詢）
+    for (const order of otherOrders) {
+      results.push({
+        orderNumber: order.orderNumber,
+        oldStatus: order.shippingStatus,
+        newStatus: order.shippingStatus,
+        lgsState: '',
+        lgsStateMessage: '非超商取貨訂單，無法透過藍新 API 查詢，請手動更新狀態',
+        shippingMethod: order.shippingMethod || '未知',
+        success: false,
+        error: '非超商取貨訂單',
+      })
+    }
+
+    // 逐筆查詢超商取貨訂單
+    for (const order of cvsOrders) {
       const merchantOrderNo = order.payment?.merchantOrderNo || order.orderNumber
 
       try {
@@ -98,6 +156,7 @@ export async function POST(request: NextRequest) {
             newStatus: order.shippingStatus,
             lgsState: '',
             lgsStateMessage: response.Message || '查詢失敗',
+            shippingMethod: order.shippingMethod || 'CVS_PICKUP',
             success: false,
             error: response.Message,
           })
@@ -125,6 +184,7 @@ export async function POST(request: NextRequest) {
             newStatus: order.shippingStatus,
             lgsState: '',
             lgsStateMessage: '無物流狀態資料',
+            shippingMethod: order.shippingMethod || 'CVS_PICKUP',
             success: false,
             error: '無物流狀態資料',
           })
@@ -183,6 +243,7 @@ export async function POST(request: NextRequest) {
           newStatus: newShippingStatus,
           lgsState,
           lgsStateMessage,
+          shippingMethod: order.shippingMethod || 'CVS_PICKUP',
           success: true,
         })
 
@@ -196,7 +257,8 @@ export async function POST(request: NextRequest) {
           oldStatus: order.shippingStatus,
           newStatus: order.shippingStatus,
           lgsState: '',
-          lgsStateMessage: '',
+          lgsStateMessage: err.message,
+          shippingMethod: order.shippingMethod || 'CVS_PICKUP',
           success: false,
           error: err.message,
         })
