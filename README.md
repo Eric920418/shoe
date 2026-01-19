@@ -1030,6 +1030,12 @@ pnpm prisma migrate reset
 - **自動同步**：更新訂單狀態時自動同步更新物流狀態（shippingStatus）
 - **時間記錄**：自動記錄 `shippedAt`（出貨時間）和 `deliveredAt`（送達時間）
 
+#### ✅ 主動同步物流狀態功能
+- **新增功能**：後台訂單列表頁面新增「🔄 同步物流狀態」按鈕
+- **工作原理**：點擊後自動向藍新物流 API 查詢所有超商取貨訂單的最新物流狀態
+- **自動更新**：根據藍新回傳的 LgsState 自動更新訂單的 shippingStatus、status、shippedAt、deliveredAt
+- **API 端點**：`/api/admin/logistics/sync-status`
+
 ### 🔥 近期重點更新（2026-01-14）
 
 #### ✅ 簡化結帳流程 - 移除收件人資訊欄位

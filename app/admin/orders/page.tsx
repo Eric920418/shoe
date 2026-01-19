@@ -184,6 +184,31 @@ export default function OrdersPage() {
     }
   }
 
+  // 同步物流狀態
+  const [syncing, setSyncing] = useState(false)
+  const handleSyncLogisticsStatus = async () => {
+    if (!confirm('確定要從藍新同步所有超商取貨訂單的物流狀態嗎？')) return
+
+    setSyncing(true)
+    try {
+      const response = await fetch('/api/admin/logistics/sync-status', {
+        method: 'POST',
+      })
+      const result = await response.json()
+
+      if (response.ok) {
+        alert(result.message)
+        refetch()
+      } else {
+        alert(`同步失敗: ${result.error}`)
+      }
+    } catch (err: any) {
+      alert(`同步失敗: ${err.message}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   // Loading 狀態
   if (loading) {
     return (
@@ -211,11 +236,29 @@ export default function OrdersPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* 頁面標題 */}
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">訂單管理</h1>
-        <p className="text-sm lg:text-base text-gray-600 mt-1">
-          共 <span className="font-semibold">{filteredOrders.length}</span> 筆訂單
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">訂單管理</h1>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">
+            共 <span className="font-semibold">{filteredOrders.length}</span> 筆訂單
+          </p>
+        </div>
+        <button
+          onClick={handleSyncLogisticsStatus}
+          disabled={syncing}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
+        >
+          {syncing ? (
+            <>
+              <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              同步中...
+            </>
+          ) : (
+            <>
+              🔄 同步物流狀態
+            </>
+          )}
+        </button>
       </div>
 
       {/* 手機版 - 統計摘要 */}
