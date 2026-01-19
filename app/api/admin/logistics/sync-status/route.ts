@@ -22,6 +22,8 @@ import {
   mapRetIdToOrderStatus,
   getRetIdMessage,
 } from '@/lib/logistics'
+import { processCompletedOrder } from '@/graphql/resolvers/orderResolvers'
+import { processReferralReward } from '@/graphql/resolvers/referralResolvers'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -249,6 +251,26 @@ export async function POST(request: NextRequest) {
           })
 
           console.log(`✅ 訂單 ${order.orderNumber} 狀態已更新: ${order.shippingStatus} → ${newShippingStatus}`)
+
+          // 🎁 訂單完成時自動發放購物金回饋和邀請碼獎勵
+          if (newOrderStatus === 'COMPLETED' && order.status !== 'COMPLETED' && order.userId) {
+            try {
+              // 發放購物金回饋
+              await processCompletedOrder(order.userId, order.id, order.total)
+              console.log(`💰 訂單 ${order.orderNumber} 已完成，購物金回饋已發放`)
+
+              // 處理邀請碼獎勵
+              await processReferralReward({
+                userId: order.userId,
+                orderId: order.id,
+                orderAmount: order.total.toNumber(),
+              })
+              console.log(`🎟️ 訂單 ${order.orderNumber} 邀請碼獎勵已處理`)
+            } catch (rewardErr) {
+              // 獎勵發放失敗不影響狀態同步
+              console.error(`訂單 ${order.orderNumber} 獎勵發放失敗:`, rewardErr)
+            }
+          }
         }
 
         results.push({

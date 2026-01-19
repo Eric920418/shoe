@@ -555,7 +555,7 @@ function CheckoutContent() {
                           className="mr-3"
                         />
                         <div>
-                          <div className="font-semibold text-black">郵局等其他物私聊</div>
+                          <div className="font-semibold text-black">郵局等其他物流私聊</div>
                           <div className="text-sm text-gray-600">Line: 308@mstvl</div>
                         </div>
                       </div>

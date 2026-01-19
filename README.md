@@ -1033,7 +1033,8 @@ pnpm prisma migrate reset
 #### ✅ 主動同步物流狀態功能
 - **新增功能**：後台訂單列表頁面新增「🔄 同步物流狀態」按鈕
 - **工作原理**：點擊後自動向藍新物流 API 查詢所有超商取貨訂單的最新物流狀態
-- **自動更新**：根據藍新回傳的 LgsState 自動更新訂單的 shippingStatus、status、shippedAt、deliveredAt
+- **自動更新**：根據藍新回傳的 RetId 自動更新訂單的 shippingStatus、status、shippedAt、deliveredAt
+- **購物金自動發放**：當訂單狀態同步為「已完成」(COMPLETED) 時，自動發放購物金回饋和邀請碼獎勵（2026-01-19 新增）
 - **API 端點**：`/api/admin/logistics/sync-status`
 
 ### 🔥 近期重點更新（2026-01-14）

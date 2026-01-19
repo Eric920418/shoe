@@ -74,7 +74,7 @@ interface GraphQLContext {
  * @param orderId 訂單ID
  * @param orderTotal 訂單總金額
  */
-async function processCompletedOrder(
+export async function processCompletedOrder(
   userId: string,
   orderId: string,
   orderTotal: number | any
