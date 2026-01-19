@@ -162,16 +162,25 @@ export async function POST(request: NextRequest) {
         }
 
         // 解密回應資料
-        let shipmentData: any = response.Result
-        if (typeof response.Result === 'string') {
+        let shipmentData: any = null
+
+        // 藍新 queryShipment 回傳的是 EncryptData，不是 Result
+        if (response.EncryptData) {
           try {
-            shipmentData = decryptLogisticsData(response.Result)
-          } catch {
-            shipmentData = response.Result
+            shipmentData = decryptLogisticsData(response.EncryptData)
+            console.log(`解密後資料 (${order.orderNumber}):`, JSON.stringify(shipmentData, null, 2))
+          } catch (decryptErr) {
+            console.error(`解密失敗 (${order.orderNumber}):`, decryptErr)
+            shipmentData = null
           }
+        } else if (response.Result) {
+          shipmentData = typeof response.Result === 'string'
+            ? JSON.parse(response.Result)
+            : response.Result
+          console.log(`Result 資料 (${order.orderNumber}):`, JSON.stringify(shipmentData, null, 2))
         }
 
-        const lgsState = shipmentData?.LgsState?.toString() || ''
+        const lgsState = shipmentData?.LgsState?.toString() || shipmentData?.LogisticsStatus?.toString() || ''
         const shipType = shipmentData?.ShipType?.toString() || '1'
         const lgsNo = shipmentData?.LgsNo || ''
 
