@@ -197,7 +197,21 @@ export default function OrdersPage() {
       const result = await response.json()
 
       if (response.ok) {
-        alert(result.message)
+        // 顯示詳細結果
+        let message = result.message
+        if (result.results && result.results.length > 0) {
+          const failed = result.results.filter((r: any) => !r.success)
+          if (failed.length > 0) {
+            message += '\n\n失敗詳情：'
+            failed.slice(0, 5).forEach((r: any) => {
+              message += `\n- ${r.orderNumber}: ${r.error || r.lgsStateMessage || '未知錯誤'}`
+            })
+            if (failed.length > 5) {
+              message += `\n... 還有 ${failed.length - 5} 筆`
+            }
+          }
+        }
+        alert(message)
         refetch()
       } else {
         alert(`同步失敗: ${result.error}`)
