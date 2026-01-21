@@ -1,126 +1,128 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Tag, AlertTriangle,
-  ShoppingCart, Clock, Zap
+  ShoppingCart, Clock, Zap, Loader2
 } from 'lucide-react'
+import { useQuery } from '@apollo/client'
+import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 
+interface ClearanceProduct {
+  id: string
+  slug: string
+  name: string
+  originalPrice: number
+  clearancePrice: number
+  discount: number
+  image: string
+  stock: number
+  lowStock: boolean
+  reason: string
+  rating: number
+  soldCount: number
+}
+
 export default function ClearancePage() {
   const [sortBy, setSortBy] = useState('discount')
-  const [sizeFilter, setSizeFilter] = useState('all')
   const [discountFilter, setDiscountFilter] = useState('all')
 
-  // 清倉產品數據
-  const clearanceProducts = [
-    {
-      id: 1,
-      name: 'Nike Air Max 90 Essential',
-      originalPrice: 4290,
-      clearancePrice: 1290,
-      discount: 70,
-      image: '/api/placeholder/300/300',
-      sizes: ['40', '41', '42'],
-      lastStock: true,
-      reason: '換季出清',
-      rating: 4.7,
-      sold: 892
+  // 查詢產品資料
+  const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
+    variables: {
+      take: 100, // 取多一點，再過濾有折扣的
     },
-    {
-      id: 2,
-      name: 'Adidas Superstar Foundation',
-      originalPrice: 3590,
-      clearancePrice: 899,
-      discount: 75,
-      image: '/api/placeholder/300/300',
-      sizes: ['38', '39'],
-      lastStock: true,
-      reason: '斷碼特賣',
-      rating: 4.8,
-      sold: 1567
-    },
-    {
-      id: 3,
-      name: 'New Balance 997H',
-      originalPrice: 3990,
-      clearancePrice: 1590,
-      discount: 60,
-      image: '/api/placeholder/300/300',
-      sizes: ['41', '42', '43'],
-      lastStock: false,
-      reason: '庫存出清',
-      rating: 4.6,
-      sold: 623
-    },
-    {
-      id: 4,
-      name: 'Puma Future Rider',
-      originalPrice: 2990,
-      clearancePrice: 749,
-      discount: 75,
-      image: '/api/placeholder/300/300',
-      sizes: ['39', '40'],
-      lastStock: true,
-      reason: '展示品特賣',
-      rating: 4.5,
-      sold: 234
-    },
-    {
-      id: 5,
-      name: 'Converse Chuck Taylor All Star',
-      originalPrice: 2290,
-      clearancePrice: 690,
-      discount: 70,
-      image: '/api/placeholder/300/300',
-      sizes: ['37', '38', '44'],
-      lastStock: false,
-      reason: '過季商品',
-      rating: 4.7,
-      sold: 2134
-    },
-    {
-      id: 6,
-      name: 'Vans Authentic',
-      originalPrice: 2190,
-      clearancePrice: 549,
-      discount: 75,
-      image: '/api/placeholder/300/300',
-      sizes: ['36', '45'],
-      lastStock: true,
-      reason: '最後出清',
-      rating: 4.6,
-      sold: 1823
-    },
-    {
-      id: 7,
-      name: 'Reebok Classic Leather',
-      originalPrice: 2790,
-      clearancePrice: 990,
-      discount: 65,
-      image: '/api/placeholder/300/300',
-      sizes: ['40', '41', '42', '43'],
-      lastStock: false,
-      reason: '年終清倉',
-      rating: 4.5,
-      sold: 456
-    },
-    {
-      id: 8,
-      name: 'Fila Disruptor II',
-      originalPrice: 3190,
-      clearancePrice: 890,
-      discount: 72,
-      image: '/api/placeholder/300/300',
-      sizes: ['38', '39', '40'],
-      lastStock: true,
-      reason: '停產清貨',
-      rating: 4.4,
-      sold: 789
+  })
+
+  // 過濾並處理清倉產品（折扣 >= 30%）
+  const clearanceProducts: ClearanceProduct[] = useMemo(() => {
+    if (!data?.products) return []
+
+    const filtered = data.products
+      .filter((product: any) => {
+        const price = parseFloat(product.price)
+        const originalPrice = parseFloat(product.originalPrice) || price
+        if (originalPrice <= price) return false
+
+        const discount = Math.round((1 - price / originalPrice) * 100)
+
+        // 只顯示折扣 >= 30% 的產品（清倉標準）
+        if (discount < 30) return false
+
+        // 根據折扣篩選
+        if (discountFilter !== 'all') {
+          const [minStr, maxStr] = discountFilter.split('-')
+          const min = parseInt(minStr)
+          const max = parseInt(maxStr)
+          // 折扣範圍：例如 50-60 表示折扣 40%-50%（即打 5-6 折）
+          const discountForFilter = 100 - discount // 轉換為「幾折」
+          if (discountForFilter < min || discountForFilter > max) return false
+        }
+
+        return true
+      })
+      .map((product: any) => {
+        const price = parseFloat(product.price)
+        const originalPrice = parseFloat(product.originalPrice) || price
+        const discount = Math.round((1 - price / originalPrice) * 100)
+        const stock = product.stock || 0
+        const soldCount = product.soldCount || 0
+        const averageRating = product.averageRating ? parseFloat(product.averageRating) : 0
+        const images = Array.isArray(product.images) ? product.images : []
+        const image = images.length > 0 ? images[0] : '/api/placeholder/300/300'
+
+        // 決定清倉原因標籤
+        let reason = '清倉特賣'
+        if (discount >= 70) reason = '最後出清'
+        else if (discount >= 60) reason = '換季出清'
+        else if (stock <= 5) reason = '斷碼特賣'
+        else if (stock <= 10) reason = '庫存出清'
+        else if (soldCount > 50) reason = '熱銷清倉'
+
+        return {
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          originalPrice,
+          clearancePrice: price,
+          discount,
+          image,
+          stock,
+          lowStock: stock <= 10,
+          reason,
+          rating: averageRating,
+          soldCount,
+        }
+      })
+
+    // 排序
+    switch (sortBy) {
+      case 'discount':
+        filtered.sort((a: ClearanceProduct, b: ClearanceProduct) => b.discount - a.discount)
+        break
+      case 'price-low':
+        filtered.sort((a: ClearanceProduct, b: ClearanceProduct) => a.clearancePrice - b.clearancePrice)
+        break
+      case 'price-high':
+        filtered.sort((a: ClearanceProduct, b: ClearanceProduct) => b.clearancePrice - a.clearancePrice)
+        break
+      case 'sales':
+        filtered.sort((a: ClearanceProduct, b: ClearanceProduct) => b.soldCount - a.soldCount)
+        break
     }
-  ]
+
+    return filtered
+  }, [data, sortBy, discountFilter])
+
+  // 計算統計數據
+  const stats = useMemo(() => {
+    if (clearanceProducts.length === 0) return { maxDiscount: 0, totalProducts: 0 }
+    const maxDiscount = Math.max(...clearanceProducts.map(p => p.discount))
+    return { maxDiscount, totalProducts: clearanceProducts.length }
+  }, [clearanceProducts])
 
   const discountRanges = [
     { value: 'all', label: '全部折扣' },
@@ -130,14 +132,23 @@ export default function ClearancePage() {
     { value: '0-30', label: '3折以下' }
   ]
 
-  const sizes = ['all', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-red-500">
+          <p className="text-lg font-medium">載入失敗</p>
+          <p className="text-sm mt-2">{error.message}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 頂部橫幅 */}
       <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Tag className="text-yellow-300" size={32} />
@@ -153,11 +164,11 @@ export default function ClearancePage() {
 
             <div className="flex items-center gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-300">70%</p>
+                <p className="text-2xl font-bold text-yellow-300">{stats.maxDiscount}%</p>
                 <p className="text-xs opacity-90">最高折扣</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-300">888</p>
+                <p className="text-2xl font-bold text-yellow-300">{stats.totalProducts}</p>
                 <p className="text-xs opacity-90">清倉商品</p>
               </div>
             </div>
@@ -199,29 +210,6 @@ export default function ClearancePage() {
               </div>
             </div>
 
-            {/* 尺碼篩選 */}
-            <div className="flex-1">
-              <p className="text-sm text-gray-600 mb-2 font-medium">尺碼</p>
-              <div className="flex flex-wrap gap-2">
-                {sizes.slice(0, 8).map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSizeFilter(size)}
-                    className={`w-12 h-8 rounded text-sm transition-colors ${
-                      sizeFilter === size
-                        ? 'bg-green-500 text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-green-500'
-                    }`}
-                  >
-                    {size === 'all' ? '全部' : size}
-                  </button>
-                ))}
-                <button className="text-sm text-green-500 hover:text-green-600">
-                  更多 →
-                </button>
-              </div>
-            </div>
-
             {/* 排序 */}
             <div>
               <p className="text-sm text-gray-600 mb-2 font-medium">排序</p>
@@ -239,86 +227,84 @@ export default function ClearancePage() {
           </div>
         </div>
 
-        {/* 產品網格 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {clearanceProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
-            >
-              <Link href={`/products/${product.id}`}>
-                <div className="relative aspect-square bg-gray-100">
-                  <ProductCardImage
-                    src={product.image}
-                    alt={product.name}
-                    hoverScale
-                  />
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="animate-spin text-green-500" size={40} />
+          </div>
+        ) : clearanceProducts.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            <Tag size={48} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-lg">目前沒有清倉商品</p>
+            <Link href="/products" className="text-green-500 hover:underline mt-2 inline-block">
+              瀏覽所有商品
+            </Link>
+          </div>
+        ) : (
+          /* 產品網格 */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {clearanceProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
+              >
+                <Link href={`/products/${product.slug}`}>
+                  <div className="relative aspect-square bg-gray-100">
+                    <ProductCardImage
+                      src={product.image}
+                      alt={product.name}
+                      hoverScale
+                    />
 
-                  {/* 折扣標籤 */}
-                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-red-600 to-orange-600 text-white p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold">{product.discount}% OFF</span>
-                      <span className="text-xs bg-black/20 px-2 py-0.5 rounded">
-                        {product.reason}
-                      </span>
+                    {/* 折扣標籤 */}
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-red-600 to-orange-600 text-white p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xl font-bold">{product.discount}% OFF</span>
+                        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">
+                          {product.reason}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 最後庫存警告 */}
-                  {product.lastStock && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-xs py-1 px-2 rounded animate-pulse text-center">
-                      <AlertTriangle size={12} className="inline mr-1" />
-                      最後庫存
-                    </div>
-                  )}
-
-                  {/* 願望清單按鈕 */}
-                  <div className="absolute top-2 right-2 z-20">
-                    <WishlistButton productId={product.id.toString()} size="sm" />
-                  </div>
-                </div>
-
-                <div className="p-3">
-                  <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
-                    {product.name}
-                  </h3>
-
-                  {/* 可選尺碼 */}
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {product.sizes.slice(0, 3).map(size => (
-                      <span key={size} className="text-[10px] border border-gray-300 px-1.5 py-0.5 rounded">
-                        {size}
-                      </span>
-                    ))}
-                    {product.sizes.length > 3 && (
-                      <span className="text-[10px] text-gray-500">
-                        +{product.sizes.length - 3}
-                      </span>
+                    {/* 最後庫存警告 */}
+                    {product.lowStock && (
+                      <div className="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-xs py-1 px-2 rounded animate-pulse text-center">
+                        <AlertTriangle size={12} className="inline mr-1" />
+                        {product.stock <= 5 ? '最後庫存' : `僅剩 ${product.stock} 件`}
+                      </div>
                     )}
-                  </div>
 
-{/* 銷量暫時隱藏 */}
-
-                  {/* 價格 */}
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-xs text-gray-400 line-through">
-                        ${product.originalPrice}
-                      </p>
-                      <p className="text-lg font-bold text-green-600">
-                        ${product.clearancePrice}
-                      </p>
+                    {/* 願望清單按鈕 */}
+                    <div className="absolute top-12 right-2 z-20">
+                      <WishlistButton productId={product.id} size="sm" />
                     </div>
-                    <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1">
-                      <ShoppingCart size={12} />
-                      搶購
-                    </button>
                   </div>
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
+
+                  <div className="p-3">
+                    <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
+                      {product.name}
+                    </h3>
+
+                    {/* 價格 */}
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 line-through">
+                          ${product.originalPrice}
+                        </p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${product.clearancePrice}
+                        </p>
+                      </div>
+                      <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1">
+                        <ShoppingCart size={12} />
+                        搶購
+                      </button>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 底部提示 */}
         <div className="mt-8 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-6">
