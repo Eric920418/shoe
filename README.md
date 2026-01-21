@@ -1000,6 +1000,25 @@ pnpm prisma migrate reset
 
 ## 📝 最新更新摘要
 
+### 🔥 近期重點更新（2026-01-21）
+
+#### ✅ 今日特價頁面修正（/daily-deals）
+- **問題**：`/daily-deals` 頁面完全使用硬編碼的假資料，包含不存在的產品（Nike Blazer Mid 77、Adidas NMD R1 等）和 placeholder 圖片
+- **根本原因**：該頁面是開發初期的 placeholder，後來忘了實作真正的功能
+- **解決方案**：
+  - 改用 `GET_HOMEPAGE_PRODUCTS` GraphQL 查詢獲取真實產品資料
+  - 自動過濾出有折扣的產品（`originalPrice > price`）
+  - 按折扣幅度排序顯示
+  - 動態計算距離下次更新（每日 10:00）的倒數計時
+  - 根據銷量、評分自動決定產品標籤（爆款推薦、熱銷單品、好評推薦等）
+- **技術變更**：`app/daily-deals/page.tsx`
+  - 移除所有硬編碼假資料
+  - 新增 `useQuery` 查詢產品
+  - 新增 `DealProduct` 介面定義
+  - 新增載入中、空資料、錯誤狀態處理
+
+---
+
 ### 🔥 近期重點更新（2026-01-17）
 
 #### ✅ 物流貨態即時通知功能（v2.6.3）
