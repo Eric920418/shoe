@@ -125,7 +125,7 @@ export default function DailyDealsPage() {
       {/* 頂部橫幅 */}
       <div className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex  sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Calendar className="text-white" size={28} />
               <div>
@@ -134,7 +134,7 @@ export default function DailyDealsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-black/20 backdrop-blur px-4 py-2 rounded-lg">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg">
               <RefreshCw size={20} />
               <div>
                 <p className="text-xs opacity-80">下次更新</p>
