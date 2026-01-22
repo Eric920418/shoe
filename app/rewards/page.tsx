@@ -1,24 +1,112 @@
 'use client'
 
 import React from 'react'
+import { useQuery, gql } from '@apollo/client'
 import { Gift, Star, TrendingUp, Coins, Sparkles, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
-export default function RewardsPage() {
-  const memberLevels = [
-    { level: 'BRONZE', name: '銅牌會員', spent: '$0 - $9,999', multiplier: '1x', color: 'from-amber-600 to-orange-700' },
-    { level: 'SILVER', name: '銀牌會員', spent: '$10,000 - $49,999', multiplier: '1.5x', color: 'from-gray-400 to-gray-600' },
-    { level: 'GOLD', name: '金牌會員', spent: '$50,000 - $99,999', multiplier: '2x', color: 'from-yellow-400 to-yellow-600' },
-    { level: 'PLATINUM', name: '白金會員', spent: '$100,000 - $199,999', multiplier: '2.5x', color: 'from-purple-400 to-purple-600' },
-    { level: 'DIAMOND', name: '鑽石會員', spent: '$200,000+', multiplier: '3x', color: 'from-cyan-400 to-blue-500' }
-  ]
+const GET_REWARDS_PAGE_CONFIG = gql`
+  query GetRewardsPageConfig {
+    rewardsPageConfig {
+      benefits {
+        id
+        icon
+        title
+        description
+      }
+      usageNotes {
+        id
+        content
+      }
+      membershipTiers {
+        id
+        name
+        slug
+        minSpent
+        maxSpent
+        pointsMultiplier
+        color
+      }
+    }
+  }
+`
 
-  const benefits = [
-    { title: '消費自動回饋', desc: '每消費 $100 自動獲得 $1 購物金', icon: Coins },
-    { title: '會員等級加成', desc: '等級越高，回饋倍率越多', icon: TrendingUp },
-    { title: '無需兌換', desc: '購物金直接入帳，下次結帳可用', icon: CheckCircle },
-    { title: '升級獎勵', desc: '會員升級額外贈送購物金', icon: Gift },
-  ]
+// 預設資料（當資料庫沒有資料時使用）
+const defaultBenefits = [
+  { id: 'default-1', icon: 'Coins', title: '消費自動回饋', description: '每消費 $100 自動獲得 $1 購物金' },
+  { id: 'default-2', icon: 'TrendingUp', title: '會員等級加成', description: '等級越高，回饋倍率越多' },
+  { id: 'default-3', icon: 'CheckCircle', title: '無需兌換', description: '購物金直接入帳，下次結帳可用' },
+  { id: 'default-4', icon: 'Gift', title: '升級獎勵', description: '會員升級額外贈送購物金' },
+]
+
+const defaultUsageNotes = [
+  { id: 'default-1', content: '訂單完成後自動發放，無需手動兌換' },
+  { id: 'default-2', content: '結帳時可選擇使用購物金折抵' },
+  { id: 'default-3', content: '購物金有效期為發放後一年' },
+  { id: 'default-4', content: '可於「帳戶設定」查看購物金餘額' },
+]
+
+const defaultMemberLevels = [
+  { id: 'default-1', name: '銅牌會員', slug: 'bronze', minSpent: '0', maxSpent: '9999', pointsMultiplier: '1', color: '#CD7F32' },
+  { id: 'default-2', name: '銀牌會員', slug: 'silver', minSpent: '10000', maxSpent: '49999', pointsMultiplier: '1.5', color: '#C0C0C0' },
+  { id: 'default-3', name: '金牌會員', slug: 'gold', minSpent: '50000', maxSpent: '99999', pointsMultiplier: '2', color: '#FFD700' },
+  { id: 'default-4', name: '白金會員', slug: 'platinum', minSpent: '100000', maxSpent: '199999', pointsMultiplier: '2.5', color: '#A855F7' },
+  { id: 'default-5', name: '鑽石會員', slug: 'diamond', minSpent: '200000', maxSpent: null, pointsMultiplier: '3', color: '#06B6D4' },
+]
+
+// 圖標映射
+const iconMap: { [key: string]: React.ElementType } = {
+  Coins,
+  TrendingUp,
+  CheckCircle,
+  Gift,
+  Star,
+  Sparkles,
+}
+
+// 等級對應的漸層顏色
+const getLevelGradient = (slug: string, color: string | null) => {
+  const gradientMap: { [key: string]: string } = {
+    bronze: 'from-amber-600 to-orange-700',
+    silver: 'from-gray-400 to-gray-600',
+    gold: 'from-yellow-400 to-yellow-600',
+    platinum: 'from-purple-400 to-purple-600',
+    diamond: 'from-cyan-400 to-blue-500',
+  }
+  return gradientMap[slug] || 'from-gray-400 to-gray-600'
+}
+
+export default function RewardsPage() {
+  const { data, loading } = useQuery(GET_REWARDS_PAGE_CONFIG)
+
+  // 使用資料庫數據，如果沒有則使用預設數據
+  const benefits = data?.rewardsPageConfig?.benefits?.length > 0
+    ? data.rewardsPageConfig.benefits
+    : defaultBenefits
+
+  const usageNotes = data?.rewardsPageConfig?.usageNotes?.length > 0
+    ? data.rewardsPageConfig.usageNotes
+    : defaultUsageNotes
+
+  const memberLevels = data?.rewardsPageConfig?.membershipTiers?.length > 0
+    ? data.rewardsPageConfig.membershipTiers
+    : defaultMemberLevels
+
+  // 格式化消費範圍
+  const formatSpentRange = (min: string, max: string | null) => {
+    const minVal = parseInt(min).toLocaleString()
+    if (!max) return `$${minVal}+`
+    const maxVal = parseInt(max).toLocaleString()
+    return `$${minVal} - $${maxVal}`
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,13 +135,16 @@ export default function RewardsPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {benefits.map((benefit, idx) => (
-              <div key={idx} className="text-center p-4 bg-emerald-50 rounded-lg">
-                <benefit.icon className="mx-auto mb-2 text-emerald-600" size={28} />
-                <h4 className="font-medium text-gray-800">{benefit.title}</h4>
-                <p className="text-sm text-gray-600 mt-1">{benefit.desc}</p>
-              </div>
-            ))}
+            {benefits.map((benefit: any) => {
+              const IconComponent = iconMap[benefit.icon] || Gift
+              return (
+                <div key={benefit.id} className="text-center p-4 bg-emerald-50 rounded-lg">
+                  <IconComponent className="mx-auto mb-2 text-emerald-600" size={28} />
+                  <h4 className="font-medium text-gray-800">{benefit.title}</h4>
+                  <p className="text-sm text-gray-600 mt-1">{benefit.description}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -67,12 +158,12 @@ export default function RewardsPage() {
             會員等級越高，購物金回饋倍率越多！
           </p>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {memberLevels.map((level) => (
-              <div key={level.level} className="relative rounded-lg overflow-hidden">
-                <div className={`h-28 bg-gradient-to-r ${level.color} p-3 text-white`}>
+            {memberLevels.map((level: any) => (
+              <div key={level.id} className="relative rounded-lg overflow-hidden">
+                <div className={`h-28 bg-gradient-to-r ${getLevelGradient(level.slug, level.color)} p-3 text-white`}>
                   <p className="font-bold">{level.name}</p>
-                  <p className="text-xs opacity-90">{level.spent}</p>
-                  <p className="text-xl font-bold mt-2">回饋 {level.multiplier}</p>
+                  <p className="text-xs opacity-90">{formatSpentRange(level.minSpent, level.maxSpent)}</p>
+                  <p className="text-xl font-bold mt-2">回饋 {level.pointsMultiplier}x</p>
                 </div>
               </div>
             ))}
@@ -91,22 +182,12 @@ export default function RewardsPage() {
             購物金使用說明
           </h2>
           <ul className="space-y-3 text-gray-700">
-            <li className="flex items-start gap-2">
-              <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
-              <span>訂單完成後自動發放，無需手動兌換</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
-              <span>結帳時可選擇使用購物金折抵</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
-              <span>購物金有效期為發放後一年</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
-              <span>可於「帳戶設定」查看購物金餘額</span>
-            </li>
+            {usageNotes.map((note: any) => (
+              <li key={note.id} className="flex items-start gap-2">
+                <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
+                <span>{note.content}</span>
+              </li>
+            ))}
           </ul>
         </div>
 

@@ -458,6 +458,16 @@ activeAnnouncements
 homepageConfigs
 activeHeroSlides
 latestFlashSale
+
+# 滿額折扣頁面
+discountTiers
+additionalOffers
+discountPageConfig
+
+# 購物金回饋頁面
+rewardBenefits
+rewardUsageNotes
+rewardsPageConfig
 ```
 
 ### 主要 Mutations
@@ -495,6 +505,14 @@ clearWishlist
 # 購物金
 grantCredit(input: GrantCreditInput!)
 batchGrantCredit(input: BatchGrantCreditInput!)
+
+# 滿額折扣管理（Admin）
+createDiscountTier(input: CreateDiscountTierInput!)
+updateDiscountTier(id: ID!, input: UpdateDiscountTierInput!)
+deleteDiscountTier(id: ID!)
+createAdditionalOffer(input: CreateAdditionalOfferInput!)
+updateAdditionalOffer(id: ID!, input: UpdateAdditionalOfferInput!)
+deleteAdditionalOffer(id: ID!)
 
 # 組合套裝
 createProductBundle(input: CreateProductBundleInput!)

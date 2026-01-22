@@ -1147,6 +1147,68 @@ export const typeDefs = gql`
     updatedAt: DateTime!
   }
 
+  # 滿額折扣階梯設定
+  type DiscountTierConfig {
+    id: ID!
+    minAmount: Decimal!
+    discount: Decimal!
+    title: String!
+    description: String!
+    benefits: JSON!
+    bgColor: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 額外優惠設定
+  type AdditionalOfferConfig {
+    id: ID!
+    icon: String!
+    title: String!
+    description: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 滿額折扣頁面完整設定
+  type DiscountPageConfig {
+    tiers: [DiscountTierConfig!]!
+    additionalOffers: [AdditionalOfferConfig!]!
+  }
+
+  # 購物金回饋福利設定
+  type RewardBenefitConfig {
+    id: ID!
+    icon: String!
+    title: String!
+    description: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 購物金使用說明設定
+  type RewardUsageNoteConfig {
+    id: ID!
+    content: String!
+    sortOrder: Int!
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # 購物金回饋頁面完整設定
+  type RewardsPageConfig {
+    benefits: [RewardBenefitConfig!]!
+    usageNotes: [RewardUsageNoteConfig!]!
+    membershipTiers: [MembershipTierConfig!]!
+  }
+
   # 枚舉：組件類型
   enum ComponentType {
     HERO_SLIDER
@@ -1353,6 +1415,76 @@ export const typeDefs = gql`
     badgeColor: String
     autoRefresh: Boolean
     refreshInterval: Int
+    isActive: Boolean
+  }
+
+  # 滿額折扣階梯 Input
+  input CreateDiscountTierInput {
+    minAmount: Decimal!
+    discount: Decimal!
+    title: String!
+    description: String!
+    benefits: JSON
+    bgColor: String
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  input UpdateDiscountTierInput {
+    minAmount: Decimal
+    discount: Decimal
+    title: String
+    description: String
+    benefits: JSON
+    bgColor: String
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  # 額外優惠 Input
+  input CreateAdditionalOfferInput {
+    icon: String!
+    title: String!
+    description: String!
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  input UpdateAdditionalOfferInput {
+    icon: String
+    title: String
+    description: String
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  # 購物金回饋福利 Input
+  input CreateRewardBenefitInput {
+    icon: String!
+    title: String!
+    description: String!
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  input UpdateRewardBenefitInput {
+    icon: String
+    title: String
+    description: String
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  # 購物金使用說明 Input
+  input CreateRewardUsageNoteInput {
+    content: String!
+    sortOrder: Int
+    isActive: Boolean
+  }
+
+  input UpdateRewardUsageNoteInput {
+    content: String
+    sortOrder: Int
     isActive: Boolean
   }
 
@@ -1782,6 +1914,20 @@ export const typeDefs = gql`
     popularProductsConfig: PopularProductsConfig
     popularProducts: [Product!]!
 
+    # 滿額折扣頁面
+    discountTiers: [DiscountTierConfig!]!
+    discountTier(id: ID!): DiscountTierConfig
+    additionalOffers: [AdditionalOfferConfig!]!
+    additionalOffer(id: ID!): AdditionalOfferConfig
+    discountPageConfig: DiscountPageConfig!
+
+    # 購物金回饋頁面
+    rewardBenefits: [RewardBenefitConfig!]!
+    rewardBenefit(id: ID!): RewardBenefitConfig
+    rewardUsageNotes: [RewardUsageNoteConfig!]!
+    rewardUsageNote(id: ID!): RewardUsageNoteConfig
+    rewardsPageConfig: RewardsPageConfig!
+
     # 組合套裝系統
     productBundles(isActive: Boolean): [ProductBundle!]!
     productBundle(slug: String!): ProductBundle
@@ -2076,6 +2222,22 @@ export const typeDefs = gql`
     upsertSuperDealSection(input: SuperDealSectionInput!): SuperDealSection!
     upsertPopularProductsConfig(input: PopularProductsConfigInput!): PopularProductsConfig!
     reorderHeroSlides(ids: [ID!]!): [HeroSlide!]!
+
+    # 滿額折扣管理（Admin）
+    createDiscountTier(input: CreateDiscountTierInput!): DiscountTierConfig!
+    updateDiscountTier(id: ID!, input: UpdateDiscountTierInput!): DiscountTierConfig!
+    deleteDiscountTier(id: ID!): Boolean!
+    createAdditionalOffer(input: CreateAdditionalOfferInput!): AdditionalOfferConfig!
+    updateAdditionalOffer(id: ID!, input: UpdateAdditionalOfferInput!): AdditionalOfferConfig!
+    deleteAdditionalOffer(id: ID!): Boolean!
+
+    # 購物金回饋管理（Admin）
+    createRewardBenefit(input: CreateRewardBenefitInput!): RewardBenefitConfig!
+    updateRewardBenefit(id: ID!, input: UpdateRewardBenefitInput!): RewardBenefitConfig!
+    deleteRewardBenefit(id: ID!): Boolean!
+    createRewardUsageNote(input: CreateRewardUsageNoteInput!): RewardUsageNoteConfig!
+    updateRewardUsageNote(id: ID!, input: UpdateRewardUsageNoteInput!): RewardUsageNoteConfig!
+    deleteRewardUsageNote(id: ID!): Boolean!
 
     # 組合套裝管理（Admin）
     createProductBundle(input: CreateProductBundleInput!): ProductBundle!

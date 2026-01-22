@@ -1163,6 +1163,67 @@ model PopularProductsConfig {
   @@map("popular_products_configs")
 }
 
+// 滿額折扣階梯設定
+model DiscountTierConfig {
+  id          String   @id @default(cuid())
+  minAmount   Decimal  @db.Decimal(10, 2) // 滿額門檻
+  discount    Decimal  @db.Decimal(10, 2) // 折扣金額
+  title       String                       // 顯示標題，如「滿$999」
+  description String                       // 顯示描述，如「立減$50」
+  benefits    Json     @default("[]")      // 額外福利，如 ["免運費", "會員積分x1.2"]
+  bgColor     String   @default("from-green-500 to-teal-500") // 背景漸層色
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("discount_tier_configs")
+}
+
+// 額外優惠設定
+model AdditionalOfferConfig {
+  id          String   @id @default(cuid())
+  icon        String                       // emoji 或圖標
+  title       String                       // 標題，如「生日月特惠」
+  description String                       // 描述，如「生日月份額外95折」
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("additional_offer_configs")
+}
+
+// 購物金回饋福利設定
+model RewardBenefitConfig {
+  id          String   @id @default(cuid())
+  icon        String                       // 圖標名稱，如 Coins, TrendingUp
+  title       String                       // 標題，如「消費自動回饋」
+  description String                       // 描述，如「每消費 $100 自動獲得 $1 購物金」
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("reward_benefit_configs")
+}
+
+// 購物金使用說明設定
+model RewardUsageNoteConfig {
+  id          String   @id @default(cuid())
+  content     String                       // 說明內容，如「訂單完成後自動發放，無需手動兌換」
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("reward_usage_note_configs")
+}
+
 enum ConversationStatus {
   OPEN
   IN_PROGRESS

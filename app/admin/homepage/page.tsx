@@ -5,7 +5,7 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import toast from 'react-hot-toast'
 import {
   Save, Plus, Trash2, Edit, Clock, Image as ImageIcon,
-  Tag, ShoppingBag, Star, Gift, Megaphone, Package
+  Tag, ShoppingBag, Star, Gift, Megaphone, Package, Percent
 } from 'lucide-react'
 import SingleImageUpload from '@/components/admin/SingleImageUpload'
 
@@ -81,6 +81,137 @@ const GET_PRODUCTS = gql`
         name
       }
     }
+  }
+`
+
+const GET_DISCOUNT_PAGE_CONFIG = gql`
+  query GetDiscountPageConfig {
+    discountTiers {
+      id
+      minAmount
+      discount
+      title
+      description
+      benefits
+      bgColor
+      sortOrder
+      isActive
+    }
+    additionalOffers {
+      id
+      icon
+      title
+      description
+      sortOrder
+      isActive
+    }
+  }
+`
+
+const CREATE_DISCOUNT_TIER = gql`
+  mutation CreateDiscountTier($input: CreateDiscountTierInput!) {
+    createDiscountTier(input: $input) {
+      id
+    }
+  }
+`
+
+const UPDATE_DISCOUNT_TIER = gql`
+  mutation UpdateDiscountTier($id: ID!, $input: UpdateDiscountTierInput!) {
+    updateDiscountTier(id: $id, input: $input) {
+      id
+    }
+  }
+`
+
+const DELETE_DISCOUNT_TIER = gql`
+  mutation DeleteDiscountTier($id: ID!) {
+    deleteDiscountTier(id: $id)
+  }
+`
+
+const CREATE_ADDITIONAL_OFFER = gql`
+  mutation CreateAdditionalOffer($input: CreateAdditionalOfferInput!) {
+    createAdditionalOffer(input: $input) {
+      id
+    }
+  }
+`
+
+const UPDATE_ADDITIONAL_OFFER = gql`
+  mutation UpdateAdditionalOffer($id: ID!, $input: UpdateAdditionalOfferInput!) {
+    updateAdditionalOffer(id: $id, input: $input) {
+      id
+    }
+  }
+`
+
+const DELETE_ADDITIONAL_OFFER = gql`
+  mutation DeleteAdditionalOffer($id: ID!) {
+    deleteAdditionalOffer(id: $id)
+  }
+`
+
+const GET_REWARDS_PAGE_CONFIG = gql`
+  query GetRewardsPageConfig {
+    rewardBenefits {
+      id
+      icon
+      title
+      description
+      sortOrder
+      isActive
+    }
+    rewardUsageNotes {
+      id
+      content
+      sortOrder
+      isActive
+    }
+  }
+`
+
+const CREATE_REWARD_BENEFIT = gql`
+  mutation CreateRewardBenefit($input: CreateRewardBenefitInput!) {
+    createRewardBenefit(input: $input) {
+      id
+    }
+  }
+`
+
+const UPDATE_REWARD_BENEFIT = gql`
+  mutation UpdateRewardBenefit($id: ID!, $input: UpdateRewardBenefitInput!) {
+    updateRewardBenefit(id: $id, input: $input) {
+      id
+    }
+  }
+`
+
+const DELETE_REWARD_BENEFIT = gql`
+  mutation DeleteRewardBenefit($id: ID!) {
+    deleteRewardBenefit(id: $id)
+  }
+`
+
+const CREATE_REWARD_USAGE_NOTE = gql`
+  mutation CreateRewardUsageNote($input: CreateRewardUsageNoteInput!) {
+    createRewardUsageNote(input: $input) {
+      id
+    }
+  }
+`
+
+const UPDATE_REWARD_USAGE_NOTE = gql`
+  mutation UpdateRewardUsageNote($id: ID!, $input: UpdateRewardUsageNoteInput!) {
+    updateRewardUsageNote(id: $id, input: $input) {
+      id
+    }
+  }
+`
+
+const DELETE_REWARD_USAGE_NOTE = gql`
+  mutation DeleteRewardUsageNote($id: ID!) {
+    deleteRewardUsageNote(id: $id)
   }
 `
 
@@ -234,6 +365,8 @@ export default function HomepageManagement() {
   const { data, loading, refetch } = useQuery(GET_HOMEPAGE_DATA)
   const { data: productsData } = useQuery(GET_PRODUCTS)
   const { data: bundlesData, refetch: refetchBundles } = useQuery(GET_BUNDLES)
+  const { data: discountData, refetch: refetchDiscount } = useQuery(GET_DISCOUNT_PAGE_CONFIG)
+  const { data: rewardsData, refetch: refetchRewards } = useQuery(GET_REWARDS_PAGE_CONFIG)
 
   // Mutations
   const [createHeroSlide] = useMutation(CREATE_HERO_SLIDE)
@@ -251,6 +384,18 @@ export default function HomepageManagement() {
   const [deleteBundle] = useMutation(DELETE_BUNDLE)
   const [addBundleItem] = useMutation(ADD_BUNDLE_ITEM)
   const [removeBundleItem] = useMutation(REMOVE_BUNDLE_ITEM)
+  const [createDiscountTierMutation] = useMutation(CREATE_DISCOUNT_TIER)
+  const [updateDiscountTierMutation] = useMutation(UPDATE_DISCOUNT_TIER)
+  const [deleteDiscountTierMutation] = useMutation(DELETE_DISCOUNT_TIER)
+  const [createAdditionalOfferMutation] = useMutation(CREATE_ADDITIONAL_OFFER)
+  const [updateAdditionalOfferMutation] = useMutation(UPDATE_ADDITIONAL_OFFER)
+  const [deleteAdditionalOfferMutation] = useMutation(DELETE_ADDITIONAL_OFFER)
+  const [createRewardBenefitMutation] = useMutation(CREATE_REWARD_BENEFIT)
+  const [updateRewardBenefitMutation] = useMutation(UPDATE_REWARD_BENEFIT)
+  const [deleteRewardBenefitMutation] = useMutation(DELETE_REWARD_BENEFIT)
+  const [createRewardUsageNoteMutation] = useMutation(CREATE_REWARD_USAGE_NOTE)
+  const [updateRewardUsageNoteMutation] = useMutation(UPDATE_REWARD_USAGE_NOTE)
+  const [deleteRewardUsageNoteMutation] = useMutation(DELETE_REWARD_USAGE_NOTE)
 
   // 輪播圖管理
   const [editingSlide, setEditingSlide] = useState(null)
@@ -315,6 +460,44 @@ export default function HomepageManagement() {
     isFeatured: false,
     showOnHomepage: true,
     selectedProducts: [] // { productId, quantity }
+  })
+
+  // 滿額折扣管理
+  const [editingDiscountTier, setEditingDiscountTier] = useState<string | null>(null)
+  const [discountTierForm, setDiscountTierForm] = useState({
+    minAmount: '',
+    discount: '',
+    title: '',
+    description: '',
+    benefits: [] as string[],
+    bgColor: 'from-green-500 to-teal-500',
+    isActive: true
+  })
+  const [newBenefit, setNewBenefit] = useState('')
+
+  // 額外優惠管理
+  const [editingOffer, setEditingOffer] = useState<string | null>(null)
+  const [offerForm, setOfferForm] = useState({
+    icon: '',
+    title: '',
+    description: '',
+    isActive: true
+  })
+
+  // 購物金回饋福利管理
+  const [editingBenefit, setEditingBenefit] = useState<string | null>(null)
+  const [benefitForm, setBenefitForm] = useState({
+    icon: '',
+    title: '',
+    description: '',
+    isActive: true
+  })
+
+  // 購物金使用說明管理
+  const [editingUsageNote, setEditingUsageNote] = useState<string | null>(null)
+  const [usageNoteForm, setUsageNoteForm] = useState({
+    content: '',
+    isActive: true
   })
 
   // 處理輪播圖保存
@@ -708,6 +891,328 @@ export default function HomepageManagement() {
     })
   }
 
+  // 滿額折扣處理函數
+  const handleSaveDiscountTier = async () => {
+    try {
+      if (!discountTierForm.minAmount || !discountTierForm.discount || !discountTierForm.title) {
+        toast.error('請填寫必要欄位')
+        return
+      }
+
+      if (editingDiscountTier) {
+        await updateDiscountTierMutation({
+          variables: {
+            id: editingDiscountTier,
+            input: {
+              minAmount: discountTierForm.minAmount,
+              discount: discountTierForm.discount,
+              title: discountTierForm.title,
+              description: discountTierForm.description,
+              benefits: discountTierForm.benefits,
+              bgColor: discountTierForm.bgColor,
+              isActive: discountTierForm.isActive
+            }
+          }
+        })
+        toast.success('滿額折扣已更新')
+      } else {
+        await createDiscountTierMutation({
+          variables: {
+            input: {
+              minAmount: discountTierForm.minAmount,
+              discount: discountTierForm.discount,
+              title: discountTierForm.title,
+              description: discountTierForm.description,
+              benefits: discountTierForm.benefits,
+              bgColor: discountTierForm.bgColor,
+              isActive: discountTierForm.isActive
+            }
+          }
+        })
+        toast.success('滿額折扣已創建')
+      }
+
+      resetDiscountTierForm()
+      refetchDiscount()
+    } catch (error) {
+      console.error('滿額折扣保存錯誤:', error)
+      toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  const resetDiscountTierForm = () => {
+    setEditingDiscountTier(null)
+    setDiscountTierForm({
+      minAmount: '',
+      discount: '',
+      title: '',
+      description: '',
+      benefits: [],
+      bgColor: 'from-green-500 to-teal-500',
+      isActive: true
+    })
+    setNewBenefit('')
+  }
+
+  const handleEditDiscountTier = (tier: any) => {
+    setEditingDiscountTier(tier.id)
+    setDiscountTierForm({
+      minAmount: tier.minAmount,
+      discount: tier.discount,
+      title: tier.title,
+      description: tier.description,
+      benefits: tier.benefits || [],
+      bgColor: tier.bgColor,
+      isActive: tier.isActive
+    })
+  }
+
+  const handleDeleteDiscountTier = async (id: string) => {
+    if (!confirm('確定要刪除這個滿額折扣嗎？')) return
+
+    try {
+      await deleteDiscountTierMutation({ variables: { id } })
+      toast.success('滿額折扣已刪除')
+      refetchDiscount()
+    } catch (error) {
+      toast.error('刪除失敗')
+    }
+  }
+
+  const addBenefitToTier = () => {
+    if (newBenefit.trim()) {
+      setDiscountTierForm({
+        ...discountTierForm,
+        benefits: [...discountTierForm.benefits, newBenefit.trim()]
+      })
+      setNewBenefit('')
+    }
+  }
+
+  const removeBenefitFromTier = (index: number) => {
+    setDiscountTierForm({
+      ...discountTierForm,
+      benefits: discountTierForm.benefits.filter((_, i) => i !== index)
+    })
+  }
+
+  // 額外優惠處理函數
+  const handleSaveOffer = async () => {
+    try {
+      if (!offerForm.icon || !offerForm.title || !offerForm.description) {
+        toast.error('請填寫必要欄位')
+        return
+      }
+
+      if (editingOffer) {
+        await updateAdditionalOfferMutation({
+          variables: {
+            id: editingOffer,
+            input: {
+              icon: offerForm.icon,
+              title: offerForm.title,
+              description: offerForm.description,
+              isActive: offerForm.isActive
+            }
+          }
+        })
+        toast.success('額外優惠已更新')
+      } else {
+        await createAdditionalOfferMutation({
+          variables: {
+            input: {
+              icon: offerForm.icon,
+              title: offerForm.title,
+              description: offerForm.description,
+              isActive: offerForm.isActive
+            }
+          }
+        })
+        toast.success('額外優惠已創建')
+      }
+
+      resetOfferForm()
+      refetchDiscount()
+    } catch (error) {
+      console.error('額外優惠保存錯誤:', error)
+      toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  const resetOfferForm = () => {
+    setEditingOffer(null)
+    setOfferForm({
+      icon: '',
+      title: '',
+      description: '',
+      isActive: true
+    })
+  }
+
+  const handleEditOffer = (offer: any) => {
+    setEditingOffer(offer.id)
+    setOfferForm({
+      icon: offer.icon,
+      title: offer.title,
+      description: offer.description,
+      isActive: offer.isActive
+    })
+  }
+
+  const handleDeleteOffer = async (id: string) => {
+    if (!confirm('確定要刪除這個額外優惠嗎？')) return
+
+    try {
+      await deleteAdditionalOfferMutation({ variables: { id } })
+      toast.success('額外優惠已刪除')
+      refetchDiscount()
+    } catch (error) {
+      toast.error('刪除失敗')
+    }
+  }
+
+  // 購物金回饋福利處理函數
+  const handleSaveBenefit = async () => {
+    try {
+      if (!benefitForm.icon || !benefitForm.title || !benefitForm.description) {
+        toast.error('請填寫必要欄位')
+        return
+      }
+
+      if (editingBenefit) {
+        await updateRewardBenefitMutation({
+          variables: {
+            id: editingBenefit,
+            input: {
+              icon: benefitForm.icon,
+              title: benefitForm.title,
+              description: benefitForm.description,
+              isActive: benefitForm.isActive
+            }
+          }
+        })
+        toast.success('回饋福利已更新')
+      } else {
+        await createRewardBenefitMutation({
+          variables: {
+            input: {
+              icon: benefitForm.icon,
+              title: benefitForm.title,
+              description: benefitForm.description,
+              isActive: benefitForm.isActive
+            }
+          }
+        })
+        toast.success('回饋福利已創建')
+      }
+
+      resetBenefitForm()
+      refetchRewards()
+    } catch (error) {
+      console.error('回饋福利保存錯誤:', error)
+      toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  const resetBenefitForm = () => {
+    setEditingBenefit(null)
+    setBenefitForm({
+      icon: '',
+      title: '',
+      description: '',
+      isActive: true
+    })
+  }
+
+  const handleEditBenefit = (benefit: any) => {
+    setEditingBenefit(benefit.id)
+    setBenefitForm({
+      icon: benefit.icon,
+      title: benefit.title,
+      description: benefit.description,
+      isActive: benefit.isActive
+    })
+  }
+
+  const handleDeleteBenefit = async (id: string) => {
+    if (!confirm('確定要刪除這個回饋福利嗎？')) return
+
+    try {
+      await deleteRewardBenefitMutation({ variables: { id } })
+      toast.success('回饋福利已刪除')
+      refetchRewards()
+    } catch (error) {
+      toast.error('刪除失敗')
+    }
+  }
+
+  // 購物金使用說明處理函數
+  const handleSaveUsageNote = async () => {
+    try {
+      if (!usageNoteForm.content) {
+        toast.error('請填寫說明內容')
+        return
+      }
+
+      if (editingUsageNote) {
+        await updateRewardUsageNoteMutation({
+          variables: {
+            id: editingUsageNote,
+            input: {
+              content: usageNoteForm.content,
+              isActive: usageNoteForm.isActive
+            }
+          }
+        })
+        toast.success('使用說明已更新')
+      } else {
+        await createRewardUsageNoteMutation({
+          variables: {
+            input: {
+              content: usageNoteForm.content,
+              isActive: usageNoteForm.isActive
+            }
+          }
+        })
+        toast.success('使用說明已創建')
+      }
+
+      resetUsageNoteForm()
+      refetchRewards()
+    } catch (error) {
+      console.error('使用說明保存錯誤:', error)
+      toast.error(`保存失敗: ${error instanceof Error ? error.message : '未知錯誤'}`)
+    }
+  }
+
+  const resetUsageNoteForm = () => {
+    setEditingUsageNote(null)
+    setUsageNoteForm({
+      content: '',
+      isActive: true
+    })
+  }
+
+  const handleEditUsageNote = (note: any) => {
+    setEditingUsageNote(note.id)
+    setUsageNoteForm({
+      content: note.content,
+      isActive: note.isActive
+    })
+  }
+
+  const handleDeleteUsageNote = async (id: string) => {
+    if (!confirm('確定要刪除這個使用說明嗎？')) return
+
+    try {
+      await deleteRewardUsageNoteMutation({ variables: { id } })
+      toast.success('使用說明已刪除')
+      refetchRewards()
+    } catch (error) {
+      toast.error('刪除失敗')
+    }
+  }
+
   // 載入現有數據
   React.useEffect(() => {
     if (data) {
@@ -778,6 +1283,8 @@ export default function HomepageManagement() {
             { id: 'daily', label: '今日特價', icon: Package },
             { id: 'popular', label: '熱門產品', icon: Star },
             { id: 'bundles', label: '組合套裝', icon: ShoppingBag },
+            { id: 'discount', label: '滿額折扣', icon: Percent },
+            { id: 'rewards', label: '購物金回饋', icon: Gift },
           ].map((tab) => {
             const Icon = tab.icon
             return (
@@ -1791,6 +2298,570 @@ export default function HomepageManagement() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 滿額折扣管理 */}
+      {activeTab === 'discount' && (
+        <div className="space-y-6">
+          {/* 滿額折扣階梯管理 */}
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+              <Percent className="text-indigo-600" size={20} />
+              滿額折扣階梯
+            </h2>
+
+            {/* 現有階梯列表 */}
+            <div className="space-y-3 mb-6">
+              {discountData?.discountTiers?.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">尚未創建任何滿額折扣階梯</p>
+              ) : (
+                discountData?.discountTiers?.map((tier: any) => (
+                  <div
+                    key={tier.id}
+                    className={`border rounded-lg p-3 lg:p-4 ${tier.isActive ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold">{tier.title}</h4>
+                          <span className="text-orange-600 font-bold">{tier.description}</span>
+                          {!tier.isActive && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">已停用</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          滿 ${parseFloat(tier.minAmount).toLocaleString()} 減 ${parseFloat(tier.discount).toLocaleString()}
+                        </div>
+                        {tier.benefits && tier.benefits.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {tier.benefits.map((benefit: string, idx: number) => (
+                              <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+                                {benefit}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditDiscountTier(tier)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDiscountTier(tier.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 新增/編輯表單 */}
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-gray-700 mb-4">
+                {editingDiscountTier ? '編輯滿額折扣' : '新增滿額折扣'}
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      滿額門檻 *
+                    </label>
+                    <input
+                      type="number"
+                      value={discountTierForm.minAmount}
+                      onChange={(e) => setDiscountTierForm({ ...discountTierForm, minAmount: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：999"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      折扣金額 *
+                    </label>
+                    <input
+                      type="number"
+                      value={discountTierForm.discount}
+                      onChange={(e) => setDiscountTierForm({ ...discountTierForm, discount: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      顯示標題 *
+                    </label>
+                    <input
+                      type="text"
+                      value={discountTierForm.title}
+                      onChange={(e) => setDiscountTierForm({ ...discountTierForm, title: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：滿$999"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      顯示描述 *
+                    </label>
+                    <input
+                      type="text"
+                      value={discountTierForm.description}
+                      onChange={(e) => setDiscountTierForm({ ...discountTierForm, description: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：立減$50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      背景顏色
+                    </label>
+                    <select
+                      value={discountTierForm.bgColor}
+                      onChange={(e) => setDiscountTierForm({ ...discountTierForm, bgColor: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="from-green-500 to-teal-500">綠藍漸層</option>
+                      <option value="from-blue-500 to-cyan-500">藍青漸層</option>
+                      <option value="from-purple-500 to-pink-500">紫粉漸層</option>
+                      <option value="from-orange-500 to-red-500">橙紅漸層</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={discountTierForm.isActive}
+                        onChange={(e) => setDiscountTierForm({ ...discountTierForm, isActive: e.target.checked })}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">啟用</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 福利項目 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    額外福利
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newBenefit}
+                      onChange={(e) => setNewBenefit(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefitToTier())}
+                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：免運費"
+                    />
+                    <button
+                      type="button"
+                      onClick={addBenefitToTier}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {discountTierForm.benefits.map((benefit, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+                        {benefit}
+                        <button
+                          type="button"
+                          onClick={() => removeBenefitFromTier(idx)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDiscountTier}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    {editingDiscountTier ? '更新' : '創建'}
+                  </button>
+                  {editingDiscountTier && (
+                    <button
+                      onClick={resetDiscountTierForm}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 額外優惠管理 */}
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+              <Gift className="text-indigo-600" size={20} />
+              額外優惠
+            </h2>
+
+            {/* 現有優惠列表 */}
+            <div className="space-y-3 mb-6">
+              {discountData?.additionalOffers?.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">尚未創建任何額外優惠</p>
+              ) : (
+                discountData?.additionalOffers?.map((offer: any) => (
+                  <div
+                    key={offer.id}
+                    className={`border rounded-lg p-3 lg:p-4 ${offer.isActive ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{offer.icon}</span>
+                        <div>
+                          <h4 className="font-semibold">{offer.title}</h4>
+                          <p className="text-sm text-gray-600">{offer.description}</p>
+                        </div>
+                        {!offer.isActive && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">已停用</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditOffer(offer)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOffer(offer.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 新增/編輯表單 */}
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-gray-700 mb-4">
+                {editingOffer ? '編輯額外優惠' : '新增額外優惠'}
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      圖標 (Emoji) *
+                    </label>
+                    <input
+                      type="text"
+                      value={offerForm.icon}
+                      onChange={(e) => setOfferForm({ ...offerForm, icon: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：🎁"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      標題 *
+                    </label>
+                    <input
+                      type="text"
+                      value={offerForm.title}
+                      onChange={(e) => setOfferForm({ ...offerForm, title: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：生日月特惠"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      描述 *
+                    </label>
+                    <input
+                      type="text"
+                      value={offerForm.description}
+                      onChange={(e) => setOfferForm({ ...offerForm, description: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="例：生日月份額外95折"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={offerForm.isActive}
+                        onChange={(e) => setOfferForm({ ...offerForm, isActive: e.target.checked })}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">啟用</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveOffer}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    {editingOffer ? '更新' : '創建'}
+                  </button>
+                  {editingOffer && (
+                    <button
+                      onClick={resetOfferForm}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 購物金回饋管理 */}
+      {activeTab === 'rewards' && (
+        <div className="space-y-6">
+          {/* 回饋福利管理 */}
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+              <Gift className="text-emerald-600" size={20} />
+              回饋福利
+            </h2>
+
+            {/* 現有福利列表 */}
+            <div className="space-y-3 mb-6">
+              {rewardsData?.rewardBenefits?.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">尚未創建任何回饋福利</p>
+              ) : (
+                rewardsData?.rewardBenefits?.map((benefit: any) => (
+                  <div
+                    key={benefit.id}
+                    className={`border rounded-lg p-3 lg:p-4 ${benefit.isActive ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl w-10 text-center">{benefit.icon}</span>
+                        <div>
+                          <h4 className="font-semibold">{benefit.title}</h4>
+                          <p className="text-sm text-gray-600">{benefit.description}</p>
+                        </div>
+                        {!benefit.isActive && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">已停用</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditBenefit(benefit)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBenefit(benefit.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 新增/編輯表單 */}
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-gray-700 mb-4">
+                {editingBenefit ? '編輯回饋福利' : '新增回饋福利'}
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      圖標名稱 *
+                    </label>
+                    <input
+                      type="text"
+                      value={benefitForm.icon}
+                      onChange={(e) => setBenefitForm({ ...benefitForm, icon: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      placeholder="例：Coins, Gift, TrendingUp"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">可用圖標：Coins, TrendingUp, CheckCircle, Gift, Star</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      標題 *
+                    </label>
+                    <input
+                      type="text"
+                      value={benefitForm.title}
+                      onChange={(e) => setBenefitForm({ ...benefitForm, title: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      placeholder="例：消費自動回饋"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      描述 *
+                    </label>
+                    <input
+                      type="text"
+                      value={benefitForm.description}
+                      onChange={(e) => setBenefitForm({ ...benefitForm, description: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      placeholder="例：每消費 $100 自動獲得 $1 購物金"
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={benefitForm.isActive}
+                        onChange={(e) => setBenefitForm({ ...benefitForm, isActive: e.target.checked })}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">啟用</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveBenefit}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    {editingBenefit ? '更新' : '創建'}
+                  </button>
+                  {editingBenefit && (
+                    <button
+                      onClick={resetBenefitForm}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 使用說明管理 */}
+          <div className="bg-white rounded-lg shadow p-4 lg:p-6">
+            <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
+              <Megaphone className="text-emerald-600" size={20} />
+              使用說明
+            </h2>
+
+            {/* 現有說明列表 */}
+            <div className="space-y-3 mb-6">
+              {rewardsData?.rewardUsageNotes?.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">尚未創建任何使用說明</p>
+              ) : (
+                rewardsData?.rewardUsageNotes?.map((note: any) => (
+                  <div
+                    key={note.id}
+                    className={`border rounded-lg p-3 lg:p-4 ${note.isActive ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="text-gray-800">{note.content}</p>
+                        {!note.isActive && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">已停用</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditUsageNote(note)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUsageNote(note.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 新增/編輯表單 */}
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-gray-700 mb-4">
+                {editingUsageNote ? '編輯使用說明' : '新增使用說明'}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    說明內容 *
+                  </label>
+                  <input
+                    type="text"
+                    value={usageNoteForm.content}
+                    onChange={(e) => setUsageNoteForm({ ...usageNoteForm, content: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    placeholder="例：訂單完成後自動發放，無需手動兌換"
+                  />
+                </div>
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={usageNoteForm.isActive}
+                      onChange={(e) => setUsageNoteForm({ ...usageNoteForm, isActive: e.target.checked })}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">啟用</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveUsageNote}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    {editingUsageNote ? '更新' : '創建'}
+                  </button>
+                  {editingUsageNote && (
+                    <button
+                      onClick={resetUsageNoteForm}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 會員等級提示 */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800 text-sm">
+              <strong>提示：</strong>會員等級設定請前往「會員管理」頁面進行編輯。
+            </p>
           </div>
         </div>
       )}
