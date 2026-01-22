@@ -18,7 +18,6 @@ const GET_DISCOUNT_PAGE_CONFIG = gql`
       }
       additionalOffers {
         id
-        icon
         title
         description
       }
@@ -67,10 +66,10 @@ const defaultTiers = [
 ]
 
 const defaultOffers = [
-  { id: 'default-1', icon: '🎁', title: '生日月特惠', description: '生日月份額外95折' },
-  { id: 'default-2', icon: '👥', title: '團購優惠', description: '3人以上團購享額外折扣' },
-  { id: 'default-3', icon: '📱', title: 'APP專屬', description: 'APP下單額外減$20' },
-  { id: 'default-4', icon: '💳', title: '信用卡優惠', description: '指定信用卡再享5%回饋' }
+  { id: 'default-1', title: '生日月特惠', description: '生日月份額外95折' },
+  { id: 'default-2', title: '團購優惠', description: '3人以上團購享額外折扣' },
+  { id: 'default-3', title: 'APP專屬', description: 'APP下單額外減$20' },
+  { id: 'default-4', title: '信用卡優惠', description: '指定信用卡再享5%回饋' }
 ]
 
 export default function DiscountPage() {
@@ -208,7 +207,6 @@ export default function DiscountPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             {additionalOffers.map((offer: any) => (
               <div key={offer.id} className="text-center p-2 md:p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl md:text-3xl mb-1 md:mb-2">{offer.icon}</div>
                 <h4 className="font-medium text-gray-800 text-sm md:text-base">{offer.title}</h4>
                 <p className="text-xs md:text-sm text-gray-600 mt-0.5 md:mt-1">{offer.description}</p>
               </div>

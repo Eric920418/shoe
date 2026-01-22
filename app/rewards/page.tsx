@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useQuery, gql } from '@apollo/client'
-import { Gift, Star, TrendingUp, Coins, Sparkles, CheckCircle } from 'lucide-react'
+import { Gift, Star, Sparkles, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
 const GET_REWARDS_PAGE_CONFIG = gql`
@@ -10,7 +10,6 @@ const GET_REWARDS_PAGE_CONFIG = gql`
     rewardsPageConfig {
       benefits {
         id
-        icon
         title
         description
       }
@@ -33,10 +32,10 @@ const GET_REWARDS_PAGE_CONFIG = gql`
 
 // 預設資料（當資料庫沒有資料時使用）
 const defaultBenefits = [
-  { id: 'default-1', icon: 'Coins', title: '消費自動回饋', description: '每消費 $100 自動獲得 $1 購物金' },
-  { id: 'default-2', icon: 'TrendingUp', title: '會員等級加成', description: '等級越高，回饋倍率越多' },
-  { id: 'default-3', icon: 'CheckCircle', title: '無需兌換', description: '購物金直接入帳，下次結帳可用' },
-  { id: 'default-4', icon: 'Gift', title: '升級獎勵', description: '會員升級額外贈送購物金' },
+  { id: 'default-1', title: '消費自動回饋', description: '每消費 $100 自動獲得 $1 購物金' },
+  { id: 'default-2', title: '會員等級加成', description: '等級越高，回饋倍率越多' },
+  { id: 'default-3', title: '無需兌換', description: '購物金直接入帳，下次結帳可用' },
+  { id: 'default-4', title: '升級獎勵', description: '會員升級額外贈送購物金' },
 ]
 
 const defaultUsageNotes = [
@@ -54,15 +53,6 @@ const defaultMemberLevels = [
   { id: 'default-5', name: '鑽石會員', slug: 'diamond', minSpent: '200000', maxSpent: null, pointsMultiplier: '3', color: '#06B6D4' },
 ]
 
-// 圖標映射
-const iconMap: { [key: string]: React.ElementType } = {
-  Coins,
-  TrendingUp,
-  CheckCircle,
-  Gift,
-  Star,
-  Sparkles,
-}
 
 // 等級對應的漸層顏色
 const getLevelGradient = (slug: string, color: string | null) => {
@@ -135,16 +125,12 @@ export default function RewardsPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {benefits.map((benefit: any) => {
-              const IconComponent = iconMap[benefit.icon] || Gift
-              return (
-                <div key={benefit.id} className="text-center p-4 bg-emerald-50 rounded-lg">
-                  <IconComponent className="mx-auto mb-2 text-emerald-600" size={28} />
-                  <h4 className="font-medium text-gray-800">{benefit.title}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{benefit.description}</p>
-                </div>
-              )
-            })}
+            {benefits.map((benefit: any) => (
+              <div key={benefit.id} className="text-center p-4 bg-emerald-50 rounded-lg">
+                <h4 className="font-medium text-gray-800">{benefit.title}</h4>
+                <p className="text-sm text-gray-600 mt-1">{benefit.description}</p>
+              </div>
+            ))}
           </div>
         </div>
 

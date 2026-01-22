@@ -99,7 +99,6 @@ const GET_DISCOUNT_PAGE_CONFIG = gql`
     }
     additionalOffers {
       id
-      icon
       title
       description
       sortOrder
@@ -156,7 +155,6 @@ const GET_REWARDS_PAGE_CONFIG = gql`
   query GetRewardsPageConfig {
     rewardBenefits {
       id
-      icon
       title
       description
       sortOrder
@@ -478,7 +476,6 @@ export default function HomepageManagement() {
   // 額外優惠管理
   const [editingOffer, setEditingOffer] = useState<string | null>(null)
   const [offerForm, setOfferForm] = useState({
-    icon: '',
     title: '',
     description: '',
     isActive: true
@@ -487,7 +484,6 @@ export default function HomepageManagement() {
   // 購物金回饋福利管理
   const [editingBenefit, setEditingBenefit] = useState<string | null>(null)
   const [benefitForm, setBenefitForm] = useState({
-    icon: '',
     title: '',
     description: '',
     isActive: true
@@ -999,7 +995,7 @@ export default function HomepageManagement() {
   // 額外優惠處理函數
   const handleSaveOffer = async () => {
     try {
-      if (!offerForm.icon || !offerForm.title || !offerForm.description) {
+      if (!offerForm.title || !offerForm.description) {
         toast.error('請填寫必要欄位')
         return
       }
@@ -1009,7 +1005,6 @@ export default function HomepageManagement() {
           variables: {
             id: editingOffer,
             input: {
-              icon: offerForm.icon,
               title: offerForm.title,
               description: offerForm.description,
               isActive: offerForm.isActive
@@ -1021,7 +1016,6 @@ export default function HomepageManagement() {
         await createAdditionalOfferMutation({
           variables: {
             input: {
-              icon: offerForm.icon,
               title: offerForm.title,
               description: offerForm.description,
               isActive: offerForm.isActive
@@ -1042,7 +1036,6 @@ export default function HomepageManagement() {
   const resetOfferForm = () => {
     setEditingOffer(null)
     setOfferForm({
-      icon: '',
       title: '',
       description: '',
       isActive: true
@@ -1052,7 +1045,6 @@ export default function HomepageManagement() {
   const handleEditOffer = (offer: any) => {
     setEditingOffer(offer.id)
     setOfferForm({
-      icon: offer.icon,
       title: offer.title,
       description: offer.description,
       isActive: offer.isActive
@@ -1074,7 +1066,7 @@ export default function HomepageManagement() {
   // 購物金回饋福利處理函數
   const handleSaveBenefit = async () => {
     try {
-      if (!benefitForm.icon || !benefitForm.title || !benefitForm.description) {
+      if (!benefitForm.title || !benefitForm.description) {
         toast.error('請填寫必要欄位')
         return
       }
@@ -1084,7 +1076,6 @@ export default function HomepageManagement() {
           variables: {
             id: editingBenefit,
             input: {
-              icon: benefitForm.icon,
               title: benefitForm.title,
               description: benefitForm.description,
               isActive: benefitForm.isActive
@@ -1096,7 +1087,6 @@ export default function HomepageManagement() {
         await createRewardBenefitMutation({
           variables: {
             input: {
-              icon: benefitForm.icon,
               title: benefitForm.title,
               description: benefitForm.description,
               isActive: benefitForm.isActive
@@ -1117,7 +1107,6 @@ export default function HomepageManagement() {
   const resetBenefitForm = () => {
     setEditingBenefit(null)
     setBenefitForm({
-      icon: '',
       title: '',
       description: '',
       isActive: true
@@ -1127,7 +1116,6 @@ export default function HomepageManagement() {
   const handleEditBenefit = (benefit: any) => {
     setEditingBenefit(benefit.id)
     setBenefitForm({
-      icon: benefit.icon,
       title: benefit.title,
       description: benefit.description,
       isActive: benefit.isActive
@@ -2525,7 +2513,6 @@ export default function HomepageManagement() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{offer.icon}</span>
                         <div>
                           <h4 className="font-semibold">{offer.title}</h4>
                           <p className="text-sm text-gray-600">{offer.description}</p>
@@ -2563,18 +2550,6 @@ export default function HomepageManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      圖標 (Emoji) *
-                    </label>
-                    <input
-                      type="text"
-                      value={offerForm.icon}
-                      onChange={(e) => setOfferForm({ ...offerForm, icon: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                      placeholder="例：🎁"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       標題 *
                     </label>
                     <input
@@ -2585,7 +2560,7 @@ export default function HomepageManagement() {
                       placeholder="例：生日月特惠"
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       描述 *
                     </label>
@@ -2655,7 +2630,6 @@ export default function HomepageManagement() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl w-10 text-center">{benefit.icon}</span>
                         <div>
                           <h4 className="font-semibold">{benefit.title}</h4>
                           <p className="text-sm text-gray-600">{benefit.description}</p>
@@ -2693,19 +2667,6 @@ export default function HomepageManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      圖標名稱 *
-                    </label>
-                    <input
-                      type="text"
-                      value={benefitForm.icon}
-                      onChange={(e) => setBenefitForm({ ...benefitForm, icon: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="例：Coins, Gift, TrendingUp"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">可用圖標：Coins, TrendingUp, CheckCircle, Gift, Star</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       標題 *
                     </label>
                     <input
@@ -2716,7 +2677,7 @@ export default function HomepageManagement() {
                       placeholder="例：消費自動回饋"
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       描述 *
                     </label>
