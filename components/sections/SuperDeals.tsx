@@ -78,9 +78,6 @@ const SuperDeals = () => {
             超值優惠
             <span className="text-xs sm:text-sm font-normal text-gray-500 ml-1 sm:ml-2 hidden sm:inline">省錢就是賺錢</span>
           </h2>
-          <Link href="/super-deals" className="text-orange-600 hover:text-orange-700 font-medium text-sm sm:text-base">
-            探索更多 →
-          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
