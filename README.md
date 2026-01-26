@@ -160,8 +160,12 @@ pnpm dev
 - 快速登入碼：**`admin0900`**（無需密碼）
 
 ### 消費者登入
-- 路徑：`/auth/login`
-- 方式：**LINE Login**（唯一登入方式）
+- 登入路徑：`/auth/login`
+- 註冊路徑：`/auth/signup`
+- 登入方式：
+  - **手機號碼 + 密碼**（主要登入方式）
+  - **LINE Login**（快速登入/註冊）
+- 密碼規則：至少 8 字元，需包含大寫字母、小寫字母和數字
 
 ---
 
@@ -173,7 +177,7 @@ shoe/
 │   ├── api/graphql/        # GraphQL API 端點（後端核心）
 │   ├── admin/              # 後台管理（需 ADMIN 權限）
 │   ├── account/            # 用戶帳戶頁面
-│   ├── auth/               # 認證頁面（LINE Login）
+│   ├── auth/               # 認證頁面（登入/註冊/LINE Login）
 │   ├── help/               # 幫助中心（FAQ + 客服聯繫）
 │   ├── products/           # 產品頁面
 │   ├── cart/               # 購物車
@@ -207,7 +211,7 @@ shoe/
 **技術架構說明**：
 - **全端單體架構** - 前後端整合在同一專案
 - **資料流向**: 用戶瀏覽器 → React 組件 → Apollo Client → GraphQL API → Prisma ORM → PostgreSQL
-- **認證流程**: LINE OAuth → JWT Token → 權限檢查
+- **認證流程**: 手機+密碼登入 或 LINE OAuth → JWT Token → 權限檢查
 
 ---
 

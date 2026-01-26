@@ -280,8 +280,8 @@ export const authResolvers = {
     // 向後兼容：舊的手機號註冊/登入（不安全，建議移除）
     // ==========================================
 
-    // 用戶註冊/登入（使用手機號碼）
-    register: async (_: any, { phone, name }: { phone: string; name: string }) => {
+    // 用戶註冊（使用手機號碼 + 密碼）
+    register: async (_: any, { phone, name, password }: { phone: string; name: string; password: string }) => {
       try {
         // 驗證手機號碼
         if (!phone || !/^09\d{8}$/.test(phone.trim())) {
@@ -297,45 +297,60 @@ export const authResolvers = {
           })
         }
 
+        // 驗證密碼強度
+        if (!password || password.length < 8) {
+          throw new GraphQLError('密碼至少需要 8 個字元', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
+        // 密碼必須包含大寫字母、小寫字母和數字
+        const hasUpperCase = /[A-Z]/.test(password)
+        const hasLowerCase = /[a-z]/.test(password)
+        const hasNumber = /[0-9]/.test(password)
+
+        if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+          throw new GraphQLError('密碼必須包含大寫字母、小寫字母和數字', {
+            extensions: { code: 'BAD_USER_INPUT' },
+          })
+        }
+
         const phoneNumber = phone.trim()
         const userName = name.trim()
 
         // 檢查 phone 是否已存在
-        let user = await prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
           where: { phone: phoneNumber },
         })
 
-        // 如果用戶不存在，創建新用戶
-        if (!user) {
-          // 生成一個唯一的 email（使用手機號碼）
-          const email = `${phoneNumber}@phone.local`
-
-          // 取得最低等級會員（銅卡）
-          const lowestTier = await prisma.membershipTierConfig.findFirst({
-            where: { isActive: true },
-            orderBy: { sortOrder: 'asc' },
-          })
-
-          user = await prisma.user.create({
-            data: {
-              phone: phoneNumber,
-              email,
-              name: userName,
-              password: '', // 不使用密碼
-              role: 'USER',
-              membershipTierId: lowestTier?.id || null, // 設定預設會員等級
-            },
-          })
-        } else {
-          // 如果用戶已存在，更新姓名
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              name: userName,
-              lastLogin: new Date(),
-            },
+        if (existingUser) {
+          throw new GraphQLError('此手機號碼已被註冊，請直接登入', {
+            extensions: { code: 'BAD_USER_INPUT' },
           })
         }
+
+        // 加密密碼
+        const hashedPassword = await hashPassword(password)
+
+        // 生成一個唯一的 email（使用手機號碼）
+        const email = `${phoneNumber}@phone.local`
+
+        // 取得最低等級會員（銅卡）
+        const lowestTier = await prisma.membershipTierConfig.findFirst({
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        })
+
+        const user = await prisma.user.create({
+          data: {
+            phone: phoneNumber,
+            email,
+            name: userName,
+            password: hashedPassword,
+            role: 'USER',
+            membershipTierId: lowestTier?.id || null,
+          },
+        })
 
         // 生成 JWT Token
         const token = generateToken({
@@ -352,8 +367,8 @@ export const authResolvers = {
         if (error instanceof GraphQLError) {
           throw error
         }
-        console.error('註冊/登入錯誤:', error)
-        throw new GraphQLError('操作失敗，請稍後再試', {
+        console.error('註冊錯誤:', error)
+        throw new GraphQLError('註冊失敗，請稍後再試', {
           extensions: { code: 'INTERNAL_ERROR' },
         })
       }

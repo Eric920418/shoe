@@ -2077,7 +2077,7 @@ export const typeDefs = gql`
     adminQuickLogin(code: String!): AuthPayload!
 
     # 認證
-    register(phone: String!, name: String!): AuthPayload!
+    register(phone: String!, name: String!, password: String!): AuthPayload!
     login(identifier: String!, password: String!): AuthPayload!
     
     # 用户资料
