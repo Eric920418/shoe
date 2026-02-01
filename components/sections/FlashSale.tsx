@@ -130,14 +130,19 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
     return () => clearInterval(timer)
   }, [flashSaleConfig])
 
-  // 處理產品資料（查詢已直接返回指定的產品）
+  // 處理產品資料
   const flashProducts = React.useMemo(() => {
     const allProducts = serverProducts || data?.products
     if (!allProducts || allProducts.length === 0) return []
+    if (productIds.length === 0) return []
+
+    // 只顯示後台選中的產品
+    const selectedProducts = allProducts.filter((p: any) => productIds.includes(p.id))
+    if (selectedProducts.length === 0) return []
 
     const globalDiscount = productsConfig?.discountPercentage
 
-    return allProducts
+    return selectedProducts
       .map((product: any) => {
         const price = parseFloat(product.price)
         const originalPrice = parseFloat(product.originalPrice) || price

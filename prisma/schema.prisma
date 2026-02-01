@@ -178,6 +178,7 @@ model Product {
   reviewCount   Int              @default(0)
   favoriteCount Int              @default(0)
   shoeType      String?
+  gender        ProductGender?   // 待遷移後移除
   genders       ProductGender[]  @default([])
   season        String?
   heelHeight    Decimal?         @db.Decimal(5, 2)
