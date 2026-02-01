@@ -88,13 +88,13 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
   // 獲取選中的產品 ID 列表
   const productIds = productsConfig?.productIds || []
 
-  // 查詢指定的產品（使用 ID 過濾）
+  // 查詢後台選中的產品（根據 productIds）
   const { data, loading, error } = useQuery(GET_PRODUCTS_BY_IDS, {
     variables: {
       where: productIds.length > 0 ? { id: { in: productIds } } : undefined,
       take: flashSaleConfig?.maxProducts || 20,
     },
-    skip: !!serverProducts || !flashSaleConfig || productIds.length === 0,
+    skip: !flashSaleConfig || productIds.length === 0,
   })
 
   // 更新倒計時
@@ -132,17 +132,23 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
 
   // 處理產品資料
   const flashProducts = React.useMemo(() => {
-    const allProducts = serverProducts || data?.products
-    if (!allProducts || allProducts.length === 0) return []
     if (productIds.length === 0) return []
 
-    // 只顯示後台選中的產品
-    const selectedProducts = allProducts.filter((p: any) => productIds.includes(p.id))
-    if (selectedProducts.length === 0) return []
+    // 優先使用查詢結果（根據 productIds 查詢的產品）
+    // 只有當查詢結果為空且 serverProducts 包含選中產品時才用 serverProducts
+    let productsToUse = data?.products
+    if (!productsToUse || productsToUse.length === 0) {
+      // 嘗試從 serverProducts 過濾
+      if (serverProducts) {
+        productsToUse = serverProducts.filter((p: any) => productIds.includes(p.id))
+      }
+    }
+
+    if (!productsToUse || productsToUse.length === 0) return []
 
     const globalDiscount = productsConfig?.discountPercentage
 
-    return selectedProducts
+    return productsToUse
       .map((product: any) => {
         const price = parseFloat(product.price)
         const originalPrice = parseFloat(product.originalPrice) || price
