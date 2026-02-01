@@ -21,7 +21,7 @@ export const GET_PRODUCT_BY_SLUG = gql`
       images
       features
       shoeType
-      gender
+      genders
       season
       heelHeight
       closure
@@ -78,7 +78,7 @@ export const GET_PRODUCT_BY_ID = gql`
       images
       features
       shoeType
-      gender
+      genders
       season
       heelHeight
       closure
@@ -107,7 +107,7 @@ export const GET_PRODUCTS = gql`
     $categoryIds: [String!]
     $minPrice: Float
     $maxPrice: Float
-    $gender: ProductGender
+    $genders: [ProductGender!]
     $search: String
   ) {
     products(
@@ -117,7 +117,7 @@ export const GET_PRODUCTS = gql`
       categoryIds: $categoryIds
       minPrice: $minPrice
       maxPrice: $maxPrice
-      gender: $gender
+      genders: $genders
       search: $search
     ) {
       id
@@ -156,7 +156,7 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
     $categoryIds: [String!]
     $minPrice: Float
     $maxPrice: Float
-    $gender: ProductGender
+    $genders: [ProductGender!]
     $mainCategory: MainCategory
     $search: String
   ) {
@@ -167,7 +167,7 @@ export const GET_HOMEPAGE_PRODUCTS = gql`
       categoryIds: $categoryIds
       minPrice: $minPrice
       maxPrice: $maxPrice
-      gender: $gender
+      genders: $genders
       mainCategory: $mainCategory
       search: $search
     ) {
@@ -973,7 +973,7 @@ export const CREATE_PRODUCT = gql`
       stock
       isActive
       shoeType
-      gender
+      genders
       season
       heelHeight
       closure
@@ -1000,7 +1000,7 @@ export const UPDATE_PRODUCT = gql`
       isActive
       isFeatured
       shoeType
-      gender
+      genders
       season
       updatedAt
     }

@@ -19,7 +19,7 @@ const GET_PRODUCTS = gql`
     $categoryIds: [String!]
     $minPrice: Float
     $maxPrice: Float
-    $gender: ProductGender
+    $genders: [ProductGender!]
     $mainCategory: MainCategory
   ) {
     products(
@@ -28,7 +28,7 @@ const GET_PRODUCTS = gql`
       categoryIds: $categoryIds
       minPrice: $minPrice
       maxPrice: $maxPrice
-      gender: $gender
+      genders: $genders
       mainCategory: $mainCategory
     ) {
       id
@@ -79,7 +79,7 @@ function ProductsPageContent() {
   const [sortBy, setSortBy] = useState('popular')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState('all')
-  const [selectedGender, setSelectedGender] = useState<string>('all')
+  const [selectedGenders, setSelectedGenders] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [modalProduct, setModalProduct] = useState<{ id: string; name: string } | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -133,6 +133,14 @@ function ProductsPageContent() {
     )
   }
 
+  const toggleGender = (gender: string) => {
+    setSelectedGenders(prev =>
+      prev.includes(gender)
+        ? prev.filter(g => g !== gender)
+        : [...prev, gender]
+    )
+  }
+
   // 是否準備好查詢
   const isReady = urlProcessed || !categoryParam
 
@@ -142,7 +150,7 @@ function ProductsPageContent() {
       categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
       minPrice: priceRange === '0-999' ? 0 : priceRange === '1000-1999' ? 1000 : priceRange === '2000-2999' ? 2000 : priceRange === '3000+' ? 3000 : undefined,
       maxPrice: priceRange === '0-999' ? 999 : priceRange === '1000-1999' ? 1999 : priceRange === '2000-2999' ? 2999 : undefined,
-      gender: selectedGender !== 'all' ? selectedGender : undefined,
+      genders: selectedGenders.length > 0 ? selectedGenders : undefined,
       mainCategory: mainCategoryParam || undefined,
     },
     skip: !isReady,
@@ -184,7 +192,6 @@ function ProductsPageContent() {
   ]
 
   const genderOptions = [
-    { value: 'all', label: '全部' },
     { value: 'MEN', label: '男款' },
     { value: 'WOMEN', label: '女款' },
     { value: 'UNISEX', label: '中性' },
@@ -235,7 +242,7 @@ function ProductsPageContent() {
               篩選條件
             </h3>
 
-            {/* 性別篩選 - 只在沒有主分類時顯示 */}
+            {/* 性別篩選 - 只在沒有主分類時顯示（多選） */}
             {!mainCategoryParam && (
               <div className="mb-6">
                 <h4 className="font-medium text-gray-700 mb-3">性別</h4>
@@ -243,17 +250,24 @@ function ProductsPageContent() {
                   {genderOptions.map(option => (
                     <label key={option.value} className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="radio"
-                        name="gender"
-                        value={option.value}
-                        checked={selectedGender === option.value}
-                        onChange={(e) => setSelectedGender(e.target.value)}
-                        className="text-orange-500"
+                        type="checkbox"
+                        checked={selectedGenders.includes(option.value)}
+                        onChange={() => toggleGender(option.value)}
+                        className="text-orange-500 rounded"
                       />
                       <span className="text-sm text-gray-600">{option.label}</span>
                     </label>
                   ))}
                 </div>
+                {selectedGenders.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGenders([])}
+                    className="text-xs text-orange-600 hover:text-orange-700 mt-2"
+                  >
+                    清除篩選
+                  </button>
+                )}
               </div>
             )}
 
@@ -351,19 +365,26 @@ function ProductsPageContent() {
               {showFilters && (
                 <div className="lg:hidden mt-4 pt-4 border-t">
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 性別 - 只在沒有主分類時顯示 */}
+                    {/* 性別 - 只在沒有主分類時顯示（多選） */}
                     {!mainCategoryParam && (
                       <div>
                         <h4 className="font-medium text-gray-700 mb-2 text-sm">性別</h4>
-                        <select
-                          value={selectedGender}
-                          onChange={(e) => setSelectedGender(e.target.value)}
-                          className="w-full px-2 py-1.5 border rounded text-sm"
-                        >
+                        <div className="flex flex-wrap gap-1">
                           {genderOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => toggleGender(option.value)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                selectedGenders.includes(option.value)
+                                  ? 'bg-orange-500 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
                           ))}
-                        </select>
+                        </div>
                       </div>
                     )}
                     {/* 分類 - 只在有主分類時顯示（顯示該主分類下的子分類） */}

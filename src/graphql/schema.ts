@@ -336,7 +336,7 @@ export const typeDefs = gql`
     favoriteCount: Int!
     # 鞋店專屬字段
     shoeType: String
-    gender: ProductGender
+    genders: [ProductGender!]!
     season: String
     heelHeight: Decimal
     closure: String
@@ -1833,7 +1833,7 @@ export const typeDefs = gql`
       categoryIds: [String!]
       minPrice: Float
       maxPrice: Float
-      gender: ProductGender
+      genders: [ProductGender!]
       mainCategory: MainCategory
       search: String
       where: JSON
@@ -2391,7 +2391,7 @@ export const typeDefs = gql`
     isFeatured: Boolean
     isNewArrival: Boolean
     shoeType: String
-    gender: ProductGender
+    genders: [ProductGender!]
     season: String
     heelHeight: Decimal
     closure: String
@@ -2418,7 +2418,7 @@ export const typeDefs = gql`
     isNewArrival: Boolean
     sortOrder: Int
     shoeType: String
-    gender: ProductGender
+    genders: [ProductGender!]
     season: String
     heelHeight: Decimal
     closure: String

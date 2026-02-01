@@ -613,7 +613,7 @@ mutation CreateOrder($input: CreateOrderInput!) {
 
 **Product 鞋店專屬**：
 - `shoeType` - 鞋類型（運動鞋、皮鞋、涼鞋、靴子）
-- `gender` - 性別（男、女、中性、兒童）
+- `genders` - 適用性別陣列（支援多選：MEN/WOMEN/UNISEX/KIDS，如母子鱷魚、GP 品牌可同時標記男童和女童）
 - `season` - 季節（春夏、秋冬、四季）
 - `heelHeight` - 鞋跟高度
 - `closure` - 閉合方式（系帶、魔術貼、拉鏈、套脚）
@@ -1859,11 +1859,11 @@ pnpm prisma migrate reset
 keyArgs: ['categoryId', 'brandId', 'search']
 ```
 
-**問題**：缺少 `gender`、`minPrice`、`maxPrice`、`skip`、`take`、`orderBy` 等參數，導致不同查詢條件共用同一快取鍵。
+**問題**：缺少 `genders`、`minPrice`、`maxPrice`、`skip`、`take`、`orderBy` 等參數，導致不同查詢條件共用同一快取鍵。
 
 修復後：
 ```typescript
-keyArgs: ['categoryId', 'brandId', 'search', 'gender', 'minPrice', 'maxPrice', 'skip', 'take', 'orderBy']
+keyArgs: ['categoryId', 'brandId', 'search', 'genders', 'minPrice', 'maxPrice', 'skip', 'take', 'orderBy']
 ```
 
 **效果**：

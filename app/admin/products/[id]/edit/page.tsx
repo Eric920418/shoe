@@ -37,7 +37,7 @@ interface ProductFormData {
   isFeatured: boolean
   isNewArrival: boolean
   shoeType: string
-  gender: string
+  genders: string[]
   season: string
   heelHeight: number | ''
   closure: string
@@ -93,7 +93,7 @@ export default function EditProductPage() {
           isFeatured: data.product.isFeatured || false,
           isNewArrival: data.product.isNewArrival || false,
           shoeType: data.product.shoeType || '',
-          gender: data.product.gender || '',
+          genders: Array.isArray(data.product.genders) ? data.product.genders : [],
           season: data.product.season || '',
           heelHeight: data.product.heelHeight || '',
           closure: data.product.closure || '',
@@ -164,6 +164,15 @@ export default function EditProductPage() {
     updateField('features', newFeatures)
   }
 
+  // 切換性別選擇
+  const toggleGender = (gender: string) => {
+    if (!formData) return
+    const newGenders = formData.genders.includes(gender)
+      ? formData.genders.filter((g) => g !== gender)
+      : [...formData.genders, gender]
+    updateField('genders', newGenders)
+  }
+
   // 驗證表單
   const validateForm = (): { isValid: boolean; errors: Record<string, string> } => {
     if (!formData) return { isValid: false, errors: { form: '表單資料不存在' } }
@@ -220,7 +229,7 @@ export default function EditProductPage() {
         isFeatured: formData.isFeatured,
         isNewArrival: formData.isNewArrival,
         shoeType: formData.shoeType || null,
-        gender: formData.gender || null,
+        genders: formData.genders,
         season: formData.season || null,
         heelHeight: formData.heelHeight ? Number(formData.heelHeight) : null,
         closure: formData.closure || null,
@@ -513,20 +522,31 @@ export default function EditProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                性別
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                適用性別
               </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => updateField('gender', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">請選擇性別</option>
-                <option value="MEN">男款</option>
-                <option value="WOMEN">女款</option>
-                <option value="UNISEX">中性</option>
-                <option value="KIDS">童款</option>
-              </select>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'MEN', label: '男款' },
+                  { value: 'WOMEN', label: '女款' },
+                  { value: 'UNISEX', label: '中性' },
+                  { value: 'KIDS', label: '童款' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleGender(option.value)}
+                    className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition-colors ${
+                      formData.genders.includes(option.value)
+                        ? 'bg-primary-50 border-primary-500 text-primary-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">可選擇多個適用性別（如母子鱷魚同時有男童和女童款）</p>
             </div>
 
             <div>

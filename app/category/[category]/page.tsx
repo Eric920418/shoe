@@ -31,7 +31,7 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
     $take: Int
     $minPrice: Float
     $maxPrice: Float
-    $gender: ProductGender
+    $genders: [ProductGender!]
   ) {
     products(
       categoryId: $categoryId
@@ -39,7 +39,7 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
       take: $take
       minPrice: $minPrice
       maxPrice: $maxPrice
-      gender: $gender
+      genders: $genders
     ) {
       id
       name
@@ -63,7 +63,7 @@ export default function CategoryPage() {
 
   const [sortBy, setSortBy] = useState('popular')
   const [priceRange, setPriceRange] = useState('all')
-  const [selectedGender, setSelectedGender] = useState<string>('all')
+  const [selectedGenders, setSelectedGenders] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
 
@@ -90,6 +90,14 @@ export default function CategoryPage() {
 
   const priceFilter = getPriceFilter()
 
+  const toggleGender = (gender: string) => {
+    setSelectedGenders(prev =>
+      prev.includes(gender)
+        ? prev.filter(g => g !== gender)
+        : [...prev, gender]
+    )
+  }
+
   // 查詢產品列表（依賴分類資訊）
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS_BY_CATEGORY, {
     variables: {
@@ -97,7 +105,7 @@ export default function CategoryPage() {
       skip: 0,
       take: 10000, // 顯示所有產品
       ...priceFilter,
-      gender: selectedGender !== 'all' ? selectedGender : undefined,
+      genders: selectedGenders.length > 0 ? selectedGenders : undefined,
     },
     skip: !categoryData?.category?.id,
   })
@@ -131,7 +139,6 @@ export default function CategoryPage() {
   ]
 
   const genderOptions = [
-    { value: 'all', label: '全部' },
     { value: 'MEN', label: '男款' },
     { value: 'WOMEN', label: '女款' },
     { value: 'UNISEX', label: '中性' },
@@ -193,24 +200,31 @@ export default function CategoryPage() {
               篩選條件
             </h3>
 
-            {/* 性別篩選 */}
+            {/* 性別篩選（多選） */}
             <div className="mb-6">
               <h4 className="font-medium text-gray-700 mb-3">性別</h4>
               <div className="space-y-2">
                 {genderOptions.map(option => (
                   <label key={option.value} className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="radio"
-                      name="gender"
-                      value={option.value}
-                      checked={selectedGender === option.value}
-                      onChange={(e) => setSelectedGender(e.target.value)}
-                      className="text-orange-500"
+                      type="checkbox"
+                      checked={selectedGenders.includes(option.value)}
+                      onChange={() => toggleGender(option.value)}
+                      className="text-orange-500 rounded"
                     />
                     <span className="text-sm text-gray-600">{option.label}</span>
                   </label>
                 ))}
               </div>
+              {selectedGenders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGenders([])}
+                  className="text-xs text-orange-600 hover:text-orange-700 mt-2"
+                >
+                  清除篩選
+                </button>
+              )}
             </div>
 
             {/* 價格範圍 */}
@@ -289,18 +303,25 @@ export default function CategoryPage() {
               {showFilters && (
                 <div className="lg:hidden mt-4 pt-4 border-t">
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 性別 */}
+                    {/* 性別（多選） */}
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2 text-sm">性別</h4>
-                      <select
-                        value={selectedGender}
-                        onChange={(e) => setSelectedGender(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded text-sm"
-                      >
+                      <div className="flex flex-wrap gap-1">
                         {genderOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => toggleGender(option.value)}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              selectedGenders.includes(option.value)
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
                     {/* 價格 */}
                     <div>

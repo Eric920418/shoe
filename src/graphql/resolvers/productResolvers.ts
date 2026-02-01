@@ -74,7 +74,7 @@ export const productResolvers = {
         categoryIds,
         minPrice,
         maxPrice,
-        gender,
+        genders,
         mainCategory,
         search,
         where,
@@ -87,7 +87,7 @@ export const productResolvers = {
         categoryIds?: string[]
         minPrice?: number
         maxPrice?: number
-        gender?: string
+        genders?: string[]
         mainCategory?: string
         search?: string
         where?: any
@@ -123,9 +123,9 @@ export const productResolvers = {
         filters.categoryId = categoryId
       }
 
-      // 性別篩選
-      if (gender) {
-        filters.gender = gender
+      // 性別篩選（支援多選）
+      if (genders && genders.length > 0) {
+        filters.genders = { hasSome: genders }
       }
 
       // 價格範圍篩選
@@ -193,7 +193,8 @@ export const productResolvers = {
 
       // 正常情況使用快取
       const categoryKey = categoryIds?.length ? categoryIds.sort().join(',') : (categoryId || 'all')
-      const cacheParams = `${skip}:${take}:${categoryKey}:${mainCategory || 'all'}:${gender || 'all'}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
+      const gendersKey = genders?.length ? genders.sort().join(',') : 'all'
+      const cacheParams = `${skip}:${take}:${categoryKey}:${mainCategory || 'all'}:${gendersKey}:${minPrice || ''}:${maxPrice || ''}:${search || ''}:${JSON.stringify(orderBy)}`
       return await ProductCache.getList(cacheParams, fetchProducts)
     },
 
@@ -332,8 +333,8 @@ export const productResolvers = {
           slug,
           images: input.images || [],
           features: input.features || [],
-          // 確保 gender 是有效的 enum 值或 null
-          gender: input.gender || null,
+          // 確保 genders 是陣列
+          genders: input.genders || [],
           // 其他可選欄位
           shoeType: input.shoeType || null,
           season: input.season || null,
