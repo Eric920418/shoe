@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Clock, Flame, ShoppingCart, ChevronRight, Zap } from 'lucide-react'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import { useQuery, gql } from '@apollo/client'
-import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 
 // GraphQL 查詢：獲取限時搶購設定
 const GET_FLASH_SALE = gql`
@@ -18,6 +17,23 @@ const GET_FLASH_SALE = gql`
       bgColor
       products
       maxProducts
+      isActive
+    }
+  }
+`
+
+// GraphQL 查詢：根據 ID 列表獲取產品
+const GET_PRODUCTS_BY_IDS = gql`
+  query GetProductsByIds($where: JSON, $take: Int) {
+    products(where: $where, take: $take) {
+      id
+      name
+      slug
+      price
+      originalPrice
+      images
+      stock
+      soldCount
     }
   }
 `
@@ -56,12 +72,29 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
     }
   }, [flashSaleConfig, flashSaleData, serverFlashSale, startPolling, stopPolling])
 
-  // 查詢產品資料（僅當沒有伺服器資料時）
-  const { data, loading, error } = useQuery(GET_HOMEPAGE_PRODUCTS, {
+  // 解析 products JSON（需要先解析才能知道要查詢哪些產品）
+  const productsConfig = React.useMemo(() => {
+    if (!flashSaleConfig?.products) return null
+    try {
+      return typeof flashSaleConfig.products === 'string'
+        ? JSON.parse(flashSaleConfig.products)
+        : flashSaleConfig.products
+    } catch (e) {
+      console.error('FlashSale: productsConfig 解析失敗', e)
+      return null
+    }
+  }, [flashSaleConfig])
+
+  // 獲取選中的產品 ID 列表
+  const productIds = productsConfig?.productIds || []
+
+  // 查詢指定的產品（使用 ID 過濾）
+  const { data, loading, error } = useQuery(GET_PRODUCTS_BY_IDS, {
     variables: {
+      where: productIds.length > 0 ? { id: { in: productIds } } : undefined,
       take: flashSaleConfig?.maxProducts || 20,
     },
-    skip: !!serverProducts || !flashSaleConfig, // 只在沒有伺服器資料且有配置時才查詢
+    skip: !!serverProducts || !flashSaleConfig || productIds.length === 0,
   })
 
   // 更新倒計時
@@ -97,37 +130,14 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
     return () => clearInterval(timer)
   }, [flashSaleConfig])
 
-  // 解析 products JSON
-  const productsConfig = React.useMemo(() => {
-    if (!flashSaleConfig?.products) return null
-    try {
-      return typeof flashSaleConfig.products === 'string'
-        ? JSON.parse(flashSaleConfig.products)
-        : flashSaleConfig.products
-    } catch (e) {
-      console.error('FlashSale: productsConfig 解析失敗', e)
-      return null
-    }
-  }, [flashSaleConfig])
-
-  // 處理產品資料
+  // 處理產品資料（查詢已直接返回指定的產品）
   const flashProducts = React.useMemo(() => {
     const allProducts = serverProducts || data?.products
-    if (!allProducts) return []
+    if (!allProducts || allProducts.length === 0) return []
 
-    let productsToShow = []
-    const productIds = productsConfig?.productIds || []
     const globalDiscount = productsConfig?.discountPercentage
 
-    if (productIds && productIds.length > 0) {
-      // 只顯示後台指定的產品
-      productsToShow = allProducts.filter((p: any) => productIds.includes(p.id))
-    } else {
-      // 如果後台沒有選擇任何產品，不顯示任何產品
-      return []
-    }
-
-    return productsToShow
+    return allProducts
       .map((product: any) => {
         const price = parseFloat(product.price)
         const originalPrice = parseFloat(product.originalPrice) || price
@@ -166,12 +176,30 @@ const FlashSale = ({ serverProducts, serverFlashSale }: FlashSaleProps) => {
     return null
   }
 
-  // 如果沒有限時搶購活動且數據已載入，不顯示組件
-  if (!flashSaleConfig && flashSaleData !== undefined && flashProducts.length === 0) {
+  // 檢查活動是否應該顯示
+  const shouldShow = React.useMemo(() => {
+    if (!flashSaleConfig) return false
+    if (!flashSaleConfig.isActive) return false
+
+    const now = new Date()
+    const startTime = new Date(flashSaleConfig.startTime)
+    const endTime = new Date(flashSaleConfig.endTime)
+
+    // 只有在活動時間內才顯示
+    return startTime <= now && endTime > now
+  }, [flashSaleConfig])
+
+  // 如果活動不應該顯示，返回 null
+  if (!shouldShow) {
     return null
   }
 
-  if (loading || (!flashSaleConfig && !data)) {
+  // 如果沒有選擇產品，不顯示
+  if (productIds.length === 0) {
+    return null
+  }
+
+  if (loading) {
     return null
   }
 
