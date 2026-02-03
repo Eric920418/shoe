@@ -146,49 +146,8 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
     }
   }, [serverProducts, data, productsConfig])
 
-  // 預設輪播圖（當後台沒有設定時使用）
-  const defaultBanners = [
-    {
-      id: '1',
-      title: '雙11限時特賣',
-      subtitle: '全場5折起',
-      description: '買2送1，滿999免運',
-      bgColor: 'from-red-500 to-orange-500',
-      linkUrl: '/flash-sale',
-      tag: '限時搶購',
-      buttonText: '立即搶購'
-    },
-    {
-      id: '2',
-      title: '新品上市',
-      subtitle: '2024秋冬新款',
-      description: '首購享85折優惠',
-      bgColor: 'from-purple-500 to-pink-500',
-      linkUrl: '/new-arrivals',
-      tag: 'NEW',
-      buttonText: '立即搶購'
-    },
-    {
-      id: '3',
-      title: '品牌特賣',
-      subtitle: 'Nike/Adidas',
-      description: '正品保證，假一賠十',
-      bgColor: 'from-blue-500 to-cyan-500',
-      linkUrl: '/brands',
-      tag: '品牌日',
-      buttonText: '立即搶購'
-    },
-    {
-      id: '4',
-      title: '清倉大特價',
-      subtitle: '換季出清',
-      description: '最低3折起',
-      bgColor: 'from-green-500 to-teal-500',
-      linkUrl: '/clearance',
-      tag: '清倉價',
-      buttonText: '立即搶購'
-    }
-  ]
+  // 預設輪播圖（當後台沒有設定時使用）- 留空，由後台管理
+  const defaultBanners: any[] = []
 
   // 使用後台數據或預設數據
   const banners = React.useMemo(() => {
@@ -228,6 +187,9 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
   ]
 
   useEffect(() => {
+    // 如果沒有輪播圖，不執行任何動作
+    if (banners.length === 0) return
+
     // 當 banners 改變時，重置 currentSlide 避免越界
     if (currentSlide >= banners.length) {
       setCurrentSlide(0)
@@ -334,32 +296,36 @@ const MarketplaceHero = ({ serverProducts }: MarketplaceHeroProps) => {
             </div>
           ))}
 
-          {/* 輪播控制 */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
-          >
-            <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
-          >
-            <ChevronRight size={20} className="sm:w-6 sm:h-6" />
-          </button>
-
-          {/* 指示器 */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {banners.map((_, index) => (
+          {/* 輪播控制 - 只在有輪播圖時顯示 */}
+          {banners.length > 0 && (
+            <>
               <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-2 rounded-full transition-all ${
-                  index === currentSlide ? "w-8 bg-white" : "w-2 bg-white/50"
-                }`}
-              />
-            ))}
-          </div>
+                onClick={prevSlide}
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
+              >
+                <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1.5 sm:p-2 rounded-full transition-colors z-20"
+              >
+                <ChevronRight size={20} className="sm:w-6 sm:h-6" />
+              </button>
+
+              {/* 指示器 */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`h-2 rounded-full transition-all ${
+                      index === currentSlide ? "w-8 bg-white" : "w-2 bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
