@@ -7,7 +7,7 @@ import { Truck, Package, Star, ShoppingCart, Loader2, Crown, Gift, Shield } from
 import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
-import { GET_HOMEPAGE_PRODUCTS } from '@/src/graphql/queries'
+import { GET_HOMEPAGE_PRODUCTS } from '@/graphql/queries'
 import { gql } from '@apollo/client'
 
 // 會員等級查詢

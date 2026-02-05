@@ -10,7 +10,7 @@ import {
 import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
-import { GET_NEW_ARRIVALS } from '@/src/graphql/queries'
+import { GET_NEW_ARRIVALS } from '@/graphql/queries'
 
 interface ProductVariant {
   id: string
