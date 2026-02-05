@@ -1102,7 +1102,32 @@ pnpm prisma migrate reset
 
 ---
 
-### 🔥 近期重點更新（2026-01-17）
+### 🔥 近期重點更新（2026-02-05）
+
+#### ✅ 免運專區與新品上市頁面修復（v2.6.5）
+- **問題**：`/free-shipping` 和 `/new-arrivals` 頁面顯示假資料或出現 client-side exception
+- **原因**：
+  - 頁面使用硬編碼的假資料而非從資料庫獲取
+  - GraphQL 回傳的 Decimal 欄位為字串類型，直接使用會導致類型錯誤
+  - `category` 可能為 null 但代碼直接存取 `category.name`
+- **解決方案**：
+  - 新增 `GET_NEW_ARRIVALS` GraphQL 查詢，支援 `isNewArrival` 篩選
+  - 使用 `useMemo` 進行資料轉換，正確處理 Decimal 字串和 null 值
+  - 新增 `ProductRaw` 介面處理原始 GraphQL 資料
+- **修改檔案**：
+  - `app/new-arrivals/page.tsx` - 完全改寫，使用真實資料庫資料
+  - `app/free-shipping/page.tsx` - 完全改寫，顯示會員等級免運門檻
+  - `src/graphql/queries.ts` - 新增 `GET_NEW_ARRIVALS` 查詢
+  - `src/graphql/schema.ts` - 新增 `isNewArrival` 和 `isFeatured` 篩選參數
+  - `src/graphql/resolvers/productResolvers.ts` - 新增篩選邏輯
+
+#### ✅ 熱銷排行頁面修復（v2.6.4）
+- **問題**：`/best-sellers` 頁面載入失敗，顯示 Prisma SortOrder 錯誤
+- **原因**：GraphQL 查詢使用 `DESC` 而非 Prisma 要求的小寫 `"desc"`
+- **解決方案**：將 `orderBy: { soldCount: DESC }` 改為 `orderBy: { soldCount: "desc" }`
+- **修改檔案**：`app/best-sellers/page.tsx`
+
+### 🔧 物流與訂單更新（2026-01-17）
 
 #### ✅ 物流貨態即時通知功能（v2.6.3）
 - **問題**：後台列印寄貨單後，客戶端訂單始終顯示「未發貨」，即使貨物已送達

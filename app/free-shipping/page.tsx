@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@apollo/client'
 import { Truck, Package, Star, ShoppingCart, Loader2, Crown, Gift, Shield } from 'lucide-react'
@@ -35,22 +35,36 @@ interface MembershipTier {
   sortOrder: number
 }
 
+interface ProductRaw {
+  id: string
+  name: string
+  slug: string
+  price: string | number
+  originalPrice?: string | number
+  images: string[] | string
+  stock: number
+  soldCount: number
+  viewCount: number
+  averageRating?: string | number
+  reviewCount: number
+  category?: {
+    name: string
+  }
+}
+
 interface Product {
   id: string
   name: string
   slug: string
   price: number
-  originalPrice?: number
+  originalPrice: number
   images: string[]
   stock: number
   soldCount: number
   viewCount: number
-  averageRating?: number
+  averageRating: number
   reviewCount: number
-  category: {
-    id: string
-    name: string
-  }
+  categoryName: string
 }
 
 export default function FreeShippingPage() {
@@ -67,7 +81,29 @@ export default function FreeShippingPage() {
   // 獲取會員等級資料
   const { data: tiersData, loading: tiersLoading } = useQuery(GET_MEMBERSHIP_TIERS)
 
-  const products: Product[] = productsData?.products || []
+  // 轉換原始資料為正確類型
+  const products: Product[] = useMemo(() => {
+    const rawProducts: ProductRaw[] = productsData?.products || []
+    return rawProducts.map((raw) => ({
+      id: raw.id,
+      name: raw.name,
+      slug: raw.slug,
+      price: typeof raw.price === 'string' ? parseFloat(raw.price) : raw.price,
+      originalPrice: raw.originalPrice
+        ? (typeof raw.originalPrice === 'string' ? parseFloat(raw.originalPrice) : raw.originalPrice)
+        : 0,
+      images: Array.isArray(raw.images) ? raw.images : [],
+      stock: raw.stock || 0,
+      soldCount: raw.soldCount || 0,
+      viewCount: raw.viewCount || 0,
+      averageRating: raw.averageRating
+        ? (typeof raw.averageRating === 'string' ? parseFloat(raw.averageRating) : raw.averageRating)
+        : 0,
+      reviewCount: raw.reviewCount || 0,
+      categoryName: raw.category?.name || '未分類',
+    }))
+  }, [productsData])
+
   const membershipTiers: MembershipTier[] = tiersData?.membershipTiers || []
 
   // 根據排序選項排序產品
@@ -278,7 +314,7 @@ export default function FreeShippingPage() {
                     {/* 分類標籤 */}
                     <div className="mb-2">
                       <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded">
-                        {product.category.name}
+                        {product.categoryName}
                       </span>
                     </div>
 
