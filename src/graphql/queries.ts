@@ -147,6 +147,53 @@ export const GET_CATEGORIES = gql`
   }
 `
 
+// 新品上市查詢
+export const GET_NEW_ARRIVALS = gql`
+  query GetNewArrivals(
+    $skip: Int
+    $take: Int
+    $genders: [ProductGender!]
+    $minPrice: Float
+    $maxPrice: Float
+  ) {
+    products(
+      skip: $skip
+      take: $take
+      isNewArrival: true
+      genders: $genders
+      minPrice: $minPrice
+      maxPrice: $maxPrice
+      orderBy: { createdAt: "desc" }
+    ) {
+      id
+      name
+      slug
+      price
+      originalPrice
+      images
+      totalStock
+      soldCount
+      viewCount
+      averageRating
+      reviewCount
+      isNewArrival
+      createdAt
+      category {
+        id
+        name
+        slug
+      }
+      variants {
+        id
+        color
+        colorHex
+        stock
+        isActive
+      }
+    }
+  }
+`
+
 // 首頁展示用產品查詢（包含銷售數據）
 export const GET_HOMEPAGE_PRODUCTS = gql`
   query GetHomepageProducts(

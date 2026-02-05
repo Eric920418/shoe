@@ -1836,6 +1836,8 @@ export const typeDefs = gql`
       genders: [ProductGender!]
       mainCategory: MainCategory
       search: String
+      isNewArrival: Boolean
+      isFeatured: Boolean
       where: JSON
       orderBy: JSON
     ): [Product!]!

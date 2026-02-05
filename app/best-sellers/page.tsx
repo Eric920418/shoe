@@ -12,7 +12,7 @@ import QuickAddToCartModal from '@/components/product/QuickAddToCartModal'
 // GraphQL 查詢：獲取熱銷產品
 const GET_BEST_SELLERS = gql`
   query GetBestSellers($take: Int) {
-    products(take: $take, orderBy: { soldCount: DESC }) {
+    products(take: $take, orderBy: { soldCount: "desc" }) {
       id
       slug
       name

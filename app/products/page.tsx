@@ -387,24 +387,39 @@ function ProductsPageContent() {
                         </div>
                       </div>
                     )}
-                    {/* 分類 - 只在有主分類時顯示（顯示該主分類下的子分類） */}
-                    {mainCategoryParam && categories.length > 0 && (
-                      <div>
+                    {/* 分類（多選按鈕） */}
+                    {categories.length > 0 && (
+                      <div className={!mainCategoryParam ? 'col-span-2' : ''}>
                         <h4 className="font-medium text-gray-700 mb-2 text-sm">分類</h4>
-                        <select
-                          value={selectedCategories[0] || 'all'}
-                          onChange={(e) => setSelectedCategories(e.target.value === 'all' ? [] : [e.target.value])}
-                          className="w-full px-2 py-1.5 border rounded text-sm"
-                        >
-                          <option value="all">全部分類</option>
+                        <div className="flex flex-wrap gap-1">
                           {categories.map((cat: { id: string; name: string }) => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => toggleCategory(cat.id)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                selectedCategories.includes(cat.id)
+                                  ? 'bg-orange-500 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {cat.name}
+                            </button>
                           ))}
-                        </select>
+                        </div>
+                        {selectedCategories.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCategories([])}
+                            className="text-xs text-orange-600 hover:text-orange-700 mt-2"
+                          >
+                            清除分類
+                          </button>
+                        )}
                       </div>
                     )}
                     {/* 價格 */}
-                    <div className={!mainCategoryParam ? 'col-span-2' : ''}>
+                    <div>
                       <h4 className="font-medium text-gray-700 mb-2 text-sm">價格範圍</h4>
                       <select
                         value={priceRange}

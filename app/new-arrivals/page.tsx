@@ -2,96 +2,101 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@apollo/client'
 import {
   Sparkles, TrendingUp, Star, ShoppingBag,
-  Calendar, Award, Zap
+  Calendar, Award, Zap, Loader2
 } from 'lucide-react'
 import { ProductCardImage } from '@/components/common/ProductImage'
 import WishlistButton from '@/components/product/WishlistButton'
 import Breadcrumb from '@/components/common/Breadcrumb'
+import { GET_NEW_ARRIVALS } from '@/src/graphql/queries'
+
+interface ProductVariant {
+  id: string
+  color: string
+  colorHex: string
+  stock: number
+  isActive: boolean
+}
+
+interface Product {
+  id: string
+  name: string
+  slug: string
+  price: number
+  originalPrice?: number
+  images: string[]
+  totalStock: number
+  soldCount: number
+  viewCount: number
+  averageRating?: number
+  reviewCount: number
+  isNewArrival: boolean
+  createdAt: string
+  category: {
+    id: string
+    name: string
+    slug: string
+  }
+  variants: ProductVariant[]
+}
 
 export default function NewArrivalsPage() {
   const [sortBy, setSortBy] = useState('newest')
-  const [selectedSize, setSelectedSize] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
-  // 模擬新品數據
-  const newProducts = [
-    {
-      id: 1,
-      name: 'Nike Air Zoom Pegasus 40',
-      price: 3990,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '2024秋季新款',
-      rating: 4.9,
-      reviews: 45,
-      colors: 5,
-      tag: 'NEW',
-      features: ['透氣網面', '緩震科技']
+  // 從資料庫獲取新品資料
+  const { data, loading, error } = useQuery(GET_NEW_ARRIVALS, {
+    variables: {
+      take: 24,
+      skip: 0,
     },
-    {
-      id: 2,
-      name: 'Adidas Forum Low',
-      price: 3290,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '本週新品',
-      rating: 4.8,
-      reviews: 23,
-      colors: 3,
-      tag: 'HOT',
-      features: ['復古設計', '皮革材質']
-    },
-    {
-      id: 3,
-      name: 'New Balance 9060',
-      price: 4590,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '限量發售',
-      rating: 5.0,
-      reviews: 12,
-      colors: 4,
-      tag: '限量',
-      features: ['ABZORB緩震', 'Y2K風格']
-    },
-    {
-      id: 4,
-      name: 'Puma Suede XL',
-      price: 2790,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '今日上架',
-      rating: 4.7,
-      reviews: 8,
-      colors: 6,
-      tag: '首發',
-      features: ['加厚鞋底', '麂皮材質']
-    },
-    {
-      id: 5,
-      name: 'Converse Run Star Hike',
-      price: 3490,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '預購中',
-      rating: 4.8,
-      reviews: 67,
-      colors: 2,
-      tag: '預購',
-      features: ['厚底設計', '鋸齒鞋底']
-    },
-    {
-      id: 6,
-      name: 'Vans Knu Skool',
-      price: 2990,
-      image: '/api/placeholder/300/300',
-      arrivalDate: '明日發售',
-      rating: 4.6,
-      reviews: 5,
-      colors: 8,
-      tag: '即將發售',
-      features: ['加大鞋舌', '3D立體設計']
-    }
-  ]
+  })
 
-  const sizes = ['all', '36', '37', '38', '39', '40', '41', '42', '43', '44']
+  const products: Product[] = data?.products || []
+
+  // 根據排序選項排序產品
+  const sortedProducts = [...products].sort((a, b) => {
+    switch (sortBy) {
+      case 'newest':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'popular':
+        return b.soldCount - a.soldCount
+      case 'price-low':
+        return a.price - b.price
+      case 'price-high':
+        return b.price - a.price
+      case 'rating':
+        return (b.averageRating || 0) - (a.averageRating || 0)
+      default:
+        return 0
+    }
+  })
+
+  // 計算產品的顏色數量
+  const getColorCount = (product: Product) => {
+    return product.variants?.filter(v => v.isActive).length || 0
+  }
+
+  // 獲取產品的第一張圖片
+  const getProductImage = (product: Product) => {
+    const images = Array.isArray(product.images) ? product.images : []
+    return images[0] || '/api/placeholder/300/300'
+  }
+
+  // 計算上架時間標籤
+  const getArrivalTag = (createdAt: string) => {
+    const now = new Date()
+    const created = new Date(createdAt)
+    const diffDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return '今日上架'
+    if (diffDays === 1) return '昨日上架'
+    if (diffDays <= 7) return '本週新品'
+    if (diffDays <= 30) return '本月新品'
+    return '新品上市'
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -107,8 +112,8 @@ export default function NewArrivalsPage() {
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="text-center">
             <Sparkles className="mx-auto mb-2 animate-pulse" size={32} />
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">2024 秋冬新品</h1>
-            <p className="text-sm sm:text-base opacity-90">潮流新品搶先看，首購享85折優惠</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">新品上市</h1>
+            <p className="text-sm sm:text-base opacity-90">最新鞋款搶先看，品質保證</p>
           </div>
         </div>
       </div>
@@ -123,7 +128,7 @@ export default function NewArrivalsPage() {
             </span>
             <span className="flex items-center gap-1 bg-pink-50 text-pink-600 px-3 py-1 rounded-full">
               <Zap size={14} />
-              48小時快速到貨
+              快速到貨
             </span>
             <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
               <TrendingUp size={14} />
@@ -131,7 +136,7 @@ export default function NewArrivalsPage() {
             </span>
             <span className="flex items-center gap-1 bg-green-50 text-green-600 px-3 py-1 rounded-full">
               <Calendar size={14} />
-              每週二新品上架
+              持續更新
             </span>
           </div>
         </div>
@@ -140,28 +145,10 @@ export default function NewArrivalsPage() {
       <div className="container mx-auto px-3 sm:px-4 py-4">
         {/* 篩選區 */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* 尺碼篩選 */}
-            <div className="flex-1">
-              <p className="text-sm text-gray-600 mb-2">尺碼</p>
-              <div className="flex flex-wrap gap-2">
-                {sizes.slice(0, 6).map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`w-12 h-8 rounded text-sm transition-colors ${
-                      selectedSize === size
-                        ? 'bg-purple-500 text-white'
-                        : 'border border-gray-300 text-gray-700 hover:border-purple-500'
-                    }`}
-                  >
-                    {size === 'all' ? '全部' : size}
-                  </button>
-                ))}
-                <button className="text-sm text-purple-500 hover:text-purple-600">
-                  更多 →
-                </button>
-              </div>
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
+            {/* 產品數量 */}
+            <div className="text-sm text-gray-600">
+              共 <span className="font-semibold text-purple-600">{products.length}</span> 件新品
             </div>
 
             {/* 排序和視圖切換 */}
@@ -200,149 +187,190 @@ export default function NewArrivalsPage() {
           </div>
         </div>
 
-        {/* 產品網格/列表 */}
-        <div className={viewMode === 'grid'
-          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
-          : "space-y-4"
-        }>
-          {newProducts.map((product) => (
-            viewMode === 'grid' ? (
-              // 網格視圖
-              <div
-                key={product.id}
-                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
-              >
-                <Link href={`/products/${product.id}`}>
-                  <div className="relative aspect-square bg-gray-100">
-                    <ProductCardImage
-                      src={product.image}
-                      alt={product.name}
-                      hoverScale
-                    />
+        {/* Loading 狀態 */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+            <span className="ml-2 text-gray-600">載入中...</span>
+          </div>
+        )}
 
-                    {/* 標籤 */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1">
-                      {product.tag === 'NEW' && (
+        {/* 錯誤狀態 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600 font-medium">載入失敗</p>
+            <p className="text-red-500 text-sm mt-1">{error.message}</p>
+          </div>
+        )}
+
+        {/* 空狀態 */}
+        {!loading && !error && products.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <Sparkles className="mx-auto mb-4 text-gray-300" size={48} />
+            <p className="text-gray-600 font-medium">目前沒有新品</p>
+            <p className="text-gray-400 text-sm mt-1">敬請期待新品上架</p>
+            <Link
+              href="/products"
+              className="inline-block mt-4 px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              瀏覽所有商品
+            </Link>
+          </div>
+        )}
+
+        {/* 產品網格/列表 */}
+        {!loading && !error && products.length > 0 && (
+          <div className={viewMode === 'grid'
+            ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
+            : "space-y-4"
+          }>
+            {sortedProducts.map((product) => (
+              viewMode === 'grid' ? (
+                // 網格視圖
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow group"
+                >
+                  <Link href={`/products/${product.slug}`}>
+                    <div className="relative aspect-square bg-gray-100">
+                      <ProductCardImage
+                        src={getProductImage(product)}
+                        alt={product.name}
+                        hoverScale
+                      />
+
+                      {/* 標籤 */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
                         <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded text-xs font-bold">
                           NEW
                         </span>
-                      )}
-                      {product.tag === '限量' && (
-                        <span className="bg-black text-white px-2 py-0.5 rounded text-xs font-bold">
-                          限量
+                        <span className="bg-white/90 text-gray-700 px-2 py-0.5 rounded text-xs">
+                          {getArrivalTag(product.createdAt)}
                         </span>
-                      )}
-                      {product.tag === '預購' && (
-                        <span className="bg-blue-500 text-white px-2 py-0.5 rounded text-xs">
-                          預購
-                        </span>
-                      )}
-                      <span className="bg-white/90 text-gray-700 px-2 py-0.5 rounded text-xs">
-                        {product.arrivalDate}
-                      </span>
-                    </div>
-
-                    <div className="absolute top-2 right-2 z-20">
-                      <WishlistButton productId={product.id.toString()} size="sm" />
-                    </div>
-
-                    {/* 多色提示 */}
-                    {product.colors > 1 && (
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-0.5 rounded text-xs">
-                        {product.colors} 色可選
                       </div>
-                    )}
-                  </div>
 
-                  <div className="p-3">
-                    <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
-                      {product.name}
-                    </h3>
+                      <div className="absolute top-2 right-2 z-20">
+                        <WishlistButton productId={product.id} size="sm" />
+                      </div>
 
-                    {/* 特色標籤 */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {product.features.map((feature, idx) => (
-                        <span key={idx} className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
-                          {feature}
+                      {/* 多色提示 */}
+                      {getColorCount(product) > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-0.5 rounded text-xs">
+                          {getColorCount(product)} 色可選
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3">
+                      <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2">
+                        {product.name}
+                      </h3>
+
+                      {/* 分類標籤 */}
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
+                          {product.category.name}
                         </span>
-                      ))}
-                    </div>
+                      </div>
 
-                    {/* 評分 */}
-                    <div className="flex items-center gap-1 mb-2">
-                      <Star className="text-yellow-400 fill-current" size={12} />
-                      <span className="text-xs text-gray-600">{product.rating}</span>
-                      <span className="text-xs text-gray-400">({product.reviews})</span>
-                    </div>
+                      {/* 評分 */}
+                      {product.reviewCount > 0 && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Star className="text-yellow-400 fill-current" size={12} />
+                          <span className="text-xs text-gray-600">
+                            {product.averageRating?.toFixed(1) || '0.0'}
+                          </span>
+                          <span className="text-xs text-gray-400">({product.reviewCount})</span>
+                        </div>
+                      )}
 
-                    {/* 價格 */}
-                    <div className="flex items-end justify-between">
-                      <p className="text-lg font-bold text-gray-800">
-                        ${product.price}
-                      </p>
-                      <button className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">
-                        <ShoppingBag size={14} className="inline mr-1" />
-                        選購
-                      </button>
+                      {/* 價格 */}
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-lg font-bold text-gray-800">
+                            ${product.price.toLocaleString()}
+                          </p>
+                          {product.originalPrice && product.originalPrice > product.price && (
+                            <p className="text-xs text-gray-400 line-through">
+                              ${product.originalPrice.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <button className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">
+                          <ShoppingBag size={14} className="inline mr-1" />
+                          選購
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </div>
-            ) : (
-              // 列表視圖
-              <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
-                <Link href={`/products/${product.id}`}>
-                  <div className="flex gap-4">
-                    <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <ProductCardImage
-                        src={product.image}
-                        alt={product.name}
-                        hoverScale={false}
-                      />
-                      {product.tag === 'NEW' && (
+                  </Link>
+                </div>
+              ) : (
+                // 列表視圖
+                <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
+                  <Link href={`/products/${product.slug}`}>
+                    <div className="flex gap-4">
+                      <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <ProductCardImage
+                          src={getProductImage(product)}
+                          alt={product.name}
+                          hoverScale={false}
+                        />
                         <span className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded text-xs font-bold">
                           NEW
                         </span>
-                      )}
-                    </div>
+                      </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">{product.arrivalDate}</p>
-                          <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {product.features.map((feature, idx) => (
-                              <span key={idx} className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">
-                                {feature}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{getArrivalTag(product.createdAt)}</p>
+                            <h3 className="font-medium text-gray-800 mb-2">{product.name}</h3>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded">
+                                {product.category.name}
                               </span>
-                            ))}
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Star className="text-yellow-400 fill-current" size={14} />
-                              <span>{product.rating}</span>
                             </div>
-                            <span className="text-gray-400">|</span>
-                            <span className="text-gray-600">{product.reviews} 則評價</span>
-                            <span className="text-gray-400">|</span>
-                            <span className="text-gray-600">{product.colors} 色可選</span>
+                            <div className="flex items-center gap-3 text-sm">
+                              {product.reviewCount > 0 && (
+                                <>
+                                  <div className="flex items-center gap-1">
+                                    <Star className="text-yellow-400 fill-current" size={14} />
+                                    <span>{product.averageRating?.toFixed(1) || '0.0'}</span>
+                                  </div>
+                                  <span className="text-gray-400">|</span>
+                                  <span className="text-gray-600">{product.reviewCount} 則評價</span>
+                                </>
+                              )}
+                              {getColorCount(product) > 1 && (
+                                <>
+                                  <span className="text-gray-400">|</span>
+                                  <span className="text-gray-600">{getColorCount(product)} 色可選</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-gray-800 mb-2">${product.price}</p>
-                          <button className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
-                            加入購物車
-                          </button>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-gray-800 mb-1">
+                              ${product.price.toLocaleString()}
+                            </p>
+                            {product.originalPrice && product.originalPrice > product.price && (
+                              <p className="text-sm text-gray-400 line-through mb-2">
+                                ${product.originalPrice.toLocaleString()}
+                              </p>
+                            )}
+                            <button className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                              加入購物車
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              </div>
-            )
-          ))}
-        </div>
+                  </Link>
+                </div>
+              )
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

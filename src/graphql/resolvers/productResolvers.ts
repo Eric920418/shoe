@@ -77,6 +77,8 @@ export const productResolvers = {
         genders,
         mainCategory,
         search,
+        isNewArrival,
+        isFeatured,
         where,
         orderBy = { createdAt: 'desc' },
         noCache = false,
@@ -90,6 +92,8 @@ export const productResolvers = {
         genders?: string[]
         mainCategory?: string
         search?: string
+        isNewArrival?: boolean
+        isFeatured?: boolean
         where?: any
         orderBy?: any
         noCache?: boolean
@@ -98,6 +102,16 @@ export const productResolvers = {
       // 構建篩選條件
       // 如果是後台管理查詢（noCache=true），不過濾 isActive
       const filters: any = noCache ? { ...where } : { isActive: true, ...where }
+
+      // 新品篩選
+      if (isNewArrival !== undefined) {
+        filters.isNewArrival = isNewArrival
+      }
+
+      // 精選篩選
+      if (isFeatured !== undefined) {
+        filters.isFeatured = isFeatured
+      }
 
       // 分類篩選邏輯：
       // 1. 如果有 categoryIds（用戶選擇了具體子分類），優先使用

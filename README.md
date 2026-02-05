@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.6.3 | **狀態**: ✅ 生產就緒 | **更新**: 2026-01-17
+**版本**: 2.6.5 | **狀態**: ✅ 生產就緒 | **更新**: 2026-02-05
 
 ---
 
@@ -1021,6 +1021,51 @@ pnpm prisma migrate reset
 ---
 
 ## 📝 最新更新摘要
+
+### 🔥 近期重點更新（2026-02-05）
+
+#### ✅ 熱銷排行頁面修正（/best-sellers）
+- **問題**：頁面報錯「載入熱銷產品失敗 - Invalid value for argument `soldCount`. Expected SortOrder.」
+- **根本原因**：GraphQL 查詢中的 `orderBy: { soldCount: DESC }` 使用大寫 `DESC`，但 Prisma 的 SortOrder 只接受小寫 `"desc"` 或 `"asc"`
+- **解決方案**：將 `DESC` 改為 `"desc"`
+- **技術變更**：`app/best-sellers/page.tsx` 第 15 行
+
+#### ✅ 免運專區頁面修正（/free-shipping）
+- **問題**：`/free-shipping` 頁面使用 `Array.from` 產生 20 個假的「免運商品 1、2、3...」，完全沒連接資料庫
+- **根本原因**：該頁面是開發初期的 placeholder，後來忘了實作真正的功能
+- **解決方案**：
+  - 使用 `GET_HOMEPAGE_PRODUCTS` GraphQL 查詢獲取真實產品資料
+  - 新增 `GET_MEMBERSHIP_TIERS` 查詢會員等級的免運門檻
+  - 頁面頂部顯示各會員等級的免運門檻說明
+  - 支援多種排序（人氣推薦、最新上架、價格排序、評價排序）
+  - 顯示折扣標籤和願望清單按鈕
+  - 底部新增「如何享有免運優惠」說明區塊
+  - 完整的載入中、空資料、錯誤狀態處理
+- **技術變更**：`app/free-shipping/page.tsx` 完全重寫
+- **功能說明**：
+  - 超商取貨運費 $49，會員達到等級門檻即免運
+  - `freeShippingThreshold = 0` 表示該等級「全免運」
+
+#### ✅ 新品上市頁面修正（/new-arrivals）
+- **問題**：`/new-arrivals` 頁面完全使用硬編碼的假資料，包含不存在的產品（Nike Air Zoom Pegasus 40、Adidas Forum Low 等）和 placeholder 圖片
+- **根本原因**：該頁面是開發初期的 placeholder，後來忘了實作真正的功能
+- **解決方案**：
+  - 新增 GraphQL `isNewArrival` 和 `isFeatured` 篩選參數支援
+  - 更新 `productResolvers.ts` 加入新品和精選篩選邏輯
+  - 新增 `GET_NEW_ARRIVALS` GraphQL 查詢
+  - 頁面改用 Apollo Client 查詢 `isNewArrival: true` 的真實產品
+  - 支援多種排序（最新上架、人氣推薦、價格排序、評價排序）
+  - 動態計算上架時間標籤（今日上架、昨日上架、本週新品等）
+  - 顯示產品的顏色變體數量
+  - 完整的載入中、空資料、錯誤狀態處理
+- **技術變更**：
+  - `src/graphql/schema.ts`：products Query 新增 `isNewArrival` 和 `isFeatured` 參數
+  - `src/graphql/resolvers/productResolvers.ts`：新增篩選邏輯
+  - `src/graphql/queries.ts`：新增 `GET_NEW_ARRIVALS` 查詢
+  - `app/new-arrivals/page.tsx`：完全重寫，移除所有硬編碼資料
+- **使用方式**：後台編輯產品時勾選「新品上市」即會顯示在此頁面
+
+---
 
 ### 🔥 近期重點更新（2026-01-21）
 
