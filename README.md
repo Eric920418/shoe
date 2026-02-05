@@ -2,7 +2,7 @@
 
 > 蝦皮/淘寶風格的熱鬧電商平台 - Next.js 14 全端架構 + GraphQL + PostgreSQL
 
-**版本**: 2.6.5 | **狀態**: ✅ 生產就緒 | **更新**: 2026-02-05
+**版本**: 2.6.6 | **狀態**: ✅ 生產就緒 | **更新**: 2026-02-05
 
 ---
 
@@ -1030,22 +1030,6 @@ pnpm prisma migrate reset
 - **解決方案**：將 `DESC` 改為 `"desc"`
 - **技術變更**：`app/best-sellers/page.tsx` 第 15 行
 
-#### ✅ 免運專區頁面修正（/free-shipping）
-- **問題**：`/free-shipping` 頁面使用 `Array.from` 產生 20 個假的「免運商品 1、2、3...」，完全沒連接資料庫
-- **根本原因**：該頁面是開發初期的 placeholder，後來忘了實作真正的功能
-- **解決方案**：
-  - 使用 `GET_HOMEPAGE_PRODUCTS` GraphQL 查詢獲取真實產品資料
-  - 新增 `GET_MEMBERSHIP_TIERS` 查詢會員等級的免運門檻
-  - 頁面頂部顯示各會員等級的免運門檻說明
-  - 支援多種排序（人氣推薦、最新上架、價格排序、評價排序）
-  - 顯示折扣標籤和願望清單按鈕
-  - 底部新增「如何享有免運優惠」說明區塊
-  - 完整的載入中、空資料、錯誤狀態處理
-- **技術變更**：`app/free-shipping/page.tsx` 完全重寫
-- **功能說明**：
-  - 超商取貨運費 $49，會員達到等級門檻即免運
-  - `freeShippingThreshold = 0` 表示該等級「全免運」
-
 #### ✅ 新品上市頁面修正（/new-arrivals）
 - **問題**：`/new-arrivals` 頁面完全使用硬編碼的假資料，包含不存在的產品（Nike Air Zoom Pegasus 40、Adidas Forum Low 等）和 placeholder 圖片
 - **根本原因**：該頁面是開發初期的 placeholder，後來忘了實作真正的功能
@@ -1104,19 +1088,22 @@ pnpm prisma migrate reset
 
 ### 🔥 近期重點更新（2026-02-05）
 
-#### ✅ 免運專區與新品上市頁面修復（v2.6.5）
-- **問題**：`/free-shipping` 和 `/new-arrivals` 頁面顯示假資料或出現 client-side exception
-- **原因**：
-  - 頁面使用硬編碼的假資料而非從資料庫獲取
-  - GraphQL 回傳的 Decimal 欄位為字串類型，直接使用會導致類型錯誤
-  - `category` 可能為 null 但代碼直接存取 `category.name`
+#### ✅ 移除免運專區頁面（v2.6.6）
+- **變更**：完全移除 `/free-shipping` 頁面功能
+- **原因**：功能整合，免運門檻資訊已整合至購物車頁面動態顯示
+- **移除內容**：
+  - 刪除 `app/free-shipping/page.tsx` 頁面
+  - 移除導航列中的「免運專區」連結
+- **保留功能**：購物車頁面的會員免運門檻動態顯示（v2.4.9）仍保留
+
+#### ✅ 新品上市頁面修復（v2.6.5）
+- **問題**：`/new-arrivals` 頁面顯示假資料
+- **原因**：頁面使用硬編碼的假資料而非從資料庫獲取
 - **解決方案**：
   - 新增 `GET_NEW_ARRIVALS` GraphQL 查詢，支援 `isNewArrival` 篩選
   - 使用 `useMemo` 進行資料轉換，正確處理 Decimal 字串和 null 值
-  - 新增 `ProductRaw` 介面處理原始 GraphQL 資料
 - **修改檔案**：
   - `app/new-arrivals/page.tsx` - 完全改寫，使用真實資料庫資料
-  - `app/free-shipping/page.tsx` - 完全改寫，顯示會員等級免運門檻
   - `src/graphql/queries.ts` - 新增 `GET_NEW_ARRIVALS` 查詢
   - `src/graphql/schema.ts` - 新增 `isNewArrival` 和 `isFeatured` 篩選參數
   - `src/graphql/resolvers/productResolvers.ts` - 新增篩選邏輯

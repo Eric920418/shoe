@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Search, ShoppingCart, Menu, MessageCircle, Gift,
-  MapPin, ChevronDown, Percent, Truck, Heart, Store,
+  MapPin, ChevronDown, Percent, Heart, Store,
   User, Star, TrendingUp, Clock, Flame
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -207,10 +207,6 @@ const MarketplaceHeader = () => {
               <Link href="/super-deals" className="flex items-center gap-1 px-3 py-2.5 hover:text-orange-600 transition-colors">
                 <Percent size={16} className="text-orange-500" />
                 <span className="font-medium">超值優惠</span>
-              </Link>
-              <Link href="/free-shipping" className="flex items-center gap-1 px-3 py-2.5 hover:text-orange-600 transition-colors">
-                <Truck size={16} className="text-green-500" />
-                <span className="font-medium">免運專區</span>
               </Link>
               <Link href="/new-arrivals" className="flex items-center gap-1 px-3 py-2.5 hover:text-orange-600 transition-colors">
                 <Star size={16} className="text-yellow-500" />
