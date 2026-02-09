@@ -21,7 +21,6 @@ const SEARCH_PRODUCTS = gql`
     $categoryId: String
     $minPrice: Float
     $maxPrice: Float
-    $gender: ProductGender
   ) {
     products(
       search: $search
@@ -30,7 +29,6 @@ const SEARCH_PRODUCTS = gql`
       categoryId: $categoryId
       minPrice: $minPrice
       maxPrice: $maxPrice
-      gender: $gender
     ) {
       id
       name
