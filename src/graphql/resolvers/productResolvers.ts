@@ -154,12 +154,48 @@ export const productResolvers = {
       }
 
       // 關鍵字搜尋（搜尋產品名稱、描述、分類名稱）
+      // 支援中文拆字搜尋：「女鞋」→ 必須同時包含「女」和「鞋」
       if (search) {
-        filters.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-          { category: { name: { contains: search, mode: 'insensitive' } } },
-        ]
+        const trimmed = search.trim()
+        const hasChinese = /[\u4e00-\u9fff]/.test(trimmed)
+
+        // 拆分搜尋詞：
+        // - 有空格：按空格拆分，中文 token 再拆單字
+        // - 純中文無空格：拆成單字
+        // - 純英文無空格：保持原樣
+        let searchTerms: string[]
+        if (trimmed.includes(' ')) {
+          searchTerms = trimmed.split(/\s+/).flatMap(token => {
+            if (/[\u4e00-\u9fff]/.test(token)) {
+              return token.split('').filter(c => /[\u4e00-\u9fff]/.test(c))
+            }
+            return [token]
+          }).filter(t => t.length > 0)
+        } else if (hasChinese) {
+          searchTerms = trimmed.split('').filter(c => c.trim().length > 0)
+        } else {
+          searchTerms = [trimmed]
+        }
+
+        if (searchTerms.length > 1) {
+          // 多個搜尋詞：AND 邏輯，每個詞都必須出現在至少一個欄位中
+          filters.AND = [
+            ...(filters.AND || []),
+            ...searchTerms.map(term => ({
+              OR: [
+                { name: { contains: term, mode: 'insensitive' as const } },
+                { description: { contains: term, mode: 'insensitive' as const } },
+                { category: { name: { contains: term, mode: 'insensitive' as const } } },
+              ]
+            }))
+          ]
+        } else {
+          filters.OR = [
+            { name: { contains: trimmed, mode: 'insensitive' } },
+            { description: { contains: trimmed, mode: 'insensitive' } },
+            { category: { name: { contains: trimmed, mode: 'insensitive' } } },
+          ]
+        }
       }
 
       // 查詢資料的函數
