@@ -98,7 +98,7 @@ export default function HelpPage() {
   // 查詢用戶的對話
   const { data, loading, refetch } = useQuery(GET_MY_CONVERSATIONS, {
     skip: !user,
-    pollInterval: selectedConversation ? 10000 : 0, // 10 秒輪詢一次
+    pollInterval: showChatSection && selectedConversation ? 10000 : 0, // 只更新正在顯示的對話
     fetchPolicy: 'cache-first',
     nextFetchPolicy: 'cache-first',
   })
