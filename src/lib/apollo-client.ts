@@ -86,6 +86,7 @@ export const apolloClient = new ApolloClient({
   }),
   defaultOptions: {
     watchQuery: {
+      skipPollAttempt: () => typeof document === 'undefined' || document.visibilityState !== 'visible' || !navigator.onLine,
       fetchPolicy: 'cache-first', // 改為 cache-first，減少無效請求
       nextFetchPolicy: 'cache-first', // 後續查詢也使用 cache-first
     },

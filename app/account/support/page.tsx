@@ -86,7 +86,7 @@ export default function SupportPage() {
   // 獲取選中對話的完整訊息
   const { data: conversationData, loading: conversationLoading } = useQuery(GET_CONVERSATION, {
     variables: { id: selectedConversationId },
-    skip: !selectedConversationId,
+    skip: !user || !selectedConversationId,
     pollInterval: selectedConversationId ? 10000 : 0, // 只在有選中對話時才輪詢
     fetchPolicy: 'cache-and-network',
   })

@@ -6,6 +6,12 @@
 
 ---
 
+## 2026-10-06 Neon 降費：背景輪詢
+
+共用 Apollo Client 使用原生 [`skipPollAttempt`](https://www.apollographql.com/docs/react/v3/api/react/hooks#skippollattempt)：頁面隱藏或離線時不發出固定輪詢；重新可見且在線後，下一個原有週期自動恢復。覆蓋後台聊天室、儀表板未讀數、客服頁及帳號客服頁，使用中的 10 秒／30 秒更新週期與手動刷新、送出訊息後的更新保留。`/help` 切回留言表單而不顯示對話時停止輪詢；帳號客服頁未登入時不查所選對話。私人對話沒有新增伺服器快取，也沒有修改訊息寫入、庫存、訂單或資料庫。
+
+驗證：`node --test tests/background-polling.test.cjs` 以原有 Apollo 實際輪詢及 mock link 確認隱藏／離線停止、可見恢復及查詢預設值繼承及伺服器端不存取瀏覽器全域；TypeScript 基準比對、`git diff --check`，正式環境候選建置與公開站／匿名 GraphQL 驗證。`pnpm exec tsc --noEmit --incremental false` 在原 main 及修改版均有相同 120 個既有錯誤（只正規化工作目錄路徑），沒有新增診斷；既有 next.config.js 的 ignoreBuildErrors 未更動，不能宣稱完整型別檢查通過。原生 Apollo 測試顯示庫內 canonizeResults 棄用警告，非本次新增選項。沒有新增套件。節省量取決於原本背景分頁開啟時數，不宣稱特定美元節省。
+
 ## 📋 目錄
 
 - [核心特色](#-核心特色)
